@@ -6,6 +6,7 @@ import professionalRoutes from './professional.routes.js';
 import serviceRoutes from './service.routes.js';
 import roomRoutes from './room.routes.js';
 import appointmentRoutes from './appointment.routes.js';
+import invoiceRoutes from './invoice.routes.js';
 
 const router: Router = Router();
 
@@ -32,6 +33,7 @@ router.use(`${API_VERSION}/professionals`, professionalRoutes);
 router.use(`${API_VERSION}/services`, serviceRoutes);
 router.use(`${API_VERSION}/rooms`, roomRoutes);
 router.use(`${API_VERSION}/appointments`, appointmentRoutes);
+router.use(`${API_VERSION}/invoices`, invoiceRoutes);
 
 // API info route
 router.get('/info', (req, res) => {
