@@ -3,13 +3,26 @@ import { Types } from 'mongoose';
 import { File } from '../models/File.js';
 import { Patient } from '../models/Patient.js';
 import { Appointment } from '../models/Appointment.js';
+import { Note } from '../models/Note.js';
 import { AuditLog } from '../models/AuditLog.js';
 import logger from '../config/logger.js';
 import { AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
+import { Client as MinioClient } from 'minio';
 import config from '../config/env.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
+import sharp from 'sharp';
+
+// MinIO client configuration
+const minioClient = new MinioClient({
+  endPoint: config.MINIO_ENDPOINT || 'localhost',
+  port: config.MINIO_PORT || 9000,
+  useSSL: config.MINIO_USE_SSL === true || config.MINIO_USE_SSL === 'true',
+  accessKey: config.MINIO_ACCESS_KEY || 'minioadmin',
+  secretKey: config.MINIO_SECRET_KEY || 'minioadmin',
+});
 
 interface UploadRequest {
   ownerType: 'patient' | 'appointment' | 'note' | 'professional' | 'system';
@@ -57,8 +70,10 @@ const upload = multer({
       'text/csv',
       'audio/mpeg',
       'audio/wav',
+      'audio/x-wav',
       'video/mp4',
       'video/quicktime',
+      'application/json',
     ];
 
     if (allowedMimes.includes(file.mimetype)) {
@@ -70,6 +85,82 @@ const upload = multer({
 });
 
 export class FileController {
+  /**
+   * Initialize MinIO bucket if not exists
+   */
+  static async initializeBucket() {
+    try {
+      const bucketName = config.MINIO_BUCKET_NAME || 'apsicologia-files';
+      const exists = await minioClient.bucketExists(bucketName);
+      
+      if (!exists) {
+        await minioClient.makeBucket(bucketName, 'us-east-1');
+        logger.info(`Created MinIO bucket: ${bucketName}`);
+        
+        // Set bucket policy for public access to public files
+        const policy = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: '*',
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${bucketName}/public/*`],
+            },
+          ],
+        };
+        
+        await minioClient.setBucketPolicy(bucketName, JSON.stringify(policy));
+        logger.info(`Set bucket policy for: ${bucketName}`);
+      }
+    } catch (error) {
+      logger.error('MinIO bucket initialization error:', error);
+    }
+  }
+
+  /**
+   * Generate file checksum
+   */
+  static generateChecksum(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  /**
+   * Process image files (create thumbnails, optimize)
+   */
+  static async processImage(buffer: Buffer, mimeType: string): Promise<{
+    original: Buffer;
+    thumbnail?: Buffer;
+    optimized?: Buffer;
+  }> {
+    try {
+      if (!mimeType.startsWith('image/')) {
+        return { original: buffer };
+      }
+
+      // Create thumbnail (200x200)
+      const thumbnail = await sharp(buffer)
+        .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      // Create optimized version (max 1920x1080)
+      const optimized = await sharp(buffer)
+        .resize(1920, 1080, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      return {
+        original: buffer,
+        thumbnail,
+        optimized,
+      };
+    } catch (error) {
+      logger.error('Image processing error:', error);
+      return { original: buffer };
+    }
+  }
+
   /**
    * Upload file
    */
@@ -87,29 +178,128 @@ export class FileController {
       }
 
       // Check permissions based on user role
-      if (authUser.role !== 'admin' && authUser.role !== 'reception' && authUser.role !== 'professional') {
+      if (authUser.role === 'patient') {
+        // Patients can only upload to their own records
+        const patient = await Patient.findOne({ 'contactInfo.email': authUser.email });
+        if (!patient || (uploadData.ownerId && uploadData.ownerId !== patient._id.toString())) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: Can only upload to your own records',
+          });
+        }
+        uploadData.ownerId = patient._id.toString();
+        uploadData.ownerType = 'patient';
+      } else if (authUser.role !== 'admin' && authUser.role !== 'reception' && authUser.role !== 'professional') {
         return res.status(403).json({
           success: false,
           message: 'Access denied: Cannot upload files',
         });
       }
 
-      // Generate unique filename
-      const fileExtension = path.extname(file.originalname);
-      const uniqueFilename = `${uuidv4()}${fileExtension}`;
-      const objectKey = `${uploadData.ownerType}/${uploadData.ownerId || 'system'}/${uniqueFilename}`;
+      // Validate owner exists
+      if (uploadData.ownerId && uploadData.ownerType !== 'system') {
+        let ownerExists = false;
+        
+        switch (uploadData.ownerType) {
+          case 'patient':
+            ownerExists = !!(await Patient.findById(uploadData.ownerId));
+            break;
+          case 'appointment':
+            ownerExists = !!(await Appointment.findById(uploadData.ownerId));
+            break;
+          case 'note':
+            ownerExists = !!(await Note.findById(uploadData.ownerId));
+            break;
+          case 'professional':
+            // Would check Professional model when available
+            ownerExists = true;
+            break;
+        }
 
-      // Create file record (simplified)
+        if (!ownerExists) {
+          return res.status(404).json({
+            success: false,
+            message: `${uploadData.ownerType} not found`,
+          });
+        }
+      }
+
+      // Generate unique filename and paths
+      const fileExtension = path.extname(file.originalname).toLowerCase();
+      const uniqueFilename = `${uuidv4()}${fileExtension}`;
+      const basePath = uploadData.isPublic ? 'public' : 'private';
+      const objectKey = `${basePath}/${uploadData.ownerType}/${uploadData.ownerId || 'system'}/${uniqueFilename}`;
+      
+      // Generate checksum
+      const checksum = FileController.generateChecksum(file.buffer);
+      
+      // Check for duplicate files
+      const existingFile = await File.findOne({
+        checksum,
+        deletedAt: null,
+      });
+
+      if (existingFile) {
+        return res.status(409).json({
+          success: false,
+          message: 'File already exists',
+          data: { existingFile },
+        });
+      }
+
+      // Process images
+      const processedFiles = await FileController.processImage(file.buffer, file.mimetype);
+
+      // Upload to MinIO
+      const bucketName = config.MINIO_BUCKET_NAME || 'apsicologia-files';
+      const uploadPromises: Promise<any>[] = [];
+
+      // Upload original file
+      uploadPromises.push(
+        minioClient.putObject(bucketName, objectKey, processedFiles.original, file.size, {
+          'Content-Type': file.mimetype,
+          'X-Amz-Meta-Original-Name': file.originalname,
+          'X-Amz-Meta-Uploaded-By': authUser._id.toString(),
+          'X-Amz-Meta-Upload-Date': new Date().toISOString(),
+        })
+      );
+
+      // Upload thumbnail and optimized versions for images
+      let thumbnailPath: string | undefined;
+      let optimizedPath: string | undefined;
+
+      if (processedFiles.thumbnail) {
+        thumbnailPath = objectKey.replace(fileExtension, '_thumb.jpg');
+        uploadPromises.push(
+          minioClient.putObject(bucketName, thumbnailPath, processedFiles.thumbnail, processedFiles.thumbnail.length, {
+            'Content-Type': 'image/jpeg',
+          })
+        );
+      }
+
+      if (processedFiles.optimized && processedFiles.optimized.length < file.size * 0.8) {
+        optimizedPath = objectKey.replace(fileExtension, '_opt.jpg');
+        uploadPromises.push(
+          minioClient.putObject(bucketName, optimizedPath, processedFiles.optimized, processedFiles.optimized.length, {
+            'Content-Type': 'image/jpeg',
+          })
+        );
+      }
+
+      // Wait for all uploads to complete
+      await Promise.all(uploadPromises);
+
+      // Create file record
       const fileRecord = new File({
         fileName: uniqueFilename,
         originalFileName: file.originalname,
         mimeType: file.mimetype,
-        fileExtension: fileExtension.toLowerCase(),
+        fileExtension: fileExtension,
         fileSize: file.size,
         storageProvider: 'minio',
         storagePath: objectKey,
-        bucketName: config.MINIO_BUCKET_NAME,
-        checksum: `${Date.now()}-${Math.random()}`, // Simplified checksum
+        bucketName,
+        checksum,
         checksumAlgorithm: 'sha256',
         ownerId: uploadData.ownerId ? new Types.ObjectId(uploadData.ownerId) : new Types.ObjectId(),
         ownerType: uploadData.ownerType,
@@ -135,9 +325,14 @@ export class FileController {
           status: 'completed',
           tasks: [],
         },
+        mediaMetadata: {
+          thumbnailPath,
+          thumbnailUrl: thumbnailPath,
+        },
         security: {
           isEncrypted: false,
           virusScanned: false,
+          scanResults: {},
         },
         versioning: {
           version: 1,
@@ -148,6 +343,8 @@ export class FileController {
         accessTracking: {
           downloadCount: 0,
           viewCount: 0,
+          lastDownloadedAt: undefined,
+          lastViewedAt: undefined,
           downloadHistory: [],
           analytics: {
             uniqueViewers: 0,
@@ -165,7 +362,7 @@ export class FileController {
           gdprCompliant: true,
           containsPII: false,
           legalHolds: [],
-          auditRequired: false,
+          auditRequired: ['patient', 'appointment', 'note'].includes(uploadData.ownerType),
         },
         backup: {
           isBackedUp: false,
@@ -201,6 +398,7 @@ export class FileController {
             size: fileRecord.fileSize,
             ownerType: fileRecord.ownerType,
             ownerId: fileRecord.ownerId,
+            checksum: fileRecord.checksum,
           },
         },
         security: {
@@ -273,15 +471,30 @@ export class FileController {
         }
         filter.$or = [
           { ownerType: 'patient', ownerId: patient._id },
-        ];
-      } else if (authUser.role === 'professional') {
-        filter.$or = [
-          { ownerType: 'professional', ownerId: authUser.professionalId },
           { ownerType: 'system', 'permissions.visibility': 'public' },
         ];
+      } else if (authUser.role === 'professional') {
+        // Professional can access their own files, patient files they're assigned to, and public files
+        const professionalPatients = await Patient.find({
+          $or: [
+            { 'clinicalInfo.primaryProfessional': authUser.professionalId },
+            { 'clinicalInfo.assignedProfessionals': authUser.professionalId },
+          ],
+          deletedAt: null,
+        }).select('_id');
+        
+        const patientIds = professionalPatients.map(p => p._id);
+        
+        filter.$or = [
+          { ownerType: 'professional', ownerId: authUser.professionalId },
+          { ownerType: 'patient', ownerId: { $in: patientIds } },
+          { ownerType: 'system', 'permissions.visibility': 'public' },
+          { 'upload.uploadedBy': authUser._id },
+        ];
       }
+      // Admin and reception can access all files (no additional filter)
 
-      // Apply query filters (admin and reception can access all)
+      // Apply query filters
       if (ownerType && (authUser.role === 'admin' || authUser.role === 'reception')) {
         filter.ownerType = ownerType;
       }
@@ -299,17 +512,19 @@ export class FileController {
       }
 
       if (tags) {
-        const tagArray = tags.split(',');
+        const tagArray = tags.split(',').map(tag => tag.trim());
         filter.tags = { $in: tagArray };
       }
 
       if (search) {
-        filter.$or = filter.$or || [];
-        filter.$or.push(
-          { originalFileName: new RegExp(search, 'i') },
-          { description: new RegExp(search, 'i') },
-          { tags: { $in: [new RegExp(search, 'i')] } }
-        );
+        filter.$and = filter.$and || [];
+        filter.$and.push({
+          $or: [
+            { originalFileName: new RegExp(search, 'i') },
+            { description: new RegExp(search, 'i') },
+            { tags: { $in: [new RegExp(search, 'i')] } },
+          ],
+        });
       }
 
       // Build sort
@@ -324,6 +539,7 @@ export class FileController {
           .limit(limitNum)
           .populate('upload.uploadedBy', 'name email')
           .populate('ownerId', 'personalInfo.fullName name title')
+          .select('-auditLog') // Exclude audit log for list view
           .exec(),
         File.countDocuments(filter),
       ]);
@@ -369,18 +585,41 @@ export class FileController {
         });
       }
 
-      // Basic access check
-      const canAccess = 
-        authUser.role === 'admin' ||
-        authUser.role === 'reception' ||
-        file.upload.uploadedBy.toString() === authUser._id.toString();
+      // Check access permissions
+      let hasAccess = false;
 
-      if (!canAccess) {
+      if (authUser.role === 'admin' || authUser.role === 'reception') {
+        hasAccess = true;
+      } else if (authUser.role === 'professional') {
+        if (file.ownerType === 'professional' && file.ownerId.equals(authUser.professionalId!)) {
+          hasAccess = true;
+        } else if (file.ownerType === 'patient') {
+          const patient = await Patient.findById(file.ownerId);
+          if (patient) {
+            hasAccess = (patient.clinicalInfo.assignedProfessionals?.includes(authUser.professionalId!) ?? false) ||
+                       (patient.clinicalInfo.primaryProfessional?.equals(authUser.professionalId!) ?? false);
+          }
+        } else if (file.upload.uploadedBy.equals(authUser._id)) {
+          hasAccess = true;
+        }
+      } else if (authUser.role === 'patient') {
+        const patient = await Patient.findOne({ 'contactInfo.email': authUser.email });
+        if (patient && file.ownerType === 'patient' && file.ownerId.equals(patient._id)) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: Cannot access this file',
         });
       }
+
+      // Update view count
+      file.accessTracking.viewCount += 1;
+      file.accessTracking.lastViewedAt = new Date();
+      await file.save();
 
       res.status(200).json({
         success: true,
@@ -393,11 +632,12 @@ export class FileController {
   }
 
   /**
-   * Download file (simplified - returns file info)
+   * Generate presigned URL for file download
    */
-  static async downloadFile(req: Request, res: Response, next: NextFunction) {
+  static async getDownloadUrl(req: Request, res: Response, next: NextFunction) {
     try {
       const { fileId } = req.params;
+      const { type = 'original' } = req.query;
       const authUser = (req as AuthRequest).user!;
 
       const file = await File.findOne({ _id: fileId, deletedAt: null });
@@ -408,37 +648,71 @@ export class FileController {
         });
       }
 
-      // Basic access check
-      const canAccess = 
-        authUser.role === 'admin' ||
-        authUser.role === 'reception' ||
-        file.upload.uploadedBy.toString() === authUser._id.toString();
+      // Check access permissions (same logic as getFileById)
+      let hasAccess = false;
 
-      if (!canAccess) {
+      if (authUser.role === 'admin' || authUser.role === 'reception') {
+        hasAccess = true;
+      } else if (authUser.role === 'professional') {
+        if (file.ownerType === 'professional' && file.ownerId.equals(authUser.professionalId!)) {
+          hasAccess = true;
+        } else if (file.ownerType === 'patient') {
+          const patient = await Patient.findById(file.ownerId);
+          if (patient) {
+            hasAccess = (patient.clinicalInfo.assignedProfessionals?.includes(authUser.professionalId!) ?? false) ||
+                       (patient.clinicalInfo.primaryProfessional?.equals(authUser.professionalId!) ?? false);
+          }
+        } else if (file.upload.uploadedBy.equals(authUser._id)) {
+          hasAccess = true;
+        }
+      } else if (authUser.role === 'patient') {
+        const patient = await Patient.findOne({ 'contactInfo.email': authUser.email });
+        if (patient && file.ownerType === 'patient' && file.ownerId.equals(patient._id)) {
+          hasAccess = true;
+        }
+      }
+
+      if (!hasAccess) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: Cannot download this file',
         });
       }
 
+      // Determine which file version to download
+      let objectPath = file.storagePath;
+      if (type === 'thumbnail' && file.mediaMetadata?.thumbnailPath) {
+        objectPath = file.mediaMetadata.thumbnailPath;
+      } else if (type === 'optimized' && file.mediaMetadata?.thumbnailPath) {
+        // Use thumbnail as optimized version for now
+        objectPath = file.mediaMetadata.thumbnailPath;
+      }
+
+      // Generate presigned URL (valid for 1 hour)
+      const presignedUrl = await minioClient.presignedGetObject(
+        file.bucketName,
+        objectPath,
+        60 * 60 // 1 hour expiry
+      );
+
       // Update download count
       file.accessTracking.downloadCount += 1;
       file.accessTracking.lastDownloadedAt = new Date();
       await file.save();
 
-      // Return file info (simplified - in production would return presigned URL)
       res.status(200).json({
         success: true,
         data: {
-          downloadUrl: `${config.APP_URL}/files/${file._id}/content`,
+          downloadUrl: presignedUrl,
           filename: file.originalFileName,
           size: file.fileSize,
           mimetype: file.mimeType,
-          expiresIn: '24 hours',
+          type,
+          expiresIn: '1 hour',
         },
       });
     } catch (error) {
-      logger.error('Download file error:', error);
+      logger.error('Get download URL error:', error);
       next(error);
     }
   }
@@ -463,6 +737,7 @@ export class FileController {
       // Check permissions
       const canUpdate = 
         authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
         file.upload.uploadedBy.toString() === authUser._id.toString();
 
       if (!canUpdate) {
@@ -472,20 +747,71 @@ export class FileController {
         });
       }
 
+      // Store original data for audit
+      const originalData = file.toObject();
+
       // Update allowed fields
       if (updateData.description !== undefined) {
         file.description = updateData.description;
       }
 
       if (updateData.tags) {
-        file.tags = updateData.tags;
+        file.tags = Array.isArray(updateData.tags) ? updateData.tags : [updateData.tags];
       }
 
       if (updateData.category) {
         file.category = updateData.category;
       }
 
+      if (updateData.isPublic !== undefined && authUser.role === 'admin') {
+        file.permissions.visibility = updateData.isPublic ? 'public' : 'private';
+      }
+
       await file.save();
+
+      // Log file update
+      await AuditLog.create({
+        action: 'file_updated',
+        entityType: 'file',
+        entityId: file._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          before: {
+            description: originalData.description,
+            tags: originalData.tags,
+            category: originalData.category,
+          },
+          after: {
+            description: file.description,
+            tags: file.tags,
+            category: file.category,
+          },
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: file.compliance.hipaaCompliant,
+            gdprRelevant: true,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: file.compliance.containsPHI,
+          containsPHI: file.compliance.containsPHI,
+          dataClassification: 'internal',
+        },
+        metadata: {
+          source: 'file_controller',
+          priority: 'low',
+        },
+        timestamp: new Date(),
+      });
 
       res.status(200).json({
         success: true,
@@ -499,11 +825,12 @@ export class FileController {
   }
 
   /**
-   * Delete file (soft delete)
+   * Delete file (soft delete + MinIO cleanup)
    */
   static async deleteFile(req: Request, res: Response, next: NextFunction) {
     try {
       const { fileId } = req.params;
+      const { permanent = false } = req.query;
       const authUser = (req as AuthRequest).user!;
 
       const file = await File.findOne({ _id: fileId, deletedAt: null });
@@ -517,6 +844,7 @@ export class FileController {
       // Check permissions
       const canDelete = 
         authUser.role === 'admin' ||
+        (authUser.role === 'reception' && !file.compliance.containsPHI) ||
         file.upload.uploadedBy.toString() === authUser._id.toString();
 
       if (!canDelete) {
@@ -526,13 +854,69 @@ export class FileController {
         });
       }
 
-      // Soft delete
-      file.deletedAt = new Date();
-      await file.save();
+      if (permanent === 'true' && authUser.role === 'admin') {
+        // Permanent deletion - remove from MinIO and database
+        try {
+          await minioClient.removeObject(file.bucketName, file.storagePath);
+          
+          // Remove thumbnail and optimized versions
+          if (file.mediaMetadata?.thumbnailPath) {
+            await minioClient.removeObject(file.bucketName, file.mediaMetadata.thumbnailPath);
+          }
+        } catch (minioError) {
+          logger.error('MinIO file removal error:', minioError);
+        }
+
+        await File.findByIdAndDelete(fileId);
+      } else {
+        // Soft delete
+        file.deletedAt = new Date();
+        await file.save();
+      }
+
+      // Log file deletion
+      await AuditLog.create({
+        action: permanent === 'true' ? 'file_deleted_permanent' : 'file_deleted_soft',
+        entityType: 'file',
+        entityId: file._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          deleted: {
+            filename: file.originalFileName,
+            size: file.fileSize,
+            ownerType: file.ownerType,
+            permanent: permanent === 'true',
+          },
+        },
+        security: {
+          riskLevel: permanent === 'true' ? 'critical' : 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: file.compliance.hipaaCompliant,
+            gdprRelevant: true,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: file.compliance.containsPHI,
+          containsPHI: file.compliance.containsPHI,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'file_controller',
+          priority: permanent === 'true' ? 'critical' : 'medium',
+        },
+        timestamp: new Date(),
+      });
 
       res.status(200).json({
         success: true,
-        message: 'File deleted successfully',
+        message: `File ${permanent === 'true' ? 'permanently deleted' : 'deleted'} successfully`,
       });
     } catch (error) {
       logger.error('Delete file error:', error);
@@ -560,6 +944,8 @@ export class FileController {
         storageStats,
         categoryStats,
         ownerTypeStats,
+        mimeTypeStats,
+        recentUploads,
       ] = await Promise.all([
         File.countDocuments({ deletedAt: null }),
         
@@ -570,6 +956,7 @@ export class FileController {
             totalSize: { $sum: '$fileSize' },
             averageSize: { $avg: '$fileSize' },
             totalDownloads: { $sum: '$accessTracking.downloadCount' },
+            totalViews: { $sum: '$accessTracking.viewCount' },
           }},
         ]),
 
@@ -592,17 +979,49 @@ export class FileController {
           }},
           { $sort: { count: -1 } },
         ]),
+
+        File.aggregate([
+          { $match: { deletedAt: null } },
+          { $group: {
+            _id: { $substr: ['$mimeType', 0, 5] },
+            count: { $sum: 1 },
+            totalSize: { $sum: '$fileSize' },
+          }},
+          { $sort: { count: -1 } },
+          { $limit: 10 },
+        ]),
+
+        File.find({ deletedAt: null })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .populate('upload.uploadedBy', 'name email')
+          .populate('ownerId', 'personalInfo.fullName name title')
+          .select('originalFileName fileSize ownerType category createdAt')
+          .exec(),
       ]);
+
+      const storageData = storageStats[0] || { 
+        totalSize: 0, 
+        averageSize: 0, 
+        totalDownloads: 0, 
+        totalViews: 0 
+      };
 
       res.status(200).json({
         success: true,
         data: {
           overview: {
             totalFiles,
-            ...(storageStats[0] || { totalSize: 0, averageSize: 0, totalDownloads: 0 }),
+            totalSize: storageData.totalSize,
+            averageSize: storageData.averageSize,
+            totalDownloads: storageData.totalDownloads,
+            totalViews: storageData.totalViews,
+            storageUsed: `${(storageData.totalSize / (1024 * 1024 * 1024)).toFixed(2)} GB`,
           },
           byCategory: categoryStats,
           byOwnerType: ownerTypeStats,
+          byMimeType: mimeTypeStats,
+          recentUploads,
         },
       });
     } catch (error) {
@@ -610,9 +1029,123 @@ export class FileController {
       next(error);
     }
   }
+
+  /**
+   * Bulk delete files
+   */
+  static async bulkDeleteFiles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fileIds, permanent = false } = req.body;
+      const authUser = (req as AuthRequest).user!;
+
+      if (!Array.isArray(fileIds) || fileIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'File IDs array is required',
+        });
+      }
+
+      // Only admin can perform bulk operations
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can bulk delete files',
+        });
+      }
+
+      const files = await File.find({ 
+        _id: { $in: fileIds }, 
+        deletedAt: null 
+      });
+
+      if (files.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No files found',
+        });
+      }
+
+      const results = {
+        deleted: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const file of files) {
+        try {
+          if (permanent) {
+            // Permanent deletion
+            await minioClient.removeObject(file.bucketName, file.storagePath);
+            
+            if (file.mediaMetadata?.thumbnailPath) {
+              await minioClient.removeObject(file.bucketName, file.mediaMetadata.thumbnailPath);
+            }
+
+            await File.findByIdAndDelete(file._id);
+          } else {
+            // Soft delete
+            file.deletedAt = new Date();
+            await file.save();
+          }
+
+          results.deleted++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push(`Failed to delete ${file.originalFileName}: ${error}`);
+        }
+      }
+
+      // Log bulk operation
+      await AuditLog.create({
+        action: permanent ? 'files_bulk_deleted_permanent' : 'files_bulk_deleted_soft',
+        entityType: 'file',
+        entityId: 'bulk_operation',
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: results.failed === 0 ? 'success' : 'partial_failure',
+        changes: {
+          deleted: results.deleted,
+          failed: results.failed,
+          fileIds,
+          permanent,
+        },
+        security: {
+          riskLevel: 'critical',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: true,
+            gdprRelevant: true,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'file_controller',
+          priority: 'critical',
+        },
+        timestamp: new Date(),
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Bulk delete completed: ${results.deleted} deleted, ${results.failed} failed`,
+        data: results,
+      });
+    } catch (error) {
+      logger.error('Bulk delete files error:', error);
+      next(error);
+    }
+  }
 }
 
-// Export upload middleware with explicit typing
+// Export upload middleware with explicit type
 export const uploadMiddleware: any = upload.single('file');
 
 export default FileController;

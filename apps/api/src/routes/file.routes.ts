@@ -163,7 +163,7 @@ router.get(
   authenticate,
   fileIdValidation,
   validateRequest,
-  FileController.downloadFile
+  FileController.getDownloadUrl
 );
 
 /**
@@ -193,6 +193,32 @@ router.delete(
   fileIdValidation,
   validateRequest,
   FileController.deleteFile
+);
+
+/**
+ * @route   DELETE /api/files/bulk
+ * @desc    Bulk delete files
+ * @access  Private (Admin only)
+ * @body    {fileIds: string[], permanent?: boolean}
+ */
+router.delete(
+  '/bulk',
+  authenticate,
+  authorize(['admin'] as any),
+  [
+    body('fileIds')
+      .isArray({ min: 1 })
+      .withMessage('File IDs array is required'),
+    body('fileIds.*')
+      .isMongoId()
+      .withMessage('Each file ID must be a valid MongoDB ObjectId'),
+    body('permanent')
+      .optional()
+      .isBoolean()
+      .withMessage('Permanent must be a boolean'),
+  ],
+  validateRequest,
+  FileController.bulkDeleteFiles
 );
 
 export default router;
