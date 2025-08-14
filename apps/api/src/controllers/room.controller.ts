@@ -1,105 +1,61 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
+import { Types } from 'mongoose';
 import { Room, IRoomDocument } from '../models/Room.js';
-import { Appointment } from '../models/Appointment.js';
+import { Professional } from '../models/Professional.js';
 import { AuditLog } from '../models/AuditLog.js';
 import logger from '../config/logger.js';
 import { AuthRequest } from '../middleware/auth.js';
 
 interface CreateRoomRequest {
   name: string;
-  description?: string;
   type: 'physical' | 'virtual';
-  capacity: number;
+  description?: string;
   location?: string;
-  floor?: string;
-  building?: string;
-  isActive?: boolean;
-  features?: string[];
+  capacity?: number;
   equipment?: string[];
+  amenities?: string[];
   accessibility?: {
     wheelchairAccessible: boolean;
-    hearingLoop: boolean;
-    visualAids: boolean;
+    hearingLoopAvailable: boolean;
+    brailleSignage: boolean;
+    notes?: string;
   };
   virtualConfig?: {
-    platform: 'jitsi' | 'zoom' | 'teams' | 'custom';
-    roomId?: string;
-    meetingUrl?: string;
-    accessCode?: string;
-    settings?: {
-      recordingEnabled: boolean;
-      chatEnabled: boolean;
-      screenSharingEnabled: boolean;
-      waitingRoomEnabled: boolean;
-      maxParticipants: number;
-    };
+    platform: 'jitsi' | 'zoom' | 'teams' | 'meet' | 'custom';
+    maxParticipants?: number;
+    recordingEnabled?: boolean;
+    waitingRoomEnabled?: boolean;
+    passwordProtected?: boolean;
+    customUrl?: string;
+    settings?: Record<string, any>;
   };
-  bookingRules?: {
-    minBookingDuration: number;
-    maxBookingDuration: number;
-    bufferBetweenBookings: number;
-    allowBackToBack: boolean;
-    advanceBookingDays: number;
-  };
-  contactInfo?: {
-    phone?: string;
-    email?: string;
-    emergencyContact?: string;
-  };
-  metadata?: {
-    color?: string;
-    icon?: string;
-    tags?: string[];
+  operatingHours?: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    isAvailable: boolean;
+  }[];
+  bookingSettings?: {
+    requiresApproval?: boolean;
+    maxAdvanceBookingDays?: number;
+    minBookingDuration?: number;
+    maxBookingDuration?: number;
+    bufferBetweenBookings?: number;
   };
 }
 
 interface UpdateRoomRequest {
   name?: string;
   description?: string;
-  type?: 'physical' | 'virtual';
-  capacity?: number;
   location?: string;
-  floor?: string;
-  building?: string;
-  isActive?: boolean;
-  features?: string[];
+  capacity?: number;
   equipment?: string[];
-  accessibility?: {
-    wheelchairAccessible: boolean;
-    hearingLoop: boolean;
-    visualAids: boolean;
-  };
-  virtualConfig?: {
-    platform: 'jitsi' | 'zoom' | 'teams' | 'custom';
-    roomId?: string;
-    meetingUrl?: string;
-    accessCode?: string;
-    settings?: {
-      recordingEnabled: boolean;
-      chatEnabled: boolean;
-      screenSharingEnabled: boolean;
-      waitingRoomEnabled: boolean;
-      maxParticipants: number;
-    };
-  };
-  bookingRules?: {
-    minBookingDuration: number;
-    maxBookingDuration: number;
-    bufferBetweenBookings: number;
-    allowBackToBack: boolean;
-    advanceBookingDays: number;
-  };
-  contactInfo?: {
-    phone?: string;
-    email?: string;
-    emergencyContact?: string;
-  };
-  metadata?: {
-    color?: string;
-    icon?: string;
-    tags?: string[];
-  };
+  amenities?: string[];
+  isActive?: boolean;
+  accessibility?: Partial<CreateRoomRequest['accessibility']>;
+  virtualConfig?: Partial<CreateRoomRequest['virtualConfig']>;
+  operatingHours?: CreateRoomRequest['operatingHours'];
+  bookingSettings?: Partial<CreateRoomRequest['bookingSettings']>;
 }
 
 interface RoomQuery {
@@ -108,14 +64,24 @@ interface RoomQuery {
   search?: string;
   type?: 'physical' | 'virtual';
   isActive?: string;
-  floor?: string;
-  building?: string;
-  capacity?: string;
-  available?: string; // Check availability for specific date range
-  startDate?: string;
-  endDate?: string;
+  location?: string;
+  minCapacity?: string;
+  maxCapacity?: string;
+  equipment?: string;
+  accessibility?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  include?: string;
+}
+
+interface MaintenanceRequest {
+  type: 'cleaning' | 'repair' | 'inspection' | 'upgrade' | 'other';
+  description: string;
+  scheduledDate: string;
+  estimatedDuration?: number;
+  assignedTo?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  notes?: string;
 }
 
 export class RoomController {
@@ -130,15 +96,15 @@ export class RoomController {
         limit = '20',
         search,
         type,
-        isActive = 'true',
-        floor,
-        building,
-        capacity,
-        available,
-        startDate,
-        endDate,
+        isActive,
+        location,
+        minCapacity,
+        maxCapacity,
+        equipment,
+        accessibility,
         sortBy = 'name',
         sortOrder = 'asc',
+        include,
       } = req.query as RoomQuery;
 
       const pageNum = parseInt(page, 10);
@@ -146,91 +112,115 @@ export class RoomController {
       const skip = (pageNum - 1) * limitNum;
 
       // Build filter
-      const filter: any = {};
+      const filter: any = { deletedAt: null };
 
-      // Apply query filters
-      if (isActive !== 'all') {
-        filter.isActive = isActive === 'true';
+      // Apply filters based on query params
+      if (search) {
+        filter.$or = [
+          { name: new RegExp(search, 'i') },
+          { description: new RegExp(search, 'i') },
+          { location: new RegExp(search, 'i') },
+        ];
       }
 
       if (type) {
         filter.type = type;
       }
 
-      if (floor) {
-        filter.floor = floor;
+      if (isActive !== undefined) {
+        filter.isActive = isActive === 'true';
       }
 
-      if (building) {
-        filter.building = { $regex: building, $options: 'i' };
+      if (location) {
+        filter.location = new RegExp(location, 'i');
       }
 
-      if (capacity) {
-        const capacityNum = parseInt(capacity, 10);
-        filter.capacity = { $gte: capacityNum };
+      if (minCapacity || maxCapacity) {
+        filter.capacity = {};
+        if (minCapacity) filter.capacity.$gte = parseInt(minCapacity, 10);
+        if (maxCapacity) filter.capacity.$lte = parseInt(maxCapacity, 10);
       }
 
-      if (search) {
-        filter.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { location: { $regex: search, $options: 'i' } },
-          { building: { $regex: search, $options: 'i' } },
-          { features: { $regex: search, $options: 'i' } },
-          { 'metadata.tags': { $regex: search, $options: 'i' } },
-        ];
+      if (equipment) {
+        filter.equipment = { $in: [new RegExp(equipment, 'i')] };
+      }
+
+      if (accessibility === 'wheelchair') {
+        filter['accessibility.wheelchairAccessible'] = true;
+      }
+
+      // Apply role-based filtering
+      if (authUser.role === 'professional') {
+        // Professionals can only see rooms assigned to them or public rooms
+        const professional = await Professional.findOne({ userId: authUser._id });
+        if (professional) {
+          filter.$or = [
+            { _id: { $in: professional.assignedRooms } },
+            { isPublic: true },
+          ];
+        }
+      } else if (authUser.role === 'patient') {
+        // Patients can only see public virtual rooms (for joining sessions)
+        filter.type = 'virtual';
+        filter.isActive = true;
+        filter.isPublic = true;
       }
 
       // Build sort
       const sort: any = {};
       sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
-      // Execute base query
-      let roomsQuery = Room.find(filter)
+      // Execute queries
+      let query = Room.find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limitNum);
 
+      // Add population based on include parameter
+      if (include && authUser.role !== 'patient') {
+        const includeFields = include.split(',');
+        
+        if (includeFields.includes('assignments')) {
+          // Get professionals assigned to this room
+          query = query.populate({
+            path: 'assignedProfessionals',
+            select: 'name title specialties',
+            match: { isActive: true },
+          });
+        }
+      }
+
       const [rooms, total] = await Promise.all([
-        roomsQuery.exec(),
+        query.exec(),
         Room.countDocuments(filter),
       ]);
 
+      // Filter sensitive data for patients
+      const filteredRooms = rooms.map((room: any) => {
+        const roomData = room.toObject();
+        
+        if (authUser.role === 'patient') {
+          return {
+            id: roomData._id,
+            name: roomData.name,
+            type: roomData.type,
+            capacity: roomData.capacity,
+            virtualConfig: roomData.type === 'virtual' ? {
+              platform: roomData.virtualConfig?.platform,
+              maxParticipants: roomData.virtualConfig?.maxParticipants,
+            } : undefined,
+          };
+        }
+        
+        return roomData;
+      });
+
       const totalPages = Math.ceil(total / limitNum);
-
-      // If availability check is requested
-      let roomsWithAvailability = rooms;
-      if (available === 'true' && startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        const roomsAvailability = await Promise.all(
-          rooms.map(async (room: any) => {
-            // Check for overlapping appointments
-            const overlappingAppointments = await Appointment.countDocuments({
-              roomId: room._id,
-              $or: [
-                {
-                  startTime: { $lt: end },
-                  endTime: { $gt: start },
-                },
-              ],
-              status: { $in: ['scheduled', 'confirmed'] },
-            });
-
-            const roomObj = room.toObject();
-            roomObj.isAvailable = overlappingAppointments === 0;
-            return roomObj;
-          })
-        );
-
-        roomsWithAvailability = roomsAvailability;
-      }
 
       res.status(200).json({
         success: true,
         data: {
-          rooms: roomsWithAvailability,
+          rooms: filteredRooms,
           pagination: {
             currentPage: pageNum,
             totalPages,
@@ -252,8 +242,13 @@ export class RoomController {
   static async getRoomById(req: Request, res: Response, next: NextFunction) {
     try {
       const { roomId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const { include } = req.query;
 
-      const room = await Room.findById(roomId);
+      const room = await Room.findOne({ 
+        _id: roomId, 
+        deletedAt: null 
+      });
 
       if (!room) {
         return res.status(404).json({
@@ -262,55 +257,106 @@ export class RoomController {
         });
       }
 
-      // Get room usage statistics
-      const [
-        totalAppointments,
-        activeAppointments,
-        upcomingAppointments,
-        utilizationStats,
-      ] = await Promise.all([
-        Appointment.countDocuments({ roomId: room._id }),
-        Appointment.countDocuments({
-          roomId: room._id,
-          status: { $in: ['scheduled', 'confirmed'] },
-        }),
-        Appointment.countDocuments({
-          roomId: room._id,
-          startTime: { $gte: new Date() },
-          status: { $in: ['scheduled', 'confirmed'] },
-        }),
-        Appointment.aggregate([
-          {
-            $match: {
-              roomId: room._id,
-              createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Last 30 days
+      // Check permissions
+      let canAccess = authUser.role === 'admin' || authUser.role === 'reception';
+      
+      if (!canAccess && authUser.role === 'professional') {
+        const professional = await Professional.findOne({ userId: authUser._id });
+        canAccess = professional?.assignedRooms.includes(room._id as any) || room.isPublic;
+      }
+      
+      if (!canAccess && authUser.role === 'patient') {
+        canAccess = room.type === 'virtual' && room.isActive && room.isPublic;
+      }
+
+      if (!canAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot access this room',
+        });
+      }
+
+      let responseData: any = room.toObject();
+
+      // Filter sensitive data for patients
+      if (authUser.role === 'patient') {
+        responseData = {
+          id: responseData._id,
+          name: responseData.name,
+          type: responseData.type,
+          capacity: responseData.capacity,
+          virtualConfig: responseData.type === 'virtual' ? {
+            platform: responseData.virtualConfig?.platform,
+            maxParticipants: responseData.virtualConfig?.maxParticipants,
+          } : undefined,
+        };
+      }
+
+      // Optionally include additional data
+      let additionalData: any = {};
+
+      if (include && authUser.role !== 'patient') {
+        const includeFields = include.toString().split(',');
+
+        if (includeFields.includes('usage')) {
+          // Get room usage statistics
+          const { Appointment } = await import('../models/Appointment.js');
+          
+          const usageStats = await Appointment.aggregate([
+            { 
+              $match: { 
+                roomId: new Types.ObjectId(roomId),
+                deletedAt: null,
+                startTime: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+              }
             },
-          },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: '%Y-%m-%d', date: '$startTime' },
-              },
-              count: { $sum: 1 },
-              duration: {
-                $sum: { $divide: [{ $subtract: ['$endTime', '$startTime'] }, 60000] }, // minutes
-              },
-            },
-          },
-          { $sort: { _id: 1 } },
-        ]),
-      ]);
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+                totalHours: { $sum: { $divide: ['$duration', 60] } },
+              }
+            }
+          ]);
+
+          additionalData.usageStats = usageStats;
+        }
+
+        if (includeFields.includes('assignments')) {
+          // Get professionals assigned to this room
+          const assignedProfessionals = await Professional.find({
+            assignedRooms: new Types.ObjectId(roomId),
+            isActive: true,
+          }).select('name title specialties');
+
+          additionalData.assignedProfessionals = assignedProfessionals;
+        }
+
+        if (includeFields.includes('schedule')) {
+          // Get upcoming appointments in this room
+          const { Appointment } = await import('../models/Appointment.js');
+          
+          const upcomingAppointments = await Appointment.find({
+            roomId: new Types.ObjectId(roomId),
+            startTime: { $gte: new Date() },
+            status: { $in: ['pending', 'confirmed'] },
+            deletedAt: null,
+          })
+            .sort({ startTime: 1 })
+            .limit(10)
+            .populate('professionalId', 'name')
+            .populate('serviceId', 'name duration')
+            .select('startTime endTime status');
+
+          additionalData.upcomingAppointments = upcomingAppointments;
+        }
+      }
 
       res.status(200).json({
         success: true,
         data: {
-          room,
-          stats: {
-            totalAppointments,
-            activeAppointments,
-            upcomingAppointments,
-            utilizationStats,
-          },
+          room: responseData,
+          ...additionalData,
         },
       });
     } catch (error) {
@@ -325,7 +371,6 @@ export class RoomController {
   static async createRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const authUser = (req as AuthRequest).user!;
-      const roomData = req.body as CreateRoomRequest;
 
       // Only admin can create rooms
       if (authUser.role !== 'admin') {
@@ -335,63 +380,73 @@ export class RoomController {
         });
       }
 
-      // Check if room with same name already exists
-      const existingRoom = await Room.findOne({
-        name: roomData.name.trim(),
-        isActive: true,
-      });
-      if (existingRoom) {
-        return res.status(409).json({
-          success: false,
-          message: 'Room already exists with this name',
-        });
-      }
-
-      // Validate virtual room configuration
-      if (roomData.type === 'virtual' && roomData.virtualConfig) {
-        const { platform, roomId } = roomData.virtualConfig;
-        
-        if (platform === 'jitsi' && roomId) {
-          // Check if Jitsi room ID is already in use
-          const existingJitsiRoom = await Room.findOne({
-            'virtualConfig.platform': 'jitsi',
-            'virtualConfig.roomId': roomId,
-            isActive: true,
-          });
-          
-          if (existingJitsiRoom) {
-            return res.status(409).json({
-              success: false,
-              message: 'Jitsi room ID is already in use',
-            });
-          }
-        }
-      }
+      const roomData = req.body as CreateRoomRequest;
 
       // Create room
       const room = new Room({
-        ...roomData,
-        name: roomData.name.trim(),
-        isActive: roomData.isActive ?? true,
-        features: roomData.features || [],
+        name: roomData.name,
+        type: roomData.type,
+        description: roomData.description,
+        location: roomData.location,
+        capacity: roomData.capacity || (roomData.type === 'virtual' ? 50 : 2),
         equipment: roomData.equipment || [],
+        amenities: roomData.amenities || [],
         accessibility: {
           wheelchairAccessible: roomData.accessibility?.wheelchairAccessible ?? false,
-          hearingLoop: roomData.accessibility?.hearingLoop ?? false,
-          visualAids: roomData.accessibility?.visualAids ?? false,
+          hearingLoopAvailable: roomData.accessibility?.hearingLoopAvailable ?? false,
+          brailleSignage: roomData.accessibility?.brailleSignage ?? false,
+          notes: roomData.accessibility?.notes,
         },
-        bookingRules: roomData.bookingRules || {
-          minBookingDuration: 30,
-          maxBookingDuration: 480,
-          bufferBetweenBookings: 0,
-          allowBackToBack: true,
-          advanceBookingDays: 30,
+        virtualConfig: roomData.type === 'virtual' ? {
+          platform: roomData.virtualConfig?.platform || 'jitsi',
+          maxParticipants: roomData.virtualConfig?.maxParticipants || 50,
+          recordingEnabled: roomData.virtualConfig?.recordingEnabled ?? false,
+          waitingRoomEnabled: roomData.virtualConfig?.waitingRoomEnabled ?? false,
+          passwordProtected: roomData.virtualConfig?.passwordProtected ?? false,
+          customUrl: roomData.virtualConfig?.customUrl,
+          settings: roomData.virtualConfig?.settings || {},
+        } : undefined,
+        operatingHours: roomData.operatingHours || [
+          // Default 24/7 for virtual rooms, business hours for physical
+          ...(roomData.type === 'virtual' ? 
+            Array.from({ length: 7 }, (_, i) => ({
+              dayOfWeek: i,
+              startTime: '00:00',
+              endTime: '23:59',
+              isAvailable: true,
+            })) :
+            [
+              { dayOfWeek: 1, startTime: '08:00', endTime: '18:00', isAvailable: true },
+              { dayOfWeek: 2, startTime: '08:00', endTime: '18:00', isAvailable: true },
+              { dayOfWeek: 3, startTime: '08:00', endTime: '18:00', isAvailable: true },
+              { dayOfWeek: 4, startTime: '08:00', endTime: '18:00', isAvailable: true },
+              { dayOfWeek: 5, startTime: '08:00', endTime: '18:00', isAvailable: true },
+              { dayOfWeek: 6, startTime: '09:00', endTime: '13:00', isAvailable: false },
+              { dayOfWeek: 0, startTime: '09:00', endTime: '13:00', isAvailable: false },
+            ]
+          )
+        ],
+        bookingSettings: {
+          requiresApproval: roomData.bookingSettings?.requiresApproval ?? false,
+          maxAdvanceBookingDays: roomData.bookingSettings?.maxAdvanceBookingDays ?? 30,
+          minBookingDuration: roomData.bookingSettings?.minBookingDuration ?? 30,
+          maxBookingDuration: roomData.bookingSettings?.maxBookingDuration ?? 240,
+          bufferBetweenBookings: roomData.bookingSettings?.bufferBetweenBookings ?? 10,
         },
-        metadata: {
-          color: roomData.metadata?.color || '#10B981',
-          icon: roomData.metadata?.icon || 'building',
-          tags: roomData.metadata?.tags || [],
+        maintenance: {
+          lastCleaned: new Date(),
+          lastInspected: new Date(),
+          scheduledMaintenance: [],
+          maintenanceHistory: [],
         },
+        usage: {
+          totalBookings: 0,
+          totalHours: 0,
+          averageRating: 0,
+          lastUsed: null,
+        },
+        isActive: true,
+        isPublic: roomData.type === 'virtual',
       });
 
       await room.save();
@@ -411,9 +466,17 @@ export class RoomController {
           created: {
             name: room.name,
             type: room.type,
-            capacity: room.capacity,
             location: room.location,
-            isActive: room.isActive,
+            capacity: room.capacity,
+          },
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
           },
         },
         business: {
@@ -423,7 +486,7 @@ export class RoomController {
         },
         metadata: {
           source: 'room_controller',
-          priority: 'medium',
+          priority: 'low',
         },
         timestamp: new Date(),
       });
@@ -440,22 +503,13 @@ export class RoomController {
   }
 
   /**
-   * Update room information
+   * Update room
    */
   static async updateRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const { roomId } = req.params;
       const authUser = (req as AuthRequest).user!;
       const updateData = req.body as UpdateRoomRequest;
-
-      // Find room
-      const room = await Room.findById(roomId);
-      if (!room) {
-        return res.status(404).json({
-          success: false,
-          message: 'Room not found',
-        });
-      }
 
       // Only admin can update rooms
       if (authUser.role !== 'admin') {
@@ -465,99 +519,84 @@ export class RoomController {
         });
       }
 
-      // Store original values for audit
-      const originalValues = {
-        name: room.name,
-        type: room.type,
-        capacity: room.capacity,
-        location: room.location,
-        isActive: room.isActive,
-      };
-
-      // Check name uniqueness if changing
-      if (updateData.name && updateData.name.trim() !== room.name) {
-        const existingRoom = await Room.findOne({
-          name: updateData.name.trim(),
-          isActive: true,
-          _id: { $ne: roomId },
+      const room = await Room.findById(roomId);
+      if (!room) {
+        return res.status(404).json({
+          success: false,
+          message: 'Room not found',
         });
-        if (existingRoom) {
-          return res.status(409).json({
-            success: false,
-            message: 'Another room already exists with this name',
-          });
-        }
       }
 
-      // Validate virtual room configuration if updating
-      if (updateData.type === 'virtual' && updateData.virtualConfig) {
-        const { platform, roomId: virtRoomId } = updateData.virtualConfig;
-        
-        if (platform === 'jitsi' && virtRoomId) {
-          const existingJitsiRoom = await Room.findOne({
-            'virtualConfig.platform': 'jitsi',
-            'virtualConfig.roomId': virtRoomId,
-            isActive: true,
-            _id: { $ne: roomId },
-          });
-          
-          if (existingJitsiRoom) {
-            return res.status(409).json({
-              success: false,
-              message: 'Jitsi room ID is already in use',
-            });
-          }
-        }
+      // Store original data for audit
+      const originalData = room.toObject();
+
+      // Apply updates
+      if (updateData.name) room.name = updateData.name;
+      if (updateData.description !== undefined) room.description = updateData.description;
+      if (updateData.location !== undefined) room.location = updateData.location;
+      if (updateData.capacity) room.capacity = updateData.capacity;
+      if (updateData.equipment) room.equipment = updateData.equipment;
+      if (updateData.amenities) room.amenities = updateData.amenities;
+      if (updateData.isActive !== undefined) room.isActive = updateData.isActive;
+
+      // Update accessibility
+      if (updateData.accessibility) {
+        room.accessibility = { ...room.accessibility, ...updateData.accessibility };
       }
 
-      // Update room fields
-      Object.keys(updateData).forEach((key) => {
-        if (updateData[key as keyof UpdateRoomRequest] !== undefined) {
-          if (key === 'name') {
-            (room as any)[key] = updateData.name?.trim();
-          } else {
-            (room as any)[key] = updateData[key as keyof UpdateRoomRequest];
-          }
-        }
-      });
+      // Update virtual config
+      if (updateData.virtualConfig && room.type === 'virtual') {
+        room.virtualConfig = { ...room.virtualConfig, ...updateData.virtualConfig };
+      }
+
+      // Update operating hours
+      if (updateData.operatingHours) {
+        room.operatingHours = updateData.operatingHours;
+      }
+
+      // Update booking settings
+      if (updateData.bookingSettings) {
+        room.bookingSettings = { ...room.bookingSettings, ...updateData.bookingSettings };
+      }
 
       await room.save();
 
-      // Build changes object for audit
-      const changes: any = {};
-      Object.keys(originalValues).forEach((key) => {
-        const originalValue = (originalValues as any)[key];
-        const newValue = (room as any)[key];
-        if (JSON.stringify(originalValue) !== JSON.stringify(newValue)) {
-          changes[key] = { from: originalValue, to: newValue };
-        }
+      // Log room update
+      await AuditLog.create({
+        action: 'room_updated',
+        entityType: 'room',
+        entityId: room._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          before: originalData,
+          after: room.toObject(),
+          fieldsChanged: Object.keys(updateData),
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: false,
+          dataClassification: 'internal',
+        },
+        metadata: {
+          source: 'room_controller',
+          priority: 'low',
+        },
+        timestamp: new Date(),
       });
-
-      // Log room update if there were changes
-      if (Object.keys(changes).length > 0) {
-        await AuditLog.create({
-          action: 'room_updated',
-          entityType: 'room',
-          entityId: room._id.toString(),
-          actorId: authUser._id,
-          actorType: 'user',
-          actorEmail: authUser.email,
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-          status: 'success',
-          changes,
-          business: {
-            clinicalRelevant: true,
-            containsPHI: false,
-            dataClassification: 'internal',
-          },
-          metadata: {
-            source: 'room_controller',
-            priority: 'medium',
-          },
-          timestamp: new Date(),
-        });
-      }
 
       res.status(200).json({
         success: true,
@@ -571,18 +610,19 @@ export class RoomController {
   }
 
   /**
-   * Deactivate room
+   * Schedule maintenance
    */
-  static async deactivateRoom(req: Request, res: Response, next: NextFunction) {
+  static async scheduleMaintenance(req: Request, res: Response, next: NextFunction) {
     try {
       const { roomId } = req.params;
       const authUser = (req as AuthRequest).user!;
+      const maintenanceData = req.body as MaintenanceRequest;
 
-      // Only admin can deactivate rooms
-      if (authUser.role !== 'admin') {
+      // Only admin and reception can schedule maintenance
+      if (authUser.role !== 'admin' && authUser.role !== 'reception') {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: Only administrators can deactivate rooms',
+          message: 'Access denied: Only administrators and reception can schedule maintenance',
         });
       }
 
@@ -594,117 +634,42 @@ export class RoomController {
         });
       }
 
-      if (!room.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Room is already deactivated',
-        });
-      }
+      // Add maintenance to schedule
+      const maintenance = {
+        type: maintenanceData.type,
+        description: maintenanceData.description,
+        scheduledDate: new Date(maintenanceData.scheduledDate),
+        estimatedDuration: maintenanceData.estimatedDuration || 60,
+        assignedTo: maintenanceData.assignedTo,
+        priority: maintenanceData.priority,
+        status: 'scheduled' as const,
+        notes: maintenanceData.notes,
+        createdBy: authUser._id,
+        createdAt: new Date(),
+      };
 
-      // Check if room has upcoming appointments
-      const upcomingAppointments = await Appointment.countDocuments({
-        roomId: room._id,
-        startTime: { $gte: new Date() },
-        status: { $in: ['scheduled', 'confirmed'] },
-      });
-
-      if (upcomingAppointments > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot deactivate room with ${upcomingAppointments} upcoming appointments. Please reschedule them first.`,
-        });
-      }
-
-      room.isActive = false;
+      room.maintenance.scheduledMaintenance.push(maintenance);
       await room.save();
-
-      // Log room deactivation
-      await AuditLog.create({
-        action: 'room_deactivated',
-        entityType: 'room',
-        entityId: room._id.toString(),
-        actorId: authUser._id,
-        actorType: 'user',
-        actorEmail: authUser.email,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        status: 'success',
-        changes: {
-          isActive: { from: true, to: false },
-        },
-        business: {
-          clinicalRelevant: true,
-          containsPHI: false,
-          dataClassification: 'internal',
-        },
-        metadata: {
-          source: 'room_controller',
-          priority: 'high',
-        },
-        timestamp: new Date(),
-      });
 
       res.status(200).json({
         success: true,
-        message: 'Room deactivated successfully',
+        message: 'Maintenance scheduled successfully',
+        data: { maintenance },
       });
     } catch (error) {
-      logger.error('Deactivate room error:', error);
+      logger.error('Schedule maintenance error:', error);
       next(error);
     }
   }
 
   /**
-   * Reactivate room
-   */
-  static async reactivateRoom(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { roomId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin can reactivate rooms
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can reactivate rooms',
-        });
-      }
-
-      const room = await Room.findById(roomId);
-      if (!room) {
-        return res.status(404).json({
-          success: false,
-          message: 'Room not found',
-        });
-      }
-
-      if (room.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Room is already active',
-        });
-      }
-
-      room.isActive = true;
-      await room.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Room reactivated successfully',
-      });
-    } catch (error) {
-      logger.error('Reactivate room error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Get room availability for specific date range
+   * Get room availability
    */
   static async getRoomAvailability(req: Request, res: Response, next: NextFunction) {
     try {
       const { roomId } = req.params;
       const { startDate, endDate } = req.query;
+      const authUser = (req as AuthRequest).user!;
 
       if (!startDate || !endDate) {
         return res.status(400).json({
@@ -724,32 +689,56 @@ export class RoomController {
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
 
-      // Get all appointments in the date range
+      // Get existing appointments
+      const { Appointment } = await import('../models/Appointment.js');
+      
       const appointments = await Appointment.find({
-        roomId: room._id,
-        $or: [
-          {
-            startTime: { $lt: end },
-            endTime: { $gt: start },
-          },
-        ],
-        status: { $in: ['scheduled', 'confirmed'] },
-      })
-        .populate('patientId', 'name email')
-        .populate('professionalId', 'name')
-        .populate('serviceId', 'name duration')
-        .sort({ startTime: 1 });
+        roomId: new Types.ObjectId(roomId),
+        startTime: { $gte: start, $lte: end },
+        status: { $nin: ['cancelled', 'no_show'] },
+        deletedAt: null,
+      }).sort({ startTime: 1 });
 
-      // Calculate available slots
-      const totalMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60));
-      const bookedMinutes = appointments.reduce((total, apt) => {
-        const aptStart = new Date(Math.max(apt.startTime.getTime(), start.getTime()));
-        const aptEnd = new Date(Math.min(apt.endTime.getTime(), end.getTime()));
-        return total + Math.max(0, (aptEnd.getTime() - aptStart.getTime()) / (1000 * 60));
-      }, 0);
+      // Get scheduled maintenance
+      const scheduledMaintenance = room.maintenance.scheduledMaintenance.filter(
+        (m: any) => m.scheduledDate >= start && m.scheduledDate <= end && m.status === 'scheduled'
+      );
 
-      const availableMinutes = totalMinutes - bookedMinutes;
-      const utilizationRate = totalMinutes > 0 ? (bookedMinutes / totalMinutes) * 100 : 0;
+      // Calculate available time slots
+      const availability = [];
+      const currentDate = new Date(start);
+
+      while (currentDate <= end) {
+        const dayOfWeek = currentDate.getDay();
+        const operatingHours = room.operatingHours.find(
+          (oh: any) => oh.dayOfWeek === dayOfWeek && oh.isAvailable
+        );
+
+        if (operatingHours) {
+          availability.push({
+            date: new Date(currentDate),
+            dayOfWeek,
+            startTime: operatingHours.startTime,
+            endTime: operatingHours.endTime,
+            isAvailable: true,
+            conflicts: appointments.filter((apt: any) => 
+              apt.startTime.toDateString() === currentDate.toDateString()
+            ),
+            maintenance: scheduledMaintenance.filter((m: any) => 
+              m.scheduledDate.toDateString() === currentDate.toDateString()
+            ),
+          });
+        } else {
+          availability.push({
+            date: new Date(currentDate),
+            dayOfWeek,
+            isAvailable: false,
+            reason: 'Not in operating hours',
+          });
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
 
       res.status(200).json({
         success: true,
@@ -760,26 +749,8 @@ export class RoomController {
             type: room.type,
             capacity: room.capacity,
           },
-          period: {
-            start,
-            end,
-            totalMinutes,
-          },
-          availability: {
-            isAvailable: availableMinutes > 0,
-            availableMinutes,
-            bookedMinutes,
-            utilizationRate: Math.round(utilizationRate * 100) / 100,
-          },
-          appointments: appointments.map((apt) => ({
-            id: apt._id,
-            start: apt.startTime,
-            end: apt.endTime,
-            patient: apt.patientId,
-            professional: apt.professionalId,
-            service: apt.serviceId,
-            status: apt.status,
-          })),
+          dateRange: { startDate, endDate },
+          availability,
         },
       });
     } catch (error) {
@@ -795,129 +766,71 @@ export class RoomController {
     try {
       const authUser = (req as AuthRequest).user!;
 
-      // Only admin and reception can see comprehensive stats
+      // Only admin and reception can view room statistics
       if (authUser.role !== 'admin' && authUser.role !== 'reception') {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: Insufficient permissions',
+          message: 'Access denied: Cannot view room statistics',
         });
       }
 
-      const [
-        totalRooms,
-        activeRooms,
-        physicalRooms,
-        virtualRooms,
-        roomsByCapacity,
-        roomsByFloor,
-        mostUsedRooms,
-        utilizationStats,
-      ] = await Promise.all([
-        Room.countDocuments(),
-        Room.countDocuments({ isActive: true }),
-        Room.countDocuments({ isActive: true, type: 'physical' }),
-        Room.countDocuments({ isActive: true, type: 'virtual' }),
+      const [totalStats, typeStats, utilizationStats] = await Promise.all([
+        // Total room statistics
         Room.aggregate([
-          { $match: { isActive: true } },
+          { $match: { deletedAt: null } },
           {
-            $bucket: {
-              groupBy: '$capacity',
-              boundaries: [1, 5, 10, 20, 50],
-              default: '50+',
-              output: {
-                count: { $sum: 1 },
-              },
-            },
-          },
+            $group: {
+              _id: null,
+              totalRooms: { $sum: 1 },
+              activeRooms: { $sum: { $cond: ['$isActive', 1, 0] } },
+              physicalRooms: { $sum: { $cond: [{ $eq: ['$type', 'physical'] }, 1, 0] } },
+              virtualRooms: { $sum: { $cond: [{ $eq: ['$type', 'virtual'] }, 1, 0] } },
+              totalCapacity: { $sum: '$capacity' },
+              averageCapacity: { $avg: '$capacity' },
+              accessibleRooms: { $sum: { $cond: ['$accessibility.wheelchairAccessible', 1, 0] } },
+            }
+          }
         ]),
+
+        // Statistics by type
         Room.aggregate([
-          { $match: { isActive: true, type: 'physical' } },
-          { $group: { _id: '$floor', count: { $sum: 1 } } },
-          { $sort: { _id: 1 } },
-        ]),
-        Appointment.aggregate([
+          { $match: { deletedAt: null, isActive: true } },
           {
-            $match: {
-              status: { $in: ['completed', 'confirmed'] },
-              createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Last 30 days
-            },
-          },
-          { $group: { _id: '$roomId', count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
+            $group: {
+              _id: '$type',
+              count: { $sum: 1 },
+              totalCapacity: { $sum: '$capacity' },
+              averageCapacity: { $avg: '$capacity' },
+              totalUsage: { $sum: '$usage.totalHours' },
+            }
+          }
+        ]),
+
+        // Room utilization
+        Room.aggregate([
+          { $match: { deletedAt: null, isActive: true } },
+          { $sort: { 'usage.totalHours': -1 } },
           { $limit: 10 },
-          {
-            $lookup: {
-              from: 'rooms',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'room',
-            },
-          },
-          { $unwind: '$room' },
-          {
-            $project: {
-              roomName: '$room.name',
-              roomType: '$room.type',
-              appointmentCount: '$count',
-            },
-          },
-        ]),
-        Room.aggregate([
-          { $match: { isActive: true } },
-          {
-            $lookup: {
-              from: 'appointments',
-              let: { roomId: '$_id' },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $eq: ['$roomId', '$$roomId'] },
-                    status: { $in: ['completed', 'confirmed'] },
-                    createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-                  },
-                },
-                {
-                  $group: {
-                    _id: null,
-                    totalTime: {
-                      $sum: { $divide: [{ $subtract: ['$endTime', '$startTime'] }, 60000] },
-                    }, // minutes
-                    count: { $sum: 1 },
-                  },
-                },
-              ],
-              as: 'usage',
-            },
-          },
           {
             $project: {
               name: 1,
               type: 1,
               capacity: 1,
-              utilizationMinutes: { $ifNull: [{ $arrayElemAt: ['$usage.totalTime', 0] }, 0] },
-              appointmentCount: { $ifNull: [{ $arrayElemAt: ['$usage.count', 0] }, 0] },
-            },
-          },
+              'usage.totalBookings': 1,
+              'usage.totalHours': 1,
+              'usage.averageRating': 1,
+            }
+          }
         ]),
       ]);
 
-      const stats = {
-        total: totalRooms,
-        active: activeRooms,
-        inactive: totalRooms - activeRooms,
-        byType: {
-          physical: physicalRooms,
-          virtual: virtualRooms,
-        },
-        byCapacity: roomsByCapacity,
-        byFloor: roomsByFloor,
-        mostUsed: mostUsedRooms,
-        utilization: utilizationStats,
-      };
-
       res.status(200).json({
         success: true,
-        data: { stats },
+        data: {
+          overview: totalStats[0] || {},
+          byType: typeStats,
+          mostUtilized: utilizationStats,
+        },
       });
     } catch (error) {
       logger.error('Get room stats error:', error);
@@ -926,12 +839,20 @@ export class RoomController {
   }
 
   /**
-   * Generate Jitsi meeting link for virtual room
+   * Soft delete room
    */
-  static async generateJitsiLink(req: Request, res: Response, next: NextFunction) {
+  static async deleteRoom(req: Request, res: Response, next: NextFunction) {
     try {
       const { roomId } = req.params;
       const authUser = (req as AuthRequest).user!;
+
+      // Only admin can delete rooms
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can delete rooms',
+        });
+      }
 
       const room = await Room.findById(roomId);
       if (!room) {
@@ -941,42 +862,76 @@ export class RoomController {
         });
       }
 
-      if (room.type !== 'virtual') {
+      // Check if room has active appointments
+      const { Appointment } = await import('../models/Appointment.js');
+      const activeAppointments = await Appointment.countDocuments({
+        roomId: new Types.ObjectId(roomId),
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+        deletedAt: null,
+      });
+
+      if (activeAppointments > 0) {
         return res.status(400).json({
           success: false,
-          message: 'Room is not a virtual room',
+          message: `Cannot delete room with ${activeAppointments} active appointments. Please reschedule or complete them first.`,
         });
       }
 
-      if (!room.virtualConfig || room.virtualConfig.platform !== 'jitsi') {
-        return res.status(400).json({
-          success: false,
-          message: 'Room is not configured for Jitsi',
-        });
-      }
+      // Soft delete
+      room.deletedAt = new Date();
+      room.isActive = false;
+      await room.save();
 
-      // Generate unique meeting room name
-      const meetingRoomId = room.virtualConfig.roomId || `apsicologia-${room._id.toString().slice(-8)}`;
-      const jitsiBaseUrl = process.env.JITSI_BASE_URL || 'https://meet.jit.si';
-      const meetingUrl = `${jitsiBaseUrl}/${meetingRoomId}`;
+      // Remove room from professional assignments
+      await Professional.updateMany(
+        { assignedRooms: room._id },
+        { $pull: { assignedRooms: room._id } }
+      );
 
-      // Update room with meeting URL if not set
-      if (!room.virtualConfig.meetingUrl) {
-        room.virtualConfig.meetingUrl = meetingUrl;
-        room.virtualConfig.roomId = meetingRoomId;
-        await room.save();
-      }
+      // Log room deletion
+      await AuditLog.create({
+        action: 'room_deleted',
+        entityType: 'room',
+        entityId: room._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          deletedAt: new Date(),
+          roomName: room.name,
+          roomType: room.type,
+          activeAppointmentsChecked: true,
+        },
+        security: {
+          riskLevel: 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: false,
+          dataClassification: 'internal',
+        },
+        metadata: {
+          source: 'room_controller',
+          priority: 'medium',
+        },
+        timestamp: new Date(),
+      });
 
       res.status(200).json({
         success: true,
-        data: {
-          meetingUrl,
-          roomId: meetingRoomId,
-          settings: room.virtualConfig.settings,
-        },
+        message: 'Room deleted successfully',
       });
     } catch (error) {
-      logger.error('Generate Jitsi link error:', error);
+      logger.error('Delete room error:', error);
       next(error);
     }
   }

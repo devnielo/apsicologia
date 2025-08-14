@@ -1,429 +1,106 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
 import RoomController from '../controllers/room.controller.js';
-import { authenticate, authorize } from '../middleware/auth.js';
-import { validateRequest } from '../middleware/validation.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router: Router = Router();
 
-// All routes require authentication
-router.use(authenticate);
-
 /**
- * @route GET /rooms
- * @desc Get all rooms with pagination and filtering
- * @access Admin, Reception, Professional (limited view)
+ * @route   GET /api/v1/rooms
+ * @desc    Get all rooms with pagination and filtering
+ * @access  Private (All roles with different access levels)
+ * @query   page, limit, search, type, isActive, location, minCapacity, maxCapacity, equipment, accessibility, sortBy, sortOrder, include
  */
 router.get(
   '/',
-  [
-    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('search').optional().isLength({ min: 1, max: 100 }).withMessage('Search must be 1-100 characters'),
-    query('type').optional().isIn(['physical', 'virtual']).withMessage('Type must be physical or virtual'),
-    query('isActive').optional().isIn(['true', 'false', 'all']).withMessage('IsActive must be true, false, or all'),
-    query('floor').optional().isLength({ min: 1, max: 10 }).withMessage('Floor must be 1-10 characters'),
-    query('building').optional().isLength({ min: 1, max: 100 }).withMessage('Building must be 1-100 characters'),
-    query('capacity').optional().isInt({ min: 1, max: 1000 }).withMessage('Capacity must be between 1 and 1000'),
-    query('available').optional().isBoolean().withMessage('Available must be a boolean'),
-    query('startDate').optional().isISO8601().withMessage('Start date must be a valid ISO8601 date'),
-    query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO8601 date'),
-    query('sortBy').optional().isIn(['name', 'type', 'capacity', 'createdAt']).withMessage('Invalid sortBy field'),
-    query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('SortOrder must be asc or desc'),
-    validateRequest,
-  ],
+  authenticate,
   RoomController.getRooms
 );
 
 /**
- * @route GET /rooms/stats
- * @desc Get room statistics
- * @access Admin, Reception
+ * @route   GET /api/v1/rooms/stats
+ * @desc    Get room statistics
+ * @access  Private (Admin, Reception only)
  */
 router.get(
   '/stats',
-  authorize('admin', 'reception'),
+  authenticate,
   RoomController.getRoomStats
 );
 
 /**
- * @route GET /rooms/:roomId
- * @desc Get room by ID with full details
- * @access Admin, Reception, Professional
+ * @route   GET /api/v1/rooms/:roomId
+ * @desc    Get room by ID with full details
+ * @access  Private (All roles with access restrictions)
+ * @params  roomId
+ * @query   include - Optional: usage, assignments, schedule
  */
 router.get(
   '/:roomId',
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    validateRequest,
-  ],
-  authorize('admin', 'reception', 'professional'),
+  authenticate,
   RoomController.getRoomById
 );
 
 /**
- * @route GET /rooms/:roomId/availability
- * @desc Get room availability for specific date range
- * @access Admin, Reception, Professional
+ * @route   GET /api/v1/rooms/:roomId/availability
+ * @desc    Get room availability for a date range
+ * @access  Private (All roles)
+ * @params  roomId
+ * @query   startDate, endDate (required)
  */
 router.get(
   '/:roomId/availability',
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    query('startDate').notEmpty().isISO8601().withMessage('Start date is required and must be valid ISO8601'),
-    query('endDate').notEmpty().isISO8601().withMessage('End date is required and must be valid ISO8601'),
-    validateRequest,
-  ],
-  authorize('admin', 'reception', 'professional'),
+  authenticate,
   RoomController.getRoomAvailability
 );
 
 /**
- * @route POST /rooms/:roomId/jitsi-link
- * @desc Generate Jitsi meeting link for virtual room
- * @access Admin, Reception, Professional
- */
-router.post(
-  '/:roomId/jitsi-link',
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    validateRequest,
-  ],
-  authorize('admin', 'reception', 'professional'),
-  RoomController.generateJitsiLink
-);
-
-/**
- * @route POST /rooms
- * @desc Create new room
- * @access Admin only
+ * @route   POST /api/v1/rooms
+ * @desc    Create new room
+ * @access  Private (Admin only)
+ * @body    Complete room data
  */
 router.post(
   '/',
-  authorize('admin'),
-  [
-    body('name')
-      .notEmpty()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Name is required and must be 2-100 characters'),
-    body('description')
-      .optional()
-      .isLength({ max: 500 })
-      .withMessage('Description cannot exceed 500 characters'),
-    body('type')
-      .isIn(['physical', 'virtual'])
-      .withMessage('Type must be physical or virtual'),
-    body('capacity')
-      .isInt({ min: 1, max: 1000 })
-      .withMessage('Capacity must be between 1 and 1000'),
-    body('location')
-      .optional()
-      .isLength({ min: 2, max: 200 })
-      .withMessage('Location must be 2-200 characters'),
-    body('floor')
-      .optional()
-      .isLength({ min: 1, max: 10 })
-      .withMessage('Floor must be 1-10 characters'),
-    body('building')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Building must be 2-100 characters'),
-    body('isActive')
-      .optional()
-      .isBoolean()
-      .withMessage('IsActive must be a boolean'),
-    body('features')
-      .optional()
-      .isArray({ max: 20 })
-      .withMessage('Features must be an array with max 20 items'),
-    body('features.*')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Each feature must be 2-100 characters'),
-    body('equipment')
-      .optional()
-      .isArray({ max: 50 })
-      .withMessage('Equipment must be an array with max 50 items'),
-    body('equipment.*')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Each equipment item must be 2-100 characters'),
-    body('accessibility.wheelchairAccessible')
-      .optional()
-      .isBoolean()
-      .withMessage('WheelchairAccessible must be a boolean'),
-    body('accessibility.hearingLoop')
-      .optional()
-      .isBoolean()
-      .withMessage('HearingLoop must be a boolean'),
-    body('accessibility.visualAids')
-      .optional()
-      .isBoolean()
-      .withMessage('VisualAids must be a boolean'),
-    body('virtualConfig.platform')
-      .optional()
-      .isIn(['jitsi', 'zoom', 'teams', 'custom'])
-      .withMessage('Platform must be jitsi, zoom, teams, or custom'),
-    body('virtualConfig.roomId')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Room ID must be 2-100 characters'),
-    body('virtualConfig.meetingUrl')
-      .optional()
-      .isURL()
-      .withMessage('Meeting URL must be a valid URL'),
-    body('virtualConfig.accessCode')
-      .optional()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Access code must be 2-50 characters'),
-    body('virtualConfig.settings.recordingEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('RecordingEnabled must be a boolean'),
-    body('virtualConfig.settings.chatEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('ChatEnabled must be a boolean'),
-    body('virtualConfig.settings.screenSharingEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('ScreenSharingEnabled must be a boolean'),
-    body('virtualConfig.settings.waitingRoomEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('WaitingRoomEnabled must be a boolean'),
-    body('virtualConfig.settings.maxParticipants')
-      .optional()
-      .isInt({ min: 2, max: 1000 })
-      .withMessage('MaxParticipants must be between 2 and 1000'),
-    body('bookingRules.minBookingDuration')
-      .optional()
-      .isInt({ min: 15, max: 480 })
-      .withMessage('MinBookingDuration must be between 15 and 480 minutes'),
-    body('bookingRules.maxBookingDuration')
-      .optional()
-      .isInt({ min: 30, max: 960 })
-      .withMessage('MaxBookingDuration must be between 30 and 960 minutes'),
-    body('bookingRules.bufferBetweenBookings')
-      .optional()
-      .isInt({ min: 0, max: 120 })
-      .withMessage('BufferBetweenBookings must be between 0 and 120 minutes'),
-    body('bookingRules.allowBackToBack')
-      .optional()
-      .isBoolean()
-      .withMessage('AllowBackToBack must be a boolean'),
-    body('bookingRules.advanceBookingDays')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('AdvanceBookingDays must be between 1 and 365'),
-    body('contactInfo.phone')
-      .optional()
-      .isMobilePhone('any')
-      .withMessage('Phone must be a valid phone number'),
-    body('contactInfo.email')
-      .optional()
-      .isEmail()
-      .withMessage('Email must be a valid email address'),
-    body('contactInfo.emergencyContact')
-      .optional()
-      .isMobilePhone('any')
-      .withMessage('Emergency contact must be a valid phone number'),
-    body('metadata.color')
-      .optional()
-      .matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-      .withMessage('Color must be a valid hex color code'),
-    body('metadata.icon')
-      .optional()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Icon must be 2-50 characters'),
-    body('metadata.tags')
-      .optional()
-      .isArray({ max: 10 })
-      .withMessage('Tags must be an array with max 10 items'),
-    body('metadata.tags.*')
-      .optional()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Each tag must be 2-50 characters'),
-    validateRequest,
-  ],
+  authenticate,
   RoomController.createRoom
 );
 
 /**
- * @route PUT /rooms/:roomId
- * @desc Update room information
- * @access Admin only
+ * @route   PUT /api/v1/rooms/:roomId
+ * @desc    Update room details
+ * @access  Private (Admin only)
+ * @params  roomId
+ * @body    Partial room data
  */
 router.put(
   '/:roomId',
-  authorize('admin'),
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    body('name')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Name must be 2-100 characters'),
-    body('description')
-      .optional()
-      .isLength({ max: 500 })
-      .withMessage('Description cannot exceed 500 characters'),
-    body('type')
-      .optional()
-      .isIn(['physical', 'virtual'])
-      .withMessage('Type must be physical or virtual'),
-    body('capacity')
-      .optional()
-      .isInt({ min: 1, max: 1000 })
-      .withMessage('Capacity must be between 1 and 1000'),
-    body('location')
-      .optional()
-      .isLength({ min: 2, max: 200 })
-      .withMessage('Location must be 2-200 characters'),
-    body('floor')
-      .optional()
-      .isLength({ min: 1, max: 10 })
-      .withMessage('Floor must be 1-10 characters'),
-    body('building')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Building must be 2-100 characters'),
-    body('isActive')
-      .optional()
-      .isBoolean()
-      .withMessage('IsActive must be a boolean'),
-    body('features')
-      .optional()
-      .isArray({ max: 20 })
-      .withMessage('Features must be an array with max 20 items'),
-    body('equipment')
-      .optional()
-      .isArray({ max: 50 })
-      .withMessage('Equipment must be an array with max 50 items'),
-    body('accessibility.wheelchairAccessible')
-      .optional()
-      .isBoolean()
-      .withMessage('WheelchairAccessible must be a boolean'),
-    body('accessibility.hearingLoop')
-      .optional()
-      .isBoolean()
-      .withMessage('HearingLoop must be a boolean'),
-    body('accessibility.visualAids')
-      .optional()
-      .isBoolean()
-      .withMessage('VisualAids must be a boolean'),
-    body('virtualConfig.platform')
-      .optional()
-      .isIn(['jitsi', 'zoom', 'teams', 'custom'])
-      .withMessage('Platform must be jitsi, zoom, teams, or custom'),
-    body('virtualConfig.roomId')
-      .optional()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Room ID must be 2-100 characters'),
-    body('virtualConfig.meetingUrl')
-      .optional()
-      .isURL()
-      .withMessage('Meeting URL must be a valid URL'),
-    body('virtualConfig.accessCode')
-      .optional()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Access code must be 2-50 characters'),
-    body('virtualConfig.settings.recordingEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('RecordingEnabled must be a boolean'),
-    body('virtualConfig.settings.chatEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('ChatEnabled must be a boolean'),
-    body('virtualConfig.settings.screenSharingEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('ScreenSharingEnabled must be a boolean'),
-    body('virtualConfig.settings.waitingRoomEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('WaitingRoomEnabled must be a boolean'),
-    body('virtualConfig.settings.maxParticipants')
-      .optional()
-      .isInt({ min: 2, max: 1000 })
-      .withMessage('MaxParticipants must be between 2 and 1000'),
-    body('bookingRules.minBookingDuration')
-      .optional()
-      .isInt({ min: 15, max: 480 })
-      .withMessage('MinBookingDuration must be between 15 and 480 minutes'),
-    body('bookingRules.maxBookingDuration')
-      .optional()
-      .isInt({ min: 30, max: 960 })
-      .withMessage('MaxBookingDuration must be between 30 and 960 minutes'),
-    body('bookingRules.bufferBetweenBookings')
-      .optional()
-      .isInt({ min: 0, max: 120 })
-      .withMessage('BufferBetweenBookings must be between 0 and 120 minutes'),
-    body('bookingRules.allowBackToBack')
-      .optional()
-      .isBoolean()
-      .withMessage('AllowBackToBack must be a boolean'),
-    body('bookingRules.advanceBookingDays')
-      .optional()
-      .isInt({ min: 1, max: 365 })
-      .withMessage('AdvanceBookingDays must be between 1 and 365'),
-    body('contactInfo.phone')
-      .optional()
-      .isMobilePhone('any')
-      .withMessage('Phone must be a valid phone number'),
-    body('contactInfo.email')
-      .optional()
-      .isEmail()
-      .withMessage('Email must be a valid email address'),
-    body('contactInfo.emergencyContact')
-      .optional()
-      .isMobilePhone('any')
-      .withMessage('Emergency contact must be a valid phone number'),
-    body('metadata.color')
-      .optional()
-      .matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-      .withMessage('Color must be a valid hex color code'),
-    body('metadata.icon')
-      .optional()
-      .isLength({ min: 2, max: 50 })
-      .withMessage('Icon must be 2-50 characters'),
-    body('metadata.tags')
-      .optional()
-      .isArray({ max: 10 })
-      .withMessage('Tags must be an array with max 10 items'),
-    validateRequest,
-  ],
+  authenticate,
   RoomController.updateRoom
 );
 
 /**
- * @route POST /rooms/:roomId/deactivate
- * @desc Deactivate room (soft delete)
- * @access Admin only
+ * @route   POST /api/v1/rooms/:roomId/maintenance
+ * @desc    Schedule room maintenance
+ * @access  Private (Admin, Reception only)
+ * @params  roomId
+ * @body    Maintenance details
  */
 router.post(
-  '/:roomId/deactivate',
-  authorize('admin'),
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    validateRequest,
-  ],
-  RoomController.deactivateRoom
+  '/:roomId/maintenance',
+  authenticate,
+  RoomController.scheduleMaintenance
 );
 
 /**
- * @route POST /rooms/:roomId/reactivate
- * @desc Reactivate room
- * @access Admin only
+ * @route   DELETE /api/v1/rooms/:roomId
+ * @desc    Soft delete room (admin only)
+ * @access  Private (Admin only)
+ * @params  roomId
  */
-router.post(
-  '/:roomId/reactivate',
-  authorize('admin'),
-  [
-    param('roomId').isMongoId().withMessage('Invalid room ID'),
-    validateRequest,
-  ],
-  RoomController.reactivateRoom
+router.delete(
+  '/:roomId',
+  authenticate,
+  RoomController.deleteRoom
 );
 
 export default router;

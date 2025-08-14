@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
+import { Types } from 'mongoose';
 import { Service, IServiceDocument } from '../models/Service.js';
 import { Professional } from '../models/Professional.js';
-import { Appointment } from '../models/Appointment.js';
 import { AuditLog } from '../models/AuditLog.js';
 import logger from '../config/logger.js';
 import { AuthRequest } from '../middleware/auth.js';
@@ -10,65 +9,54 @@ import { AuthRequest } from '../middleware/auth.js';
 interface CreateServiceRequest {
   name: string;
   description?: string;
-  category: string;
-  duration: number; // in minutes
+  durationMinutes: number;
   price: number;
   currency?: string;
-  isActive?: boolean;
-  requiresApproval?: boolean;
+  color?: string;
+  category?: string;
+  tags?: string[];
   isOnlineAvailable?: boolean;
-  maxAdvanceBookingDays?: number;
-  minAdvanceBookingHours?: number;
-  cancellationPolicy?: {
-    allowedUntilHours: number;
-    penaltyPercentage: number;
-    noShowPenaltyPercentage: number;
+  requiresApproval?: boolean;
+  availableTo?: string[]; // Professional IDs
+  isPubliclyBookable?: boolean;
+  settings?: {
+    maxAdvanceBookingDays?: number;
+    minAdvanceBookingHours?: number;
+    allowSameDayBooking?: boolean;
+    bufferBefore?: number;
+    bufferAfter?: number;
+    maxConcurrentBookings?: number;
+    requiresIntake?: boolean;
+    intakeFormId?: string;
   };
-  preparationTime?: number;
-  cleanupTime?: number;
-  requiredResources?: string[];
-  contraindications?: string[];
-  ageRestrictions?: {
-    minAge?: number;
-    maxAge?: number;
+  preparation?: {
+    instructions?: string;
+    requiredDocuments?: string[];
+    recommendedDuration?: number;
   };
-  metadata?: {
-    color?: string;
-    icon?: string;
-    tags?: string[];
+  followUp?: {
+    instructions?: string;
+    scheduledTasks?: string[];
+    recommendedGap?: number;
   };
 }
 
 interface UpdateServiceRequest {
   name?: string;
   description?: string;
-  category?: string;
-  duration?: number;
+  durationMinutes?: number;
   price?: number;
   currency?: string;
+  color?: string;
+  category?: string;
+  tags?: string[];
   isActive?: boolean;
-  requiresApproval?: boolean;
   isOnlineAvailable?: boolean;
-  maxAdvanceBookingDays?: number;
-  minAdvanceBookingHours?: number;
-  cancellationPolicy?: {
-    allowedUntilHours: number;
-    penaltyPercentage: number;
-    noShowPenaltyPercentage: number;
-  };
-  preparationTime?: number;
-  cleanupTime?: number;
-  requiredResources?: string[];
-  contraindications?: string[];
-  ageRestrictions?: {
-    minAge?: number;
-    maxAge?: number;
-  };
-  metadata?: {
-    color?: string;
-    icon?: string;
-    tags?: string[];
-  };
+  requiresApproval?: boolean;
+  isPubliclyBookable?: boolean;
+  settings?: Partial<CreateServiceRequest['settings']>;
+  preparation?: Partial<CreateServiceRequest['preparation']>;
+  followUp?: Partial<CreateServiceRequest['followUp']>;
 }
 
 interface ServiceQuery {
@@ -77,10 +65,16 @@ interface ServiceQuery {
   search?: string;
   category?: string;
   isActive?: string;
+  isPubliclyBookable?: string;
   isOnlineAvailable?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  minDuration?: string;
+  maxDuration?: string;
   professionalId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  include?: string;
 }
 
 export class ServiceController {
@@ -95,11 +89,17 @@ export class ServiceController {
         limit = '20',
         search,
         category,
-        isActive = 'true',
+        isActive,
+        isPubliclyBookable,
         isOnlineAvailable,
+        minPrice,
+        maxPrice,
+        minDuration,
+        maxDuration,
         professionalId,
         sortBy = 'name',
         sortOrder = 'asc',
+        include,
       } = req.query as ServiceQuery;
 
       const pageNum = parseInt(page, 10);
@@ -107,28 +107,59 @@ export class ServiceController {
       const skip = (pageNum - 1) * limitNum;
 
       // Build filter
-      const filter: any = {};
+      const filter: any = { deletedAt: null };
 
-      // Apply query filters
-      if (isActive !== 'all') {
-        filter.isActive = isActive === 'true';
+      // Apply filters based on query params
+      if (search) {
+        filter.$text = { $search: search };
       }
 
       if (category) {
-        filter.category = category;
+        filter.category = new RegExp(category, 'i');
+      }
+
+      if (isActive !== undefined) {
+        filter.isActive = isActive === 'true';
+      }
+
+      if (isPubliclyBookable !== undefined) {
+        filter.isPubliclyBookable = isPubliclyBookable === 'true';
       }
 
       if (isOnlineAvailable !== undefined) {
         filter.isOnlineAvailable = isOnlineAvailable === 'true';
       }
 
-      if (search) {
+      if (minPrice || maxPrice) {
+        filter.price = {};
+        if (minPrice) filter.price.$gte = parseFloat(minPrice);
+        if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+      }
+
+      if (minDuration || maxDuration) {
+        filter.durationMinutes = {};
+        if (minDuration) filter.durationMinutes.$gte = parseInt(minDuration, 10);
+        if (maxDuration) filter.durationMinutes.$lte = parseInt(maxDuration, 10);
+      }
+
+      if (professionalId) {
         filter.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { category: { $regex: search, $options: 'i' } },
-          { 'metadata.tags': { $regex: search, $options: 'i' } },
+          { availableTo: { $size: 0 } }, // Available to all
+          { availableTo: new Types.ObjectId(professionalId) }
         ];
+      }
+
+      // Apply role-based filtering
+      if (authUser.role === 'professional') {
+        // Professional can only see services available to them or all
+        filter.$or = [
+          { availableTo: { $size: 0 } },
+          { availableTo: authUser.professionalId }
+        ];
+      } else if (authUser.role === 'patient') {
+        // Patients can only see active, publicly bookable services
+        filter.isActive = true;
+        filter.isPubliclyBookable = true;
       }
 
       // Build sort
@@ -136,34 +167,31 @@ export class ServiceController {
       sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
       // Execute queries
+      let query = Service.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum);
+
+      // Add population based on include parameter
+      if (include) {
+        const includeFields = include.split(',');
+        
+        if (includeFields.includes('professionals') && authUser.role !== 'patient') {
+          query = query.populate('availableTo', 'name title specialties');
+        }
+      }
+
       const [services, total] = await Promise.all([
-        Service.find(filter)
-          .sort(sort)
-          .skip(skip)
-          .limit(limitNum)
-          .populate('createdBy', 'name email'),
+        query.exec(),
         Service.countDocuments(filter),
       ]);
 
       const totalPages = Math.ceil(total / limitNum);
 
-      // If professionalId is specified, add professional-specific data
-      let servicesWithProfessionalData = services;
-      if (professionalId) {
-        const professional = await Professional.findById(professionalId);
-        if (professional) {
-          servicesWithProfessionalData = services.map((service: any) => {
-            const serviceObj = service.toObject();
-            serviceObj.isOfferedByProfessional = professional.services.includes(service._id);
-            return serviceObj;
-          });
-        }
-      }
-
       res.status(200).json({
         success: true,
         data: {
-          services: servicesWithProfessionalData,
+          services,
           pagination: {
             currentPage: pageNum,
             totalPages,
@@ -185,9 +213,13 @@ export class ServiceController {
   static async getServiceById(req: Request, res: Response, next: NextFunction) {
     try {
       const { serviceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const { include } = req.query;
 
-      const service = await Service.findById(serviceId)
-        .populate('createdBy', 'name email');
+      const service = await Service.findOne({ 
+        _id: serviceId, 
+        deletedAt: null 
+      }).populate('availableTo', 'name title specialties');
 
       if (!service) {
         return res.status(404).json({
@@ -196,33 +228,78 @@ export class ServiceController {
         });
       }
 
-      // Get professionals offering this service
-      const professionals = await Professional.find({
-        services: service._id,
-        isActive: true,
-        status: 'active'
-      }).select('name specialties email');
+      // Check if user can access this service
+      const canAccess = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && (
+          service.availableTo.length === 0 || 
+          service.availableTo.some((prof: any) => prof._id.toString() === authUser.professionalId?.toString())
+        )) ||
+        (authUser.role === 'patient' && service.isActive && service.isPubliclyBookable);
 
-      // Get appointment statistics for this service
-      const appointmentStats = await Appointment.aggregate([
-        { $match: { serviceId: service._id } },
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 }
-          }
+      if (!canAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Service not available to you',
+        });
+      }
+
+      let responseData: any = service.toObject();
+
+      // Filter sensitive data for patients
+      if (authUser.role === 'patient') {
+        delete responseData.stats;
+        delete responseData.availableTo;
+      }
+
+      // Optionally include additional data
+      let additionalData: any = {};
+
+      if (include && authUser.role !== 'patient') {
+        const includeFields = include.toString().split(',');
+
+        if (includeFields.includes('usage')) {
+          // Get service usage statistics
+          const { Appointment } = await import('../models/Appointment.js');
+          
+          const usageStats = await Appointment.aggregate([
+            { 
+              $match: { 
+                serviceId: new Types.ObjectId(serviceId),
+                deletedAt: null,
+                startTime: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+              }
+            },
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+                totalRevenue: { $sum: '$pricing.totalAmount' },
+              }
+            }
+          ]);
+
+          additionalData.usageStats = usageStats;
         }
-      ]);
+
+        if (includeFields.includes('professionals')) {
+          // Get professionals offering this service
+          const professionals = await Professional.find({
+            services: new Types.ObjectId(serviceId),
+            status: 'active',
+            isActive: true,
+          }).select('name title specialties');
+
+          additionalData.professionals = professionals;
+        }
+      }
 
       res.status(200).json({
         success: true,
-        data: { 
-          service,
-          professionals,
-          stats: {
-            appointments: appointmentStats,
-            professionalCount: professionals.length
-          }
+        data: {
+          service: responseData,
+          ...additionalData,
         },
       });
     } catch (error) {
@@ -237,9 +314,8 @@ export class ServiceController {
   static async createService(req: Request, res: Response, next: NextFunction) {
     try {
       const authUser = (req as AuthRequest).user!;
-      const serviceData = req.body as CreateServiceRequest;
 
-      // Only admin can create services (professionals can request via different endpoint)
+      // Only admin can create services
       if (authUser.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -247,40 +323,57 @@ export class ServiceController {
         });
       }
 
-      // Check if service with same name already exists
-      const existingService = await Service.findOne({ 
-        name: serviceData.name.trim(),
-        isActive: true
-      });
-      if (existingService) {
-        return res.status(409).json({
-          success: false,
-          message: 'Service already exists with this name',
+      const serviceData = req.body as CreateServiceRequest;
+
+      // Validate professional IDs if provided
+      if (serviceData.availableTo && serviceData.availableTo.length > 0) {
+        const professionals = await Professional.find({
+          _id: { $in: serviceData.availableTo.map(id => new Types.ObjectId(id)) },
+          isActive: true,
         });
+
+        if (professionals.length !== serviceData.availableTo.length) {
+          return res.status(404).json({
+            success: false,
+            message: 'One or more professionals not found',
+          });
+        }
       }
 
       // Create service
       const service = new Service({
-        ...serviceData,
-        name: serviceData.name.trim(),
+        name: serviceData.name,
+        description: serviceData.description,
+        durationMinutes: serviceData.durationMinutes,
+        price: serviceData.price,
         currency: serviceData.currency || 'EUR',
-        isActive: serviceData.isActive ?? true,
-        requiresApproval: serviceData.requiresApproval ?? false,
+        color: serviceData.color,
+        category: serviceData.category,
+        tags: serviceData.tags || [],
         isOnlineAvailable: serviceData.isOnlineAvailable ?? true,
-        maxAdvanceBookingDays: serviceData.maxAdvanceBookingDays ?? 30,
-        minAdvanceBookingHours: serviceData.minAdvanceBookingHours ?? 2,
-        preparationTime: serviceData.preparationTime ?? 0,
-        cleanupTime: serviceData.cleanupTime ?? 0,
-        createdBy: authUser._id,
-        metadata: {
-          color: serviceData.metadata?.color || '#3B82F6',
-          icon: serviceData.metadata?.icon || 'calendar',
-          tags: serviceData.metadata?.tags || [],
+        requiresApproval: serviceData.requiresApproval ?? false,
+        availableTo: serviceData.availableTo?.map(id => new Types.ObjectId(id)) || [],
+        isPubliclyBookable: serviceData.isPubliclyBookable ?? true,
+        priceDetails: {
+          basePrice: serviceData.price,
         },
-        cancellationPolicy: serviceData.cancellationPolicy || {
-          allowedUntilHours: 24,
-          penaltyPercentage: 0,
-          noShowPenaltyPercentage: 100,
+        settings: {
+          maxAdvanceBookingDays: serviceData.settings?.maxAdvanceBookingDays ?? 30,
+          minAdvanceBookingHours: serviceData.settings?.minAdvanceBookingHours ?? 2,
+          allowSameDayBooking: serviceData.settings?.allowSameDayBooking ?? true,
+          bufferBefore: serviceData.settings?.bufferBefore ?? 0,
+          bufferAfter: serviceData.settings?.bufferAfter ?? 0,
+          maxConcurrentBookings: serviceData.settings?.maxConcurrentBookings ?? 1,
+          requiresIntake: serviceData.settings?.requiresIntake ?? false,
+          intakeFormId: serviceData.settings?.intakeFormId ? new Types.ObjectId(serviceData.settings.intakeFormId) : undefined,
+        },
+        preparation: serviceData.preparation,
+        followUp: serviceData.followUp,
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          totalRevenue: 0,
         },
       });
 
@@ -300,10 +393,406 @@ export class ServiceController {
         changes: {
           created: {
             name: service.name,
-            category: service.category,
-            durationMinutes: service.durationMinutes,
             price: service.price,
-            currency: service.currency,
+            duration: service.durationMinutes,
+            category: service.category,
+          },
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: false,
+          dataClassification: 'internal',
+        },
+        metadata: {
+          source: 'service_controller',
+          priority: 'low',
+        },
+        timestamp: new Date(),
+      });
+
+      await service.populate('availableTo', 'name title specialties');
+
+      res.status(201).json({
+        success: true,
+        message: 'Service created successfully',
+        data: { service },
+      });
+    } catch (error) {
+      logger.error('Create service error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Update service
+   */
+  static async updateService(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { serviceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const updateData = req.body as UpdateServiceRequest;
+
+      // Only admin can update services
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can update services',
+        });
+      }
+
+      const service = await Service.findById(serviceId);
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service not found',
+        });
+      }
+
+      // Store original data for audit
+      const originalData = service.toObject();
+
+      // Apply updates
+      if (updateData.name) service.name = updateData.name;
+      if (updateData.description !== undefined) service.description = updateData.description;
+      if (updateData.durationMinutes) service.durationMinutes = updateData.durationMinutes;
+      if (updateData.price !== undefined) {
+        service.price = updateData.price;
+        service.priceDetails.basePrice = updateData.price;
+      }
+      if (updateData.currency) service.currency = updateData.currency;
+      if (updateData.color) service.color = updateData.color;
+      if (updateData.category !== undefined) service.category = updateData.category;
+      if (updateData.tags) service.tags = updateData.tags;
+      if (updateData.isActive !== undefined) service.isActive = updateData.isActive;
+      if (updateData.isOnlineAvailable !== undefined) service.isOnlineAvailable = updateData.isOnlineAvailable;
+      if (updateData.requiresApproval !== undefined) service.requiresApproval = updateData.requiresApproval;
+      if (updateData.isPubliclyBookable !== undefined) service.isPubliclyBookable = updateData.isPubliclyBookable;
+
+      // Update settings
+      if (updateData.settings) {
+        service.settings = { ...service.settings, ...updateData.settings };
+      }
+
+      // Update preparation
+      if (updateData.preparation) {
+        service.preparation = { ...service.preparation, ...updateData.preparation };
+      }
+
+      // Update follow-up
+      if (updateData.followUp) {
+        service.followUp = { ...service.followUp, ...updateData.followUp };
+      }
+
+      await service.save();
+
+      // Log service update
+      await AuditLog.create({
+        action: 'service_updated',
+        entityType: 'service',
+        entityId: service._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          before: originalData,
+          after: service.toObject(),
+          fieldsChanged: Object.keys(updateData),
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: false,
+          dataClassification: 'internal',
+        },
+        metadata: {
+          source: 'service_controller',
+          priority: 'low',
+        },
+        timestamp: new Date(),
+      });
+
+      await service.populate('availableTo', 'name title specialties');
+
+      res.status(200).json({
+        success: true,
+        message: 'Service updated successfully',
+        data: { service },
+      });
+    } catch (error) {
+      logger.error('Update service error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Add professional to service
+   */
+  static async addProfessional(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { serviceId } = req.params;
+      const { professionalId } = req.body;
+      const authUser = (req as AuthRequest).user!;
+
+      // Only admin can modify professional assignments
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can assign professionals to services',
+        });
+      }
+
+      const [service, professional] = await Promise.all([
+        Service.findById(serviceId),
+        Professional.findById(professionalId),
+      ]);
+
+      if (!service || !professional) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service or professional not found',
+        });
+      }
+
+      await service.addProfessional(new Types.ObjectId(professionalId));
+      await professional.addService(new Types.ObjectId(serviceId));
+
+      res.status(200).json({
+        success: true,
+        message: 'Professional added to service successfully',
+        data: { service },
+      });
+    } catch (error) {
+      logger.error('Add professional to service error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Remove professional from service
+   */
+  static async removeProfessional(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { serviceId, professionalId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+
+      // Only admin can modify professional assignments
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can remove professionals from services',
+        });
+      }
+
+      const [service, professional] = await Promise.all([
+        Service.findById(serviceId),
+        Professional.findById(professionalId),
+      ]);
+
+      if (!service || !professional) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service or professional not found',
+        });
+      }
+
+      await service.removeProfessional(new Types.ObjectId(professionalId));
+      await professional.removeService(new Types.ObjectId(serviceId));
+
+      res.status(200).json({
+        success: true,
+        message: 'Professional removed from service successfully',
+        data: { service },
+      });
+    } catch (error) {
+      logger.error('Remove professional from service error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get service categories
+   */
+  static async getCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const categories = await Service.distinct('category', { 
+        isActive: true, 
+        deletedAt: null,
+        category: { $ne: null } 
+      });
+
+      res.status(200).json({
+        success: true,
+        data: { categories },
+      });
+    } catch (error) {
+      logger.error('Get service categories error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get service statistics
+   */
+  static async getServiceStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authUser = (req as AuthRequest).user!;
+
+      // Only admin and reception can view service statistics
+      if (authUser.role !== 'admin' && authUser.role !== 'reception') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot view service statistics',
+        });
+      }
+
+      const [totalStats, categoryStats, popularServices] = await Promise.all([
+        // Total service statistics
+        Service.aggregate([
+          { $match: { deletedAt: null } },
+          {
+            $group: {
+              _id: null,
+              totalServices: { $sum: 1 },
+              activeServices: { $sum: { $cond: ['$isActive', 1, 0] } },
+              publicServices: { $sum: { $cond: ['$isPubliclyBookable', 1, 0] } },
+              onlineServices: { $sum: { $cond: ['$isOnlineAvailable', 1, 0] } },
+              averagePrice: { $avg: '$price' },
+              averageDuration: { $avg: '$durationMinutes' },
+              totalRevenue: { $sum: '$stats.totalRevenue' },
+            }
+          }
+        ]),
+
+        // Statistics by category
+        Service.aggregate([
+          { $match: { deletedAt: null, isActive: true } },
+          {
+            $group: {
+              _id: '$category',
+              count: { $sum: 1 },
+              averagePrice: { $avg: '$price' },
+              totalBookings: { $sum: '$stats.totalBookings' },
+            }
+          },
+          { $sort: { count: -1 } }
+        ]),
+
+        // Most popular services
+        Service.aggregate([
+          { $match: { deletedAt: null, isActive: true } },
+          { $sort: { 'stats.totalBookings': -1 } },
+          { $limit: 10 },
+          {
+            $project: {
+              name: 1,
+              category: 1,
+              price: 1,
+              'stats.totalBookings': 1,
+              'stats.totalRevenue': 1,
+              'stats.averageRating': 1,
+            }
+          }
+        ]),
+      ]);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          overview: totalStats[0] || {},
+          byCategory: categoryStats,
+          popular: popularServices,
+        },
+      });
+    } catch (error) {
+      logger.error('Get service stats error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Soft delete service
+   */
+  static async deleteService(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { serviceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+
+      // Only admin can delete services
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only administrators can delete services',
+        });
+      }
+
+      const service = await Service.findById(serviceId);
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service not found',
+        });
+      }
+
+      // Check if service has active appointments
+      const { Appointment } = await import('../models/Appointment.js');
+      const activeAppointments = await Appointment.countDocuments({
+        serviceId: new Types.ObjectId(serviceId),
+        status: { $in: ['pending', 'confirmed', 'in_progress'] },
+        deletedAt: null,
+      });
+
+      if (activeAppointments > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete service with ${activeAppointments} active appointments. Please cancel or complete them first.`,
+        });
+      }
+
+      await service.softDelete();
+
+      // Log service deletion
+      await AuditLog.create({
+        action: 'service_deleted',
+        entityType: 'service',
+        entityId: service._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          deletedAt: new Date(),
+          serviceName: service.name,
+          activeAppointmentsChecked: true,
+        },
+        security: {
+          riskLevel: 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: false,
+            requiresRetention: false,
           },
         },
         business: {
@@ -318,562 +807,12 @@ export class ServiceController {
         timestamp: new Date(),
       });
 
-      res.status(201).json({
-        success: true,
-        message: 'Service created successfully',
-        data: { service },
-      });
-    } catch (error) {
-      logger.error('Create service error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Update service information
-   */
-  static async updateService(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { serviceId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-      const updateData = req.body as UpdateServiceRequest;
-
-      // Find service
-      const service = await Service.findById(serviceId);
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found',
-        });
-      }
-
-      // Only admin can update services
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can update services',
-        });
-      }
-
-      // Store original values for audit
-      const originalValues = {
-        name: service.name,
-        durationMinutes: service.durationMinutes,
-        price: service.price,
-        isActive: service.isActive,
-        isOnlineAvailable: service.isOnlineAvailable,
-      };
-
-      // Check name uniqueness if changing
-      if (updateData.name && updateData.name.trim() !== service.name) {
-        const existingService = await Service.findOne({ 
-          name: updateData.name.trim(),
-          isActive: true,
-          _id: { $ne: serviceId }
-        });
-        if (existingService) {
-          return res.status(409).json({
-            success: false,
-            message: 'Another service already exists with this name',
-          });
-        }
-      }
-
-      // Update service fields
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key as keyof UpdateServiceRequest] !== undefined) {
-          if (key === 'name') {
-            (service as any)[key] = updateData.name?.trim();
-          } else {
-            (service as any)[key] = updateData[key as keyof UpdateServiceRequest];
-          }
-        }
-      });
-
-      await service.save();
-
-      // Build changes object for audit
-      const changes: any = {};
-      Object.keys(originalValues).forEach(key => {
-        const originalValue = (originalValues as any)[key];
-        const newValue = (service as any)[key];
-        if (JSON.stringify(originalValue) !== JSON.stringify(newValue)) {
-          changes[key] = { from: originalValue, to: newValue };
-        }
-      });
-
-      // Log service update if there were changes
-      if (Object.keys(changes).length > 0) {
-        await AuditLog.create({
-          action: 'service_updated',
-          entityType: 'service',
-          entityId: service._id.toString(),
-          actorId: authUser._id,
-          actorType: 'user',
-          actorEmail: authUser.email,
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-          status: 'success',
-          changes,
-          business: {
-            clinicalRelevant: true,
-            containsPHI: false,
-            dataClassification: 'internal',
-          },
-          metadata: {
-            source: 'service_controller',
-            priority: 'medium',
-          },
-          timestamp: new Date(),
-        });
-      }
-
       res.status(200).json({
         success: true,
-        message: 'Service updated successfully',
-        data: { service },
+        message: 'Service deleted successfully',
       });
     } catch (error) {
-      logger.error('Update service error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Deactivate service
-   */
-  static async deactivateService(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { serviceId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin can deactivate services
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can deactivate services',
-        });
-      }
-
-      const service = await Service.findById(serviceId);
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found',
-        });
-      }
-
-      if (!service.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Service is already deactivated',
-        });
-      }
-
-      // Check if service has upcoming appointments
-      const upcomingAppointments = await Appointment.countDocuments({
-        serviceId: service._id,
-        start: { $gte: new Date() },
-        status: { $in: ['scheduled', 'confirmed'] }
-      });
-
-      if (upcomingAppointments > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot deactivate service with ${upcomingAppointments} upcoming appointments. Please reschedule them first.`,
-        });
-      }
-
-      service.isActive = false;
-      await service.save();
-
-      // Remove service from all professionals
-      await Professional.updateMany(
-        { services: service._id },
-        { $pull: { services: service._id } }
-      );
-
-      // Log service deactivation
-      await AuditLog.create({
-        action: 'service_deactivated',
-        entityType: 'service',
-        entityId: service._id.toString(),
-        actorId: authUser._id,
-        actorType: 'user',
-        actorEmail: authUser.email,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        status: 'success',
-        changes: {
-          isActive: { from: true, to: false },
-          removedFromProfessionals: true,
-        },
-        business: {
-          clinicalRelevant: true,
-          containsPHI: false,
-          dataClassification: 'internal',
-        },
-        metadata: {
-          source: 'service_controller',
-          priority: 'high',
-        },
-        timestamp: new Date(),
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Service deactivated successfully',
-      });
-    } catch (error) {
-      logger.error('Deactivate service error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Reactivate service
-   */
-  static async reactivateService(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { serviceId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin can reactivate services
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can reactivate services',
-        });
-      }
-
-      const service = await Service.findById(serviceId);
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found',
-        });
-      }
-
-      if (service.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Service is already active',
-        });
-      }
-
-      service.isActive = true;
-      await service.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Service reactivated successfully',
-      });
-    } catch (error) {
-      logger.error('Reactivate service error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Get service statistics
-   */
-  static async getServiceStats(req: Request, res: Response, next: NextFunction) {
-    try {
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin and reception can see comprehensive stats
-      if (authUser.role !== 'admin' && authUser.role !== 'reception') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Insufficient permissions',
-        });
-      }
-
-      const [
-        totalServices,
-        activeServices,
-        onlineAvailableServices,
-        servicesByCategory,
-        servicesByPrice,
-        mostPopularServices,
-        revenueByService,
-      ] = await Promise.all([
-        Service.countDocuments(),
-        Service.countDocuments({ isActive: true }),
-        Service.countDocuments({ isActive: true, isOnlineAvailable: true }),
-        Service.aggregate([
-          { $match: { isActive: true } },
-          { $group: { _id: '$category', count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-        ]),
-        Service.aggregate([
-          { $match: { isActive: true } },
-          {
-            $bucket: {
-              groupBy: '$price',
-              boundaries: [0, 50, 100, 150, 200, 1000],
-              default: '200+',
-              output: {
-                count: { $sum: 1 },
-                avgDuration: { $avg: '$duration' }
-              }
-            }
-          }
-        ]),
-        Appointment.aggregate([
-          { $match: { status: { $in: ['completed', 'confirmed'] } } },
-          { $group: { _id: '$serviceId', count: { $sum: 1 } } },
-          { $sort: { count: -1 } },
-          { $limit: 10 },
-          {
-            $lookup: {
-              from: 'services',
-              localField: '_id',
-              foreignField: '_id',
-              as: 'service'
-            }
-          },
-          { $unwind: '$service' },
-          {
-            $project: {
-              serviceName: '$service.name',
-              category: '$service.category',
-              appointmentCount: '$count'
-            }
-          }
-        ]),
-        Appointment.aggregate([
-          { 
-            $match: { 
-              status: { $in: ['completed', 'paid'] },
-              createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
-            } 
-          },
-          {
-            $lookup: {
-              from: 'services',
-              localField: 'serviceId',
-              foreignField: '_id',
-              as: 'service'
-            }
-          },
-          { $unwind: '$service' },
-          {
-            $group: {
-              _id: '$serviceId',
-              serviceName: { $first: '$service.name' },
-              totalRevenue: { $sum: '$service.price' },
-              appointmentCount: { $sum: 1 }
-            }
-          },
-          { $sort: { totalRevenue: -1 } },
-          { $limit: 10 }
-        ])
-      ]);
-
-      const stats = {
-        total: totalServices,
-        active: activeServices,
-        inactive: totalServices - activeServices,
-        onlineAvailable: onlineAvailableServices,
-        byCategory: servicesByCategory,
-        byPrice: servicesByPrice,
-        mostPopular: mostPopularServices,
-        revenueByService,
-      };
-
-      res.status(200).json({
-        success: true,
-        data: { stats },
-      });
-    } catch (error) {
-      logger.error('Get service stats error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Assign service to professional
-   */
-  static async assignServiceToProfessional(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { serviceId, professionalId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin can assign services to professionals
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can assign services',
-        });
-      }
-
-      const [service, professional] = await Promise.all([
-        Service.findById(serviceId),
-        Professional.findById(professionalId)
-      ]);
-
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found',
-        });
-      }
-
-      if (!professional) {
-        return res.status(404).json({
-          success: false,
-          message: 'Professional not found',
-        });
-      }
-
-      if (!service.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot assign inactive service',
-        });
-      }
-
-      if (!professional.isActive) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot assign service to inactive professional',
-        });
-      }
-
-      // Check if already assigned
-      if (professional.services.includes(service._id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Service is already assigned to this professional',
-        });
-      }
-
-      // Add service to professional
-      professional.services.push(service._id);
-      await professional.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Service assigned to professional successfully',
-      });
-    } catch (error) {
-      logger.error('Assign service to professional error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Remove service from professional
-   */
-  static async removeServiceFromProfessional(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { serviceId, professionalId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      // Only admin can remove services from professionals
-      if (authUser.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Only administrators can remove services',
-        });
-      }
-
-      const professional = await Professional.findById(professionalId);
-      if (!professional) {
-        return res.status(404).json({
-          success: false,
-          message: 'Professional not found',
-        });
-      }
-
-      // Check if service is assigned
-      if (!professional.services.includes(new mongoose.Types.ObjectId(serviceId))) {
-        return res.status(400).json({
-          success: false,
-          message: 'Service is not assigned to this professional',
-        });
-      }
-
-      // Check if professional has upcoming appointments with this service
-      const upcomingAppointments = await Appointment.countDocuments({
-        serviceId,
-        professionalId,
-        start: { $gte: new Date() },
-        status: { $in: ['scheduled', 'confirmed'] }
-      });
-
-      if (upcomingAppointments > 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Cannot remove service with ${upcomingAppointments} upcoming appointments. Please reschedule them first.`,
-        });
-      }
-
-      // Remove service from professional
-      professional.services = professional.services.filter(
-        (id: any) => !id.equals(serviceId)
-      );
-      await professional.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Service removed from professional successfully',
-      });
-    } catch (error) {
-      logger.error('Remove service from professional error:', error);
-      next(error);
-    }
-  }
-
-  /**
-   * Get services offered by a specific professional
-   */
-  static async getServicesByProfessional(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { professionalId } = req.params;
-      const authUser = (req as AuthRequest).user!;
-
-      const professional = await Professional.findById(professionalId)
-        .populate({
-          path: 'services',
-          match: { isActive: true },
-          select: 'name description category duration price currency isOnlineAvailable metadata'
-        });
-
-      if (!professional) {
-        return res.status(404).json({
-          success: false,
-          message: 'Professional not found',
-        });
-      }
-
-      // Check permissions
-      const canView = 
-        authUser.role === 'admin' ||
-        authUser.role === 'reception' ||
-        (authUser.role === 'professional' && authUser.professionalId?.toString() === professionalId);
-
-      if (!canView) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: Cannot view this professional services',
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        data: {
-          professional: {
-            id: professional._id,
-            name: professional.name,
-            specialties: professional.specialties
-          },
-          services: professional.services
-        },
-      });
-    } catch (error) {
-      logger.error('Get services by professional error:', error);
+      logger.error('Delete service error:', error);
       next(error);
     }
   }

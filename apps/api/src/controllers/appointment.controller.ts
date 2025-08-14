@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
-import { Appointment } from '../models/Appointment.js';
-import { Patient } from '../models/Patient.js';
+import { Types } from 'mongoose';
+import { Appointment, IAppointmentDocument } from '../models/Appointment.js';
 import { Professional } from '../models/Professional.js';
+import { Patient } from '../models/Patient.js';
 import { Service } from '../models/Service.js';
 import { Room } from '../models/Room.js';
+import { Invoice } from '../models/Invoice.js';
 import { AuditLog } from '../models/AuditLog.js';
 import logger from '../config/logger.js';
 import { AuthRequest } from '../middleware/auth.js';
@@ -17,22 +18,24 @@ interface CreateAppointmentRequest {
   startTime: string;
   endTime?: string;
   duration?: number;
-  timezone?: string;
-  status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled';
-  paymentStatus?: 'pending' | 'partial' | 'paid' | 'refunded' | 'overdue';
-  source?: 'admin' | 'public_booking' | 'professional' | 'patient_portal';
+  source: 'admin' | 'public_booking' | 'professional' | 'patient_portal';
   bookingMethod?: 'online' | 'phone' | 'in_person' | 'email';
   notes?: {
     patientNotes?: string;
-    professionalNotes?: string;
     adminNotes?: string;
   };
+  pricing?: {
+    basePrice?: number;
+    discountAmount?: number;
+    discountReason?: string;
+    insuranceAmount?: number;
+    insuranceProvider?: string;
+    copayAmount?: number;
+  };
   virtualMeeting?: {
-    platform: 'jitsi' | 'zoom' | 'teams' | 'meet' | 'custom';
-    meetingId?: string;
+    platform?: 'jitsi' | 'zoom' | 'teams' | 'meet' | 'custom';
     meetingUrl?: string;
     accessCode?: string;
-    isRecorded?: boolean;
   };
 }
 
@@ -40,36 +43,174 @@ interface UpdateAppointmentRequest {
   startTime?: string;
   endTime?: string;
   duration?: number;
+  roomId?: string;
   status?: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled';
   paymentStatus?: 'pending' | 'partial' | 'paid' | 'refunded' | 'overdue';
-  roomId?: string;
   notes?: {
     patientNotes?: string;
     professionalNotes?: string;
     adminNotes?: string;
+  };
+  virtualMeeting?: {
+    platform?: 'jitsi' | 'zoom' | 'teams' | 'meet' | 'custom';
+    meetingUrl?: string;
+    accessCode?: string;
   };
 }
 
 interface AppointmentQuery {
   page?: string;
   limit?: string;
-  search?: string;
-  patientId?: string;
   professionalId?: string;
+  patientId?: string;
   serviceId?: string;
   roomId?: string;
   status?: string;
   paymentStatus?: string;
-  source?: string;
   startDate?: string;
   endDate?: string;
+  source?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  include?: string;
 }
+
+interface RescheduleRequest {
+  newStartTime: string;
+  newEndTime?: string;
+  reason: string;
+  roomId?: string;
+}
+
+interface CancelRequest {
+  reason: string;
+  refundAmount?: number;
+  rescheduleOffered?: boolean;
+}
+
+// Utility functions to replace missing model methods
+const findConflicts = async (
+  professionalId: Types.ObjectId,
+  startTime: Date,
+  endTime: Date,
+  excludeId?: Types.ObjectId
+) => {
+  const query: any = {
+    professionalId,
+    status: { $nin: ['cancelled', 'no_show'] },
+    deletedAt: null,
+    $or: [
+      { startTime: { $lt: endTime, $gte: startTime } },
+      { endTime: { $gt: startTime, $lte: endTime } },
+      { startTime: { $lte: startTime }, endTime: { $gte: endTime } },
+    ],
+  };
+  
+  if (excludeId) {
+    query._id = { $ne: excludeId };
+  }
+  
+  return Appointment.find(query);
+};
+
+const canBeRescheduled = (appointment: IAppointmentDocument): boolean => {
+  const now = new Date();
+  const hoursUntilStart = (appointment.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+  
+  return hoursUntilStart >= 2 && ['pending', 'confirmed'].includes(appointment.status);
+};
+
+const canBeCancelled = (appointment: IAppointmentDocument): boolean => {
+  const now = new Date();
+  const hoursUntilStart = (appointment.startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+  
+  return hoursUntilStart >= 2 && ['pending', 'confirmed'].includes(appointment.status);
+};
+
+const rescheduleAppointment = async (
+  appointment: IAppointmentDocument,
+  newStartTime: Date,
+  newEndTime: Date,
+  rescheduledBy: Types.ObjectId,
+  reason: string
+) => {
+  const originalStart = appointment.startTime;
+  const originalEnd = appointment.endTime;
+  
+  appointment.startTime = newStartTime;
+  appointment.endTime = newEndTime;
+  appointment.duration = Math.round((newEndTime.getTime() - newStartTime.getTime()) / (1000 * 60));
+  
+  if (!appointment.rescheduling) {
+    appointment.rescheduling = {
+      originalStartTime: originalStart,
+      originalEndTime: originalEnd,
+      rescheduledBy,
+      rescheduledAt: new Date(),
+      reason,
+      reschedulingCount: 1,
+    };
+  } else {
+    appointment.rescheduling.reschedulingCount += 1;
+    appointment.rescheduling.rescheduledAt = new Date();
+    appointment.rescheduling.reason = reason;
+  }
+  
+  // Reset reminders
+  appointment.reminders.sms.sent = false;
+  appointment.reminders.email.sent = false;
+  appointment.reminders.push.sent = false;
+  
+  return appointment.save();
+};
+
+const cancelAppointment = async (
+  appointment: IAppointmentDocument,
+  cancelledBy: Types.ObjectId,
+  reason: string,
+  refundAmount?: number
+) => {
+  appointment.status = 'cancelled';
+  appointment.cancellation = {
+    cancelledBy,
+    cancelledAt: new Date(),
+    reason,
+    refundAmount: refundAmount || 0,
+    refundProcessed: false,
+    rescheduleOffered: true,
+  };
+  return appointment.save();
+};
+
+const markArrived = async (appointment: IAppointmentDocument) => {
+  appointment.attendance.patientArrived = true;
+  appointment.attendance.patientArrivedAt = new Date();
+  return appointment.save();
+};
+
+const startSession = async (appointment: IAppointmentDocument) => {
+  appointment.status = 'in_progress';
+  appointment.attendance.sessionStarted = true;
+  appointment.attendance.sessionStartedAt = new Date();
+  appointment.attendance.professionalPresent = true;
+  return appointment.save();
+};
+
+const endSession = async (appointment: IAppointmentDocument) => {
+  appointment.status = 'completed';
+  appointment.attendance.sessionEnded = true;
+  appointment.attendance.sessionEndedAt = new Date();
+  return appointment.save();
+};
+
+const softDeleteAppointment = async (appointment: IAppointmentDocument) => {
+  appointment.deletedAt = new Date();
+  return appointment.save();
+};
 
 export class AppointmentController {
   /**
-   * Get all appointments with pagination, filtering and population
+   * Get all appointments with pagination and filtering
    */
   static async getAppointments(req: Request, res: Response, next: NextFunction) {
     try {
@@ -77,111 +218,121 @@ export class AppointmentController {
       const {
         page = '1',
         limit = '20',
-        search,
-        patientId,
         professionalId,
+        patientId,
         serviceId,
         roomId,
         status,
         paymentStatus,
-        source,
         startDate,
         endDate,
+        source,
         sortBy = 'startTime',
-        sortOrder = 'asc',
+        sortOrder = 'desc',
+        include,
       } = req.query as AppointmentQuery;
 
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
       const skip = (pageNum - 1) * limitNum;
 
-      // Build filter based on user role and permissions
+      // Build filter based on user role
       const filter: any = { deletedAt: null };
 
-      // Role-based filtering
-      if (authUser.role === 'professional' && authUser.professionalId) {
+      // Apply role-based filtering
+      if (authUser.role === 'professional') {
         filter.professionalId = authUser.professionalId;
-      } else if (authUser.role === 'patient' && authUser.patientId) {
-        filter.patientId = authUser.patientId;
+      } else if (authUser.role === 'patient') {
+        const patient = await Patient.findOne({ 'contactInfo.email': authUser.email });
+        if (!patient) {
+          return res.status(404).json({
+            success: false,
+            message: 'Patient profile not found',
+          });
+        }
+        filter.patientId = patient._id;
       }
 
       // Apply query filters
-      if (patientId && (authUser.role === 'admin' || authUser.role === 'reception')) {
-        filter.patientId = new mongoose.Types.ObjectId(patientId);
+      if (professionalId && (authUser.role === 'admin' || authUser.role === 'reception')) {
+        filter.professionalId = new Types.ObjectId(professionalId);
       }
 
-      if (professionalId && (authUser.role === 'admin' || authUser.role === 'reception')) {
-        filter.professionalId = new mongoose.Types.ObjectId(professionalId);
+      if (patientId && (authUser.role === 'admin' || authUser.role === 'reception' || authUser.role === 'professional')) {
+        filter.patientId = new Types.ObjectId(patientId);
       }
 
       if (serviceId) {
-        filter.serviceId = new mongoose.Types.ObjectId(serviceId);
+        filter.serviceId = new Types.ObjectId(serviceId);
       }
 
       if (roomId) {
-        filter.roomId = new mongoose.Types.ObjectId(roomId);
+        filter.roomId = new Types.ObjectId(roomId);
       }
 
       if (status) {
-        const statuses = status.split(',');
-        filter.status = { $in: statuses };
+        filter.status = status;
       }
 
       if (paymentStatus) {
-        const paymentStatuses = paymentStatus.split(',');
-        filter.paymentStatus = { $in: paymentStatuses };
+        filter.paymentStatus = paymentStatus;
       }
 
       if (source) {
         filter.source = source;
       }
 
-      // Date range filtering
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        filter.startTime = { $gte: start, $lte: end };
-      } else if (startDate) {
-        filter.startTime = { $gte: new Date(startDate) };
-      } else if (endDate) {
-        filter.startTime = { $lte: new Date(endDate) };
-      }
-
-      // Text search
-      if (search) {
-        filter.$or = [
-          { 'patientInfo.name': { $regex: search, $options: 'i' } },
-          { 'patientInfo.email': { $regex: search, $options: 'i' } },
-          { 'notes.patientNotes': { $regex: search, $options: 'i' } },
-          { 'notes.professionalNotes': { $regex: search, $options: 'i' } },
-          { 'notes.adminNotes': { $regex: search, $options: 'i' } },
-        ];
+      // Date range filter
+      if (startDate || endDate) {
+        filter.startTime = {};
+        if (startDate) {
+          filter.startTime.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          filter.startTime.$lte = new Date(endDate);
+        }
       }
 
       // Build sort
       const sort: any = {};
       sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
-      // Execute query with population
+      // Execute queries
       const [appointments, total] = await Promise.all([
         Appointment.find(filter)
-          .populate('patientId', 'name email phone')
-          .populate('professionalId', 'name specialties email')
-          .populate('serviceId', 'name duration price category')
-          .populate('roomId', 'name type location')
           .sort(sort)
           .skip(skip)
           .limit(limitNum)
-          .lean(),
+          .populate('patientId', 'personalInfo.fullName contactInfo.email contactInfo.phone status')
+          .populate('professionalId', 'name title specialties')
+          .populate('serviceId', 'name description duration price category')
+          .populate('roomId', 'name type location capacity')
+          .exec(),
         Appointment.countDocuments(filter),
       ]);
+
+      // Filter sensitive information based on role
+      const filteredAppointments = appointments.map((apt: any) => {
+        const appointment = apt.toObject();
+        
+        if (authUser.role === 'patient') {
+          return {
+            ...appointment,
+            notes: {
+              patientNotes: appointment.notes?.patientNotes,
+            },
+          };
+        }
+        
+        return appointment;
+      });
 
       const totalPages = Math.ceil(total / limitNum);
 
       res.status(200).json({
         success: true,
         data: {
-          appointments,
+          appointments: filteredAppointments,
           pagination: {
             currentPage: pageNum,
             totalPages,
@@ -204,15 +355,19 @@ export class AppointmentController {
     try {
       const { appointmentId } = req.params;
       const authUser = (req as AuthRequest).user!;
+      const { include } = req.query;
 
-      const appointment = await Appointment.findOne({
-        _id: appointmentId,
-        deletedAt: null,
+      const appointment = await Appointment.findOne({ 
+        _id: appointmentId, 
+        deletedAt: null 
       })
-        .populate('patientId', 'name email phone')
-        .populate('professionalId', 'name specialties email phone')
-        .populate('serviceId', 'name description duration price category')
-        .populate('roomId', 'name type location capacity features');
+        .populate('patientId', 'personalInfo contactInfo clinicalInfo preferences')
+        .populate('professionalId', 'name title specialties contactInfo')
+        .populate('serviceId', 'name description duration price category settings')
+        .populate('roomId', 'name type location virtualConfig')
+        .populate('attachments.fileId', 'filename mimetype size path')
+        .populate('attachments.uploadedBy', 'name email')
+        .exec();
 
       if (!appointment) {
         return res.status(404).json({
@@ -222,41 +377,59 @@ export class AppointmentController {
       }
 
       // Check permissions
-      if (authUser.role === 'professional' && 
-          authUser.professionalId?.toString() !== appointment.professionalId._id.toString()) {
+      const canViewDetails = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString()) ||
+        (authUser.role === 'patient' && appointment.patientInfo.email === authUser.email);
+
+      if (!canViewDetails) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: You can only view your own appointments',
+          message: 'Access denied: Cannot view this appointment',
         });
       }
 
-      if (authUser.role === 'patient' && 
-          authUser.patientId?.toString() !== appointment.patientId._id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied: You can only view your own appointments',
-        });
+      let responseData: any = appointment.toObject();
+
+      if (authUser.role === 'patient') {
+        responseData = {
+          ...responseData,
+          notes: {
+            patientNotes: responseData.notes?.patientNotes,
+          },
+        };
       }
 
-      // Generate virtual meeting URL if applicable
-      let virtualMeetingUrl = null;
-      if (appointment.virtualMeeting) {
-        if (appointment.virtualMeeting.platform === 'jitsi') {
-          const meetingId = appointment.virtualMeeting.meetingId || 
-            `apt-${appointment._id.toString().substring(0, 8)}`;
-          virtualMeetingUrl = `https://meet.jit.si/${meetingId}`;
-        } else {
-          virtualMeetingUrl = appointment.virtualMeeting.meetingUrl || null;
+      // Include additional data if requested
+      let additionalData: any = {};
+
+      if (include && (authUser.role === 'admin' || authUser.role === 'reception' || authUser.role === 'professional')) {
+        const includeFields = include.toString().split(',');
+
+        if (includeFields.includes('conflicts')) {
+          const conflicts = await findConflicts(
+            appointment.professionalId as any,
+            appointment.startTime,
+            appointment.endTime,
+            appointment._id
+          );
+          
+          additionalData.conflicts = conflicts.map((conflict: any) => ({
+            id: conflict._id,
+            startTime: conflict.startTime,
+            endTime: conflict.endTime,
+            status: conflict.status,
+            patientName: conflict.patientInfo.name,
+          }));
         }
       }
 
       res.status(200).json({
         success: true,
         data: {
-          appointment: {
-            ...appointment.toObject(),
-            virtualMeetingUrl,
-          },
+          appointment: responseData,
+          ...additionalData,
         },
       });
     } catch (error) {
@@ -266,142 +439,143 @@ export class AppointmentController {
   }
 
   /**
-   * Create new appointment with conflict detection
+   * Create new appointment
    */
   static async createAppointment(req: Request, res: Response, next: NextFunction) {
     try {
       const authUser = (req as AuthRequest).user!;
       const appointmentData = req.body as CreateAppointmentRequest;
 
-      // Validate required entities exist
+      // Check permissions
+      const canCreate = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointmentData.professionalId);
+
+      if (!canCreate) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot create appointments',
+        });
+      }
+
+      // Validate entities exist
       const [patient, professional, service, room] = await Promise.all([
-        Patient.findOne({ _id: appointmentData.patientId, isActive: true }),
-        Professional.findOne({ _id: appointmentData.professionalId, status: 'active' }),
-        Service.findOne({ _id: appointmentData.serviceId, isActive: true }),
-        appointmentData.roomId ? Room.findOne({ _id: appointmentData.roomId, isActive: true }) : null,
+        Patient.findById(appointmentData.patientId),
+        Professional.findById(appointmentData.professionalId),
+        Service.findById(appointmentData.serviceId),
+        appointmentData.roomId ? Room.findById(appointmentData.roomId) : null,
       ]);
 
-      if (!patient) {
+      if (!patient || !professional || !service) {
         return res.status(404).json({
           success: false,
-          message: 'Patient not found or inactive',
-        });
-      }
-
-      if (!professional) {
-        return res.status(404).json({
-          success: false,
-          message: 'Professional not found or inactive',
-        });
-      }
-
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: 'Service not found or inactive',
+          message: 'Patient, professional, or service not found',
         });
       }
 
       if (appointmentData.roomId && !room) {
         return res.status(404).json({
           success: false,
-          message: 'Room not found or inactive',
+          message: 'Room not found',
         });
       }
 
       // Calculate appointment times
       const startTime = new Date(appointmentData.startTime);
-      const duration = appointmentData.duration || service.durationMinutes || 60;
-      const endTime = appointmentData.endTime 
-        ? new Date(appointmentData.endTime)
-        : new Date(startTime.getTime() + duration * 60 * 1000);
+      let endTime: Date;
+      let duration: number;
+
+      if (appointmentData.endTime) {
+        endTime = new Date(appointmentData.endTime);
+        duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      } else {
+        duration = appointmentData.duration || service.durationMinutes || 50;
+        endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+      }
 
       // Check for conflicts
-      const conflicts = await Appointment.find({
-        professionalId: new mongoose.Types.ObjectId(appointmentData.professionalId),
-        startTime: { $lt: endTime },
-        endTime: { $gt: startTime },
-        status: { $nin: ['cancelled', 'no_show'] },
-        deletedAt: null,
-      });
+      const conflicts = await findConflicts(
+        new Types.ObjectId(appointmentData.professionalId),
+        startTime,
+        endTime
+      );
 
       if (conflicts.length > 0) {
         return res.status(409).json({
           success: false,
-          message: 'Professional is not available at the selected time',
-          conflicts: conflicts.map((c: any) => ({
-            id: c._id,
-            startTime: c.startTime,
-            endTime: c.endTime,
-            status: c.status,
-          })),
+          message: 'Appointment conflicts with existing booking',
+          data: { conflicts: conflicts.map((c: any) => ({ 
+            id: c._id, 
+            startTime: c.startTime, 
+            endTime: c.endTime, 
+            status: c.status 
+          })) },
         });
       }
 
-      // Check room conflicts if room is specified
-      if (room) {
-        const roomConflicts = await Appointment.find({
-          roomId: room._id,
-          startTime: { $lt: endTime },
-          endTime: { $gt: startTime },
-          status: { $nin: ['cancelled', 'no_show'] },
-          deletedAt: null,
-        });
+      // Calculate pricing
+      const pricing = {
+        basePrice: appointmentData.pricing?.basePrice || service.price,
+        discountAmount: appointmentData.pricing?.discountAmount || 0,
+        discountReason: appointmentData.pricing?.discountReason,
+        insuranceAmount: appointmentData.pricing?.insuranceAmount || 0,
+        insuranceProvider: appointmentData.pricing?.insuranceProvider,
+        copayAmount: appointmentData.pricing?.copayAmount || 0,
+        totalAmount: 0,
+        currency: 'EUR',
+      };
 
-        if (roomConflicts.length > 0) {
-          return res.status(409).json({
-            success: false,
-            message: 'Room is not available at the selected time',
-          });
+      pricing.totalAmount = pricing.basePrice - pricing.discountAmount - pricing.insuranceAmount + pricing.copayAmount;
+
+      // Prepare patient info snapshot
+      const patientInfo = {
+        name: patient.personalInfo.fullName,
+        email: patient.contactInfo.email,
+        phone: patient.contactInfo.phone,
+        dateOfBirth: patient.personalInfo.dateOfBirth,
+        emergencyContact: patient.emergencyContact ? {
+          name: patient.emergencyContact.name,
+          phone: patient.emergencyContact.phone,
+          relationship: patient.emergencyContact.relationship,
+        } : undefined,
+      };
+
+      // Generate virtual meeting if needed
+      let virtualMeeting: any = undefined;
+      if (room?.type === 'virtual' || appointmentData.virtualMeeting) {
+        virtualMeeting = {
+          platform: (appointmentData.virtualMeeting?.platform || room?.virtualConfig?.platform || 'jitsi') as 'jitsi' | 'zoom' | 'teams' | 'meet' | 'custom',
+          meetingId: `apt-${new Types.ObjectId().toString().substring(0, 8)}`,
+          meetingUrl: appointmentData.virtualMeeting?.meetingUrl,
+          accessCode: appointmentData.virtualMeeting?.accessCode,
+          isRecorded: false,
+        };
+
+        // Generate Jitsi URL if needed
+        if (virtualMeeting.platform === 'jitsi' && !virtualMeeting.meetingUrl) {
+          virtualMeeting.meetingUrl = `https://meet.jit.si/${virtualMeeting.meetingId}`;
         }
       }
-
-      // Prepare virtual meeting configuration
-      let virtualMeeting = null;
-      if (appointmentData.virtualMeeting) {
-        const meetingId = `apt-${new mongoose.Types.ObjectId().toString().substring(0, 8)}`;
-        virtualMeeting = {
-          platform: appointmentData.virtualMeeting.platform || 'jitsi',
-          meetingId,
-          meetingUrl: appointmentData.virtualMeeting.meetingUrl,
-          accessCode: appointmentData.virtualMeeting.accessCode,
-          isRecorded: appointmentData.virtualMeeting.isRecorded || false,
-        };
-      }
-
-      // Prepare patient info snapshot (using basic fields that exist)
-      const patientInfo = {
-        name: patient.name,
-        email: patient.email,
-        phone: patient.phone,
-      };
-
-      // Prepare pricing
-      const pricing = {
-        basePrice: service.price,
-        discountAmount: 0,
-        totalAmount: service.price,
-        currency: service.currency || 'EUR',
-      };
 
       // Create appointment
       const appointment = new Appointment({
         patientId: appointmentData.patientId,
         professionalId: appointmentData.professionalId,
         serviceId: appointmentData.serviceId,
-        roomId: appointmentData.roomId || null,
+        roomId: appointmentData.roomId,
         startTime,
         endTime,
         duration,
-        timezone: appointmentData.timezone || 'Europe/Madrid',
-        status: appointmentData.status || 'pending',
-        paymentStatus: appointmentData.paymentStatus || 'pending',
+        timezone: professional.timezone || 'Europe/Madrid',
+        status: 'pending',
+        paymentStatus: 'pending',
         source: appointmentData.source || 'admin',
         bookingMethod: appointmentData.bookingMethod || 'online',
-        virtualMeeting,
         pricing,
-        notes: appointmentData.notes || {},
         patientInfo,
+        virtualMeeting,
+        notes: appointmentData.notes || {},
         forms: {
           intakeCompleted: false,
           preSessionCompleted: false,
@@ -425,20 +599,10 @@ export class AppointmentController {
           billingCoded: false,
           insuranceClaimed: false,
         },
-        metadata: {
-          sessionType: 'follow_up',
-        },
+        attachments: [],
       });
 
       await appointment.save();
-
-      // Populate for response
-      await appointment.populate([
-        { path: 'patientId', select: 'name email phone' },
-        { path: 'professionalId', select: 'name specialties' },
-        { path: 'serviceId', select: 'name duration price' },
-        { path: 'roomId', select: 'name type location' },
-      ]);
 
       // Log appointment creation
       await AuditLog.create({
@@ -458,18 +622,27 @@ export class AppointmentController {
             serviceId: appointment.serviceId,
             startTime: appointment.startTime,
             endTime: appointment.endTime,
-            status: appointment.status,
-            source: appointment.source,
+            totalAmount: appointment.pricing.totalAmount,
+          },
+        },
+        security: {
+          riskLevel: 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: true,
+            gdprRelevant: false,
+            requiresRetention: true,
           },
         },
         business: {
           clinicalRelevant: true,
           containsPHI: true,
-          dataClassification: 'restricted',
+          dataClassification: 'confidential',
         },
         metadata: {
           source: 'appointment_controller',
-          priority: 'high',
+          priority: 'medium',
+          appointmentSource: appointment.source,
         },
         timestamp: new Date(),
       });
@@ -486,7 +659,7 @@ export class AppointmentController {
   }
 
   /**
-   * Update appointment with validation
+   * Update appointment
    */
   static async updateAppointment(req: Request, res: Response, next: NextFunction) {
     try {
@@ -494,12 +667,7 @@ export class AppointmentController {
       const authUser = (req as AuthRequest).user!;
       const updateData = req.body as UpdateAppointmentRequest;
 
-      // Find appointment
-      const appointment = await Appointment.findOne({
-        _id: appointmentId,
-        deletedAt: null,
-      });
-
+      const appointment = await Appointment.findById(appointmentId);
       if (!appointment) {
         return res.status(404).json({
           success: false,
@@ -508,34 +676,64 @@ export class AppointmentController {
       }
 
       // Check permissions
-      if (authUser.role === 'professional' && 
-          authUser.professionalId?.toString() !== appointment.professionalId.toString()) {
+      const canUpdate = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString());
+
+      if (!canUpdate) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: You can only update your own appointments',
+          message: 'Access denied: Cannot update this appointment',
         });
       }
 
-      // Store original values for audit
-      const originalValues = {
-        startTime: appointment.startTime,
-        endTime: appointment.endTime,
-        status: appointment.status,
-        paymentStatus: appointment.paymentStatus,
-        roomId: appointment.roomId,
-      };
+      // Store original data for audit
+      const originalData = appointment.toObject();
 
-      // Update fields
-      if (updateData.startTime) {
-        appointment.startTime = new Date(updateData.startTime);
+      // Handle time changes
+      if (updateData.startTime || updateData.endTime || updateData.duration) {
+        const startTime = updateData.startTime ? new Date(updateData.startTime) : appointment.startTime;
+        let endTime: Date;
+        let duration: number;
+
+        if (updateData.endTime) {
+          endTime = new Date(updateData.endTime);
+          duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+        } else if (updateData.duration) {
+          duration = updateData.duration;
+          endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+        } else {
+          endTime = appointment.endTime;
+          duration = appointment.duration;
+        }
+
+        // Check for conflicts if time is changing
+        if (startTime.getTime() !== appointment.startTime.getTime() || endTime.getTime() !== appointment.endTime.getTime()) {
+          const conflicts = await findConflicts(
+            appointment.professionalId,
+            startTime,
+            endTime,
+            appointment._id
+          );
+
+          if (conflicts.length > 0) {
+            return res.status(409).json({
+              success: false,
+              message: 'Time change conflicts with existing booking',
+              data: { conflicts },
+            });
+          }
+        }
+
+        appointment.startTime = startTime;
+        appointment.endTime = endTime;
+        appointment.duration = duration;
       }
 
-      if (updateData.endTime) {
-        appointment.endTime = new Date(updateData.endTime);
-      }
-
-      if (updateData.duration) {
-        appointment.duration = updateData.duration;
+      // Apply other updates
+      if (updateData.roomId !== undefined) {
+        appointment.roomId = updateData.roomId ? new Types.ObjectId(updateData.roomId) : undefined;
       }
 
       if (updateData.status) {
@@ -546,59 +744,52 @@ export class AppointmentController {
         appointment.paymentStatus = updateData.paymentStatus;
       }
 
-      if (updateData.roomId !== undefined) {
-        appointment.roomId = updateData.roomId ? new mongoose.Types.ObjectId(updateData.roomId) : undefined;
-      }
-
       if (updateData.notes) {
         appointment.notes = { ...appointment.notes, ...updateData.notes };
       }
 
-      await appointment.save();
-
-      // Build changes object for audit
-      const changes: any = {};
-      Object.keys(originalValues).forEach((key) => {
-        const originalValue = (originalValues as any)[key];
-        const newValue = (appointment as any)[key];
-        if (JSON.stringify(originalValue) !== JSON.stringify(newValue)) {
-          changes[key] = { from: originalValue, to: newValue };
-        }
-      });
-
-      // Log appointment update if there were changes
-      if (Object.keys(changes).length > 0) {
-        await AuditLog.create({
-          action: 'appointment_updated',
-          entityType: 'appointment',
-          entityId: appointment._id.toString(),
-          actorId: authUser._id,
-          actorType: 'user',
-          actorEmail: authUser.email,
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-          status: 'success',
-          changes,
-          business: {
-            clinicalRelevant: true,
-            containsPHI: true,
-            dataClassification: 'restricted',
-          },
-          metadata: {
-            source: 'appointment_controller',
-            priority: 'high',
-          },
-          timestamp: new Date(),
-        });
+      if (updateData.virtualMeeting && appointment.virtualMeeting) {
+        appointment.virtualMeeting = { ...appointment.virtualMeeting, ...updateData.virtualMeeting };
       }
 
-      // Populate for response
-      await appointment.populate([
-        { path: 'patientId', select: 'name email phone' },
-        { path: 'professionalId', select: 'name specialties' },
-        { path: 'serviceId', select: 'name duration price' },
-        { path: 'roomId', select: 'name type location' },
-      ]);
+      await appointment.save();
+
+      // Log appointment update
+      await AuditLog.create({
+        action: 'appointment_updated',
+        entityType: 'appointment',
+        entityId: appointment._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          before: originalData,
+          after: appointment.toObject(),
+          fieldsChanged: Object.keys(updateData),
+        },
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: true,
+            gdprRelevant: false,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'appointment_controller',
+          priority: 'low',
+        },
+        timestamp: new Date(),
+      });
 
       res.status(200).json({
         success: true,
@@ -612,19 +803,69 @@ export class AppointmentController {
   }
 
   /**
-   * Cancel appointment
+   * Get available slots for booking
    */
-  static async cancelAppointment(req: Request, res: Response, next: NextFunction) {
+  static async getAvailableSlots(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = req.query as any;
+      const {
+        professionalId,
+        serviceId,
+        roomId,
+        startDate,
+        endDate,
+        duration = '50',
+      } = query;
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Start date and end date are required',
+        });
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const slotDuration = parseInt(duration, 10);
+
+      // For now, return a simplified slots response
+      const mockSlots = [
+        {
+          professionalId: professionalId || new Types.ObjectId(),
+          professionalName: 'Dr. Example',
+          startTime: new Date(),
+          endTime: new Date(Date.now() + slotDuration * 60 * 1000),
+          duration: slotDuration,
+          availableRooms: [{ id: new Types.ObjectId(), name: 'Room 1', type: 'physical' }],
+          services: [{ id: new Types.ObjectId(), name: 'Consultation', duration: slotDuration }],
+        }
+      ];
+
+      res.status(200).json({
+        success: true,
+        data: { 
+          slots: mockSlots,
+          totalSlots: mockSlots.length,
+          dateRange: { startDate, endDate },
+          filters: { professionalId, serviceId, roomId, duration: slotDuration },
+        },
+      });
+    } catch (error) {
+      logger.error('Get available slots error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Reschedule appointment
+   */
+  static async rescheduleAppointment(req: Request, res: Response, next: NextFunction) {
     try {
       const { appointmentId } = req.params;
-      const { reason } = req.body;
+      const { newStartTime, newEndTime, reason, roomId } = req.body as RescheduleRequest;
       const authUser = (req as AuthRequest).user!;
 
-      const appointment = await Appointment.findOne({
-        _id: appointmentId,
-        deletedAt: null,
-      });
-
+      const appointment = await Appointment.findById(appointmentId);
       if (!appointment) {
         return res.status(404).json({
           success: false,
@@ -633,32 +874,112 @@ export class AppointmentController {
       }
 
       // Check permissions
-      if (authUser.role === 'professional' && 
-          authUser.professionalId?.toString() !== appointment.professionalId.toString()) {
+      const canReschedule = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString()) ||
+        (authUser.role === 'patient' && appointment.patientInfo.email === authUser.email);
+
+      if (!canReschedule) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: You can only cancel your own appointments',
+          message: 'Access denied: Cannot reschedule this appointment',
         });
       }
 
-      if (authUser.role === 'patient' && 
-          authUser.patientId?.toString() !== appointment.patientId.toString()) {
-        return res.status(403).json({
+      // Check if appointment can be rescheduled
+      if (!canBeRescheduled(appointment)) {
+        return res.status(400).json({
           success: false,
-          message: 'Access denied: You can only cancel your own appointments',
+          message: 'Appointment cannot be rescheduled (too close to start time or invalid status)',
         });
       }
 
-      // Update appointment status
-      appointment.status = 'cancelled';
-      if (reason) {
-        if (!appointment.notes) {
-          appointment.notes = {};
-        }
-        appointment.notes.adminNotes = (appointment.notes.adminNotes || '') + `\nCancelled: ${reason}`;
+      const newStart = new Date(newStartTime);
+      const newEnd = newEndTime ? new Date(newEndTime) : new Date(newStart.getTime() + appointment.duration * 60 * 1000);
+
+      // Check for conflicts
+      const conflicts = await findConflicts(
+        appointment.professionalId,
+        newStart,
+        newEnd,
+        appointment._id
+      );
+
+      if (conflicts.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'New time slot conflicts with existing booking',
+          data: { conflicts },
+        });
       }
 
-      await appointment.save();
+      // Reschedule the appointment
+      await rescheduleAppointment(appointment, newStart, newEnd, authUser._id, reason);
+
+      // Update room if provided
+      if (roomId) {
+        appointment.roomId = new Types.ObjectId(roomId);
+        await appointment.save();
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Appointment rescheduled successfully',
+        data: { appointment },
+      });
+    } catch (error) {
+      logger.error('Reschedule appointment error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel appointment
+   */
+  static async cancelAppointment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { appointmentId } = req.params;
+      const { reason, refundAmount, rescheduleOffered } = req.body as CancelRequest;
+      const authUser = (req as AuthRequest).user!;
+
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Appointment not found',
+        });
+      }
+
+      // Check permissions
+      const canCancel = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString()) ||
+        (authUser.role === 'patient' && appointment.patientInfo.email === authUser.email);
+
+      if (!canCancel) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot cancel this appointment',
+        });
+      }
+
+      // Check if appointment can be cancelled
+      if (!canBeCancelled(appointment)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointment cannot be cancelled (too close to start time or invalid status)',
+        });
+      }
+
+      // Cancel the appointment
+      await cancelAppointment(appointment, authUser._id, reason, refundAmount);
+
+      if (rescheduleOffered !== undefined && appointment.cancellation) {
+        appointment.cancellation.rescheduleOffered = rescheduleOffered;
+        await appointment.save();
+      }
 
       res.status(200).json({
         success: true,
@@ -672,114 +993,206 @@ export class AppointmentController {
   }
 
   /**
-   * Get appointment statistics
+   * Mark patient as arrived
    */
-  static async getAppointmentStats(req: Request, res: Response, next: NextFunction) {
+  static async markArrived(req: Request, res: Response, next: NextFunction) {
     try {
+      const { appointmentId } = req.params;
       const authUser = (req as AuthRequest).user!;
-      const { professionalId, startDate, endDate } = req.query;
 
-      // Only admin, reception, and professionals can see stats
-      if (authUser.role !== 'admin' && authUser.role !== 'reception' && authUser.role !== 'professional') {
+      // Only reception and admin can mark arrivals
+      if (authUser.role !== 'admin' && authUser.role !== 'reception') {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: Insufficient permissions',
+          message: 'Access denied: Only reception staff can mark arrivals',
         });
       }
 
-      // Build filter
-      const filter: any = { deletedAt: null };
-      
-      if (authUser.role === 'professional' && authUser.professionalId) {
-        filter.professionalId = authUser.professionalId;
-      } else if (professionalId) {
-        filter.professionalId = new mongoose.Types.ObjectId(professionalId as string);
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Appointment not found',
+        });
       }
 
-      if (startDate && endDate) {
-        filter.startTime = {
-          $gte: new Date(startDate as string),
-          $lte: new Date(endDate as string),
-        };
-      }
-
-      // Get statistics using aggregation
-      const stats = await Appointment.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: null,
-            totalAppointments: { $sum: 1 },
-            pendingAppointments: {
-              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
-            },
-            confirmedAppointments: {
-              $sum: { $cond: [{ $eq: ['$status', 'confirmed'] }, 1, 0] }
-            },
-            completedAppointments: {
-              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-            },
-            cancelledAppointments: {
-              $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-            },
-            noShowAppointments: {
-              $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] }
-            },
-            totalRevenue: {
-              $sum: '$pricing.totalAmount'
-            },
-            averageRevenue: {
-              $avg: '$pricing.totalAmount'
-            }
-          }
-        }
-      ]);
+      await markArrived(appointment);
 
       res.status(200).json({
         success: true,
-        data: { stats: stats[0] || {} },
+        message: 'Patient marked as arrived',
+        data: { appointment },
       });
     } catch (error) {
-      logger.error('Get appointment stats error:', error);
+      logger.error('Mark arrived error:', error);
       next(error);
     }
   }
 
   /**
-   * Get upcoming appointments for reminders
+   * Start session
    */
-  static async getUpcomingAppointments(req: Request, res: Response, next: NextFunction) {
+  static async startSession(req: Request, res: Response, next: NextFunction) {
     try {
+      const { appointmentId } = req.params;
       const authUser = (req as AuthRequest).user!;
-      const { hours = '24' } = req.query;
 
-      // Only admin and reception can see all upcoming appointments
-      if (authUser.role !== 'admin' && authUser.role !== 'reception') {
-        return res.status(403).json({
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({
           success: false,
-          message: 'Access denied: Insufficient permissions',
+          message: 'Appointment not found',
         });
       }
 
-      const hoursNum = parseInt(hours as string, 10);
-      const now = new Date();
-      const futureTime = new Date(now.getTime() + hoursNum * 60 * 60 * 1000);
+      // Check permissions - only the assigned professional can start session
+      const canStart = 
+        authUser.role === 'admin' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString());
 
-      const appointments = await Appointment.find({
-        startTime: { $gte: now, $lte: futureTime },
-        status: { $in: ['pending', 'confirmed'] },
-        deletedAt: null,
-      })
-        .populate('patientId', 'name email phone')
-        .populate('professionalId', 'name email')
-        .sort({ startTime: 1 });
+      if (!canStart) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only the assigned professional can start the session',
+        });
+      }
+
+      await startSession(appointment);
 
       res.status(200).json({
         success: true,
-        data: { appointments },
+        message: 'Session started successfully',
+        data: { appointment },
       });
     } catch (error) {
-      logger.error('Get upcoming appointments error:', error);
+      logger.error('Start session error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * End session
+   */
+  static async endSession(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { appointmentId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+
+      const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Appointment not found',
+        });
+      }
+
+      // Check permissions - only the assigned professional can end session
+      const canEnd = 
+        authUser.role === 'admin' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === appointment.professionalId.toString());
+
+      if (!canEnd) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only the assigned professional can end the session',
+        });
+      }
+
+      await endSession(appointment);
+
+      res.status(200).json({
+        success: true,
+        message: 'Session ended successfully',
+        data: { appointment },
+      });
+    } catch (error) {
+      logger.error('End session error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get appointment statistics
+   */
+  static async getAppointmentStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authUser = (req as AuthRequest).user!;
+      const { professionalId, startDate, endDate, groupBy } = req.query;
+
+      // Check permissions
+      const canViewStats = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && 
+         (!professionalId || authUser.professionalId?.toString() === professionalId));
+
+      if (!canViewStats) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot view these statistics',
+        });
+      }
+
+      // Build filter
+      const matchFilter: any = { deletedAt: null };
+      
+      if (professionalId) {
+        matchFilter.professionalId = new Types.ObjectId(professionalId as string);
+      } else if (authUser.role === 'professional') {
+        matchFilter.professionalId = authUser.professionalId;
+      }
+
+      if (startDate) {
+        matchFilter.startTime = matchFilter.startTime || {};
+        matchFilter.startTime.$gte = new Date(startDate as string);
+      }
+
+      if (endDate) {
+        matchFilter.startTime = matchFilter.startTime || {};
+        matchFilter.startTime.$lte = new Date(endDate as string);
+      }
+
+      // Execute basic statistics
+      const [statusStats, revenueStats] = await Promise.all([
+        // Statistics by status
+        Appointment.aggregate([
+          { $match: matchFilter },
+          { $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            totalRevenue: { $sum: '$pricing.totalAmount' },
+          }},
+          { $sort: { count: -1 } }
+        ]),
+
+        // Revenue by time period
+        Appointment.aggregate([
+          { $match: { ...matchFilter, status: 'completed' } },
+          { $group: {
+            _id: {
+              year: { $year: '$startTime' },
+              month: { $month: '$startTime' },
+              ...(groupBy === 'day' && { day: { $dayOfMonth: '$startTime' } }),
+            },
+            totalRevenue: { $sum: '$pricing.totalAmount' },
+            appointmentCount: { $sum: 1 },
+            averageAmount: { $avg: '$pricing.totalAmount' },
+          }},
+          { $sort: { '_id.year': -1, '_id.month': -1 } },
+          { $limit: 12 },
+        ]),
+      ]);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          general: { totalAppointments: statusStats.reduce((acc: number, stat: any) => acc + stat.count, 0) },
+          byStatus: statusStats,
+          revenue: revenueStats,
+        },
+      });
+    } catch (error) {
+      logger.error('Get appointment stats error:', error);
       next(error);
     }
   }
@@ -800,11 +1213,7 @@ export class AppointmentController {
         });
       }
 
-      const appointment = await Appointment.findOne({
-        _id: appointmentId,
-        deletedAt: null,
-      });
-
+      const appointment = await Appointment.findById(appointmentId);
       if (!appointment) {
         return res.status(404).json({
           success: false,
@@ -812,35 +1221,7 @@ export class AppointmentController {
         });
       }
 
-      // Soft delete
-      appointment.deletedAt = new Date();
-      await appointment.save();
-
-      // Log deletion
-      await AuditLog.create({
-        action: 'appointment_deleted',
-        entityType: 'appointment',
-        entityId: appointment._id.toString(),
-        actorId: authUser._id,
-        actorType: 'user',
-        actorEmail: authUser.email,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        status: 'success',
-        changes: {
-          deletedAt: { from: null, to: new Date() },
-        },
-        business: {
-          clinicalRelevant: true,
-          containsPHI: true,
-          dataClassification: 'restricted',
-        },
-        metadata: {
-          source: 'appointment_controller',
-          priority: 'high',
-        },
-        timestamp: new Date(),
-      });
+      await softDeleteAppointment(appointment);
 
       res.status(200).json({
         success: true,
