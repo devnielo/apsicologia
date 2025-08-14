@@ -11,6 +11,7 @@ import noteRoutes from './note.routes.js';
 import appointmentRoutes from './appointment.routes.js';
 import invoiceRoutes from './invoice.routes.js';
 import paymentRoutes from './payment.routes.js';
+import statsRoutes from './stats.routes.js';
 
 const router: Router = Router();
 
@@ -42,6 +43,7 @@ router.use(`${API_VERSION}/notes`, noteRoutes);
 router.use(`${API_VERSION}/appointments`, appointmentRoutes);
 router.use(`${API_VERSION}/invoices`, invoiceRoutes);
 router.use(`${API_VERSION}/payments`, paymentRoutes);
+router.use(`${API_VERSION}/stats`, statsRoutes);
 
 // API info route
 router.get('/info', (req, res) => {

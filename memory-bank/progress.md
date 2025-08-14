@@ -96,10 +96,39 @@
 - [x] **Appointment system** - CRUD citas, calendario, slots ✅
 - [x] **Service management** - Servicios, precios, duración ✅
 - [x] **Room management** - Salas físicas y virtuales ✅
-- [ ] **File management** - MinIO integration, uploads
+- [x] **File management** - Sistema de archivos completo con MinIO ✅
+  - [x] Controlador de archivos con 9 métodos avanzados (upload, download, CRUD)
+  - [x] Integración MinIO S3-compatible con buckets automáticos
+  - [x] Procesamiento de imágenes con Sharp (thumbnails, optimización)
+  - [x] Control de acceso RBAC granular por propietario/rol
+  - [x] Checksums SHA256 con detección de duplicados
+  - [x] Presigned URLs para descargas seguras con expiración
+  - [x] Soft delete + hard delete con políticas de retención
+  - [x] Bulk operations para administradores
+  - [x] Estadísticas agregadas de almacenamiento
+  - [x] Compliance HIPAA/GDPR con clasificación automática
+  - [x] 8 endpoints RESTful con validaciones especializadas
 - [ ] **Email system** - Nodemailer + React Email templates
-- [ ] **Billing system** - Facturación, PDF generation, pagos
-- [ ] **Forms system** - Cuestionarios dinámicos
+- [x] **Billing system** - Sistema de facturación completo ✅
+  - [x] Controlador de facturas con 10 métodos avanzados (CRUD + funcionalidades)
+  - [x] Integración con pacientes, citas y servicios
+  - [x] Cálculos automáticos de impuestos, descuentos y totales
+  - [x] Gestión de estados del ciclo de vida (draft → sent → viewed → paid)
+  - [x] Numeración automática con series personalizables
+  - [x] Exportación CSV/JSON para contabilidad
+  - [x] Generación PDF placeholder (ready for pdf-lib/puppeteer)
+  - [x] Duplicación inteligente con nueva numeración
+  - [x] Control de acceso RBAC granular por rol
+  - [x] Compliance fiscal español con IVA automático
+  - [x] 10 endpoints RESTful con validaciones especializadas
+- [x] **Forms system** - Sistema de formularios dinámicos completo ✅
+  - [x] Controlador de formularios con CRUD completo y validaciones RBAC
+  - [x] Modelo FormSchema para definir cuestionarios dinámicos con react-jsonschema-form
+  - [x] Modelo FormResponse para almacenar respuestas con metadatos completos
+  - [x] Asignación de formularios a pacientes específicos con seguimiento
+  - [x] Sistema de análisis básico de respuestas agregadas
+  - [x] Estados del ciclo de vida (draft → published → archived)
+  - [x] 8 endpoints RESTful con validaciones especializadas
 - [x] **Notes system** - Sistema de notas clínicas completo ✅
   - [x] Controlador de notas con CRUD completo y validaciones RBAC
   - [x] Modelo avanzado con versionado automático y firmas digitales
@@ -109,7 +138,16 @@
   - [x] Control de acceso granular por profesional asignado
   - [x] Estados del ciclo de vida (draft → signed → locked)
   - [x] 8 endpoints RESTful con validación médica especializada
-- [ ] **Statistics API** - KPIs y reportes
+- [x] **Statistics API** - Sistema de estadísticas y KPIs completo ✅
+  - [x] Controlador de estadísticas con 5 métodos analíticos avanzados
+  - [x] Dashboard comprehensivo con KPIs críticos del negocio
+  - [x] Analíticas de citas (trends, distribución de estados, ocupación)
+  - [x] Analíticas de ingresos (timeline, breakdown por servicios, monedas)
+  - [x] Analíticas de pacientes (distribución etaria, riesgo, frecuencia)
+  - [x] Filtrado por profesional, servicio, rango de fechas y agrupación
+  - [x] Exportación de reportes en JSON y CSV para contabilidad
+  - [x] Control de acceso RBAC con restricciones por rol
+  - [x] 5 endpoints RESTful con documentación OpenAPI completa
 - [ ] **Audit system** - Logs de cambios y compliance RGPD
 
 ### Frontend Web (Prioridad Alta)
