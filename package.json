@@ -1,0 +1,75 @@
+{
+  "name": "apsicologia",
+  "version": "0.1.0",
+  "description": "Plataforma integral de gestión para centros de psicología",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel run dev",
+    "build": "pnpm --parallel run build",
+    "start": "pnpm --parallel run start",
+    "lint": "pnpm --parallel run lint",
+    "lint:fix": "pnpm --parallel run lint:fix",
+    "type-check": "pnpm --parallel run type-check",
+    "test": "pnpm --parallel run test",
+    "test:watch": "pnpm --parallel run test:watch",
+    "clean": "pnpm --parallel run clean && rm -rf node_modules",
+    "db:seed": "pnpm --filter api run db:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.5.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.4.0",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "psicologia",
+    "healthcare",
+    "booking",
+    "calendar",
+    "management",
+    "nextjs",
+    "express",
+    "mongodb",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apsicologia/platform.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "apsicologia",
+    "email": "dev@apsicologia.com"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@apsicologia/shared": ["./packages/shared/src"],
+      "@apsicologia/shared/*": ["./packages/shared/src/*"],
+      "@apsicologia/ui": ["./packages/ui/src"],
+      "@apsicologia/ui/*": ["./packages/ui/src/*"],
+      "@apsicologia/emails": ["./packages/emails/src"],
+      "@apsicologia/emails/*": ["./packages/emails/src/*"],
+      "@apsicologia/config": ["./packages/config/src"],
+      "@apsicologia/config/*": ["./packages/config/src/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/.next",
+    "**/build"
+  ],
+  "references": [
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./packages/shared"
+    }
+  ]
+}
