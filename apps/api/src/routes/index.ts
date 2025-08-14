@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import patientRoutes from './patient.routes.js';
+import professionalRoutes from './professional.routes.js';
 
 const router: Router = Router();
 
@@ -24,6 +25,7 @@ router.get('/health', (req, res) => {
 router.use(`${API_VERSION}/auth`, authRoutes);
 router.use(`${API_VERSION}/users`, userRoutes);
 router.use(`${API_VERSION}/patients`, patientRoutes);
+router.use(`${API_VERSION}/professionals`, professionalRoutes);
 
 // API info route
 router.get('/info', (req, res) => {
