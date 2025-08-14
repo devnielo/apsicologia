@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
+import patientRoutes from './patient.routes.js';
 
 const router: Router = Router();
 
@@ -22,6 +23,7 @@ router.get('/health', (req, res) => {
 // Mount route modules
 router.use(`${API_VERSION}/auth`, authRoutes);
 router.use(`${API_VERSION}/users`, userRoutes);
+router.use(`${API_VERSION}/patients`, patientRoutes);
 
 // API info route
 router.get('/info', (req, res) => {
