@@ -184,7 +184,7 @@ export class FormController {
       }
 
       // Check access - patients can only see active public forms
-      if (authUser.role === 'patient' && (!form.isActive || !form.isPublic)) {
+      if (authUser.role === 'patient' && (!form.config.isActive || !form.permissions.canView.includes('patient'))) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: Form not available',
@@ -312,7 +312,7 @@ export class FormController {
 
       // Soft delete
       form.deletedAt = new Date();
-      form.isActive = false;
+      form.config.isActive = false;
       await form.save();
 
       // Log form deletion
@@ -370,7 +370,7 @@ export class FormController {
       const authUser = (req as AuthRequest).user!;
       const responseData = req.body;
 
-      const form = await FormSchema.findOne({ _id: formId, deletedAt: null, isActive: true });
+      const form = await FormSchema.findOne({ _id: formId, deletedAt: null, 'config.isActive': true });
       if (!form) {
         return res.status(404).json({
           success: false,
@@ -410,8 +410,8 @@ export class FormController {
       await formResponse.save();
 
       // Update form statistics
-      form.responseCount = (form.responseCount || 0) + 1;
-      form.lastResponseAt = new Date();
+      form.analytics.totalSubmissions = (form.analytics.totalSubmissions || 0) + 1;
+      form.analytics.lastSubmissionAt = new Date();
       await form.save();
 
       // Log form response submission
@@ -511,7 +511,7 @@ export class FormController {
       // Professional can only see responses for their patients
       if (authUser.role === 'professional') {
         const professionalPatients = await Patient.find({
-          assignedProfessionals: authUser.professionalId,
+          'clinicalInfo.assignedProfessionals': authUser.professionalId,
           deletedAt: null,
         }).select('_id');
         
@@ -590,7 +590,7 @@ export class FormController {
       // Professional can only see responses for their patients
       if (authUser.role === 'professional' && response.patientId) {
         const patient = await Patient.findById(response.patientId);
-        if (!patient || !patient.assignedProfessionals?.includes(authUser.professionalId!)) {
+        if (!patient || !patient.clinicalInfo.assignedProfessionals?.includes(authUser.professionalId!)) {
           return res.status(403).json({
             success: false,
             message: 'Access denied: Cannot view this form response',

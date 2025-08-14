@@ -4,7 +4,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validation.js';
 import { body, param, query } from 'express-validator';
 
-const router = Router();
+const router: Router = Router();
 
 // File upload validation
 const uploadValidation = [
