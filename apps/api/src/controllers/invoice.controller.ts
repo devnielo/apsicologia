@@ -704,6 +704,455 @@ export class InvoiceController {
   }
 
   /**
+   * Update invoice (only draft invoices)
+   */
+  static async updateInvoice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { invoiceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const updateData = req.body;
+
+      const invoice = await Invoice.findById(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invoice not found',
+        });
+      }
+
+      // Check permissions
+      const canUpdate = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === invoice.professionalId?.toString());
+
+      if (!canUpdate) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot update this invoice',
+        });
+      }
+
+      // Can only update draft invoices
+      if (invoice.status !== 'draft') {
+        return res.status(400).json({
+          success: false,
+          message: 'Can only update draft invoices',
+        });
+      }
+
+      // Store original data for audit
+      const originalData = {
+        items: invoice.items,
+        totals: invoice.totals,
+        notes: invoice.notes,
+        dueDate: invoice.dueDate,
+      };
+
+      // Update allowed fields
+      if (updateData.items) {
+        const processedItems = await Promise.all(
+          updateData.items.map(async (item: any) => {
+            const service = await Service.findById(item.serviceId);
+            const professional = invoice.professionalId ? await Professional.findById(invoice.professionalId) : null;
+            
+            return {
+              serviceId: new Types.ObjectId(item.serviceId),
+              appointmentId: item.appointmentId ? new Types.ObjectId(item.appointmentId) : undefined,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: {
+                amount: item.discount?.amount || 0,
+                percentage: item.discount?.percentage || 0,
+                reason: item.discount?.reason || '',
+              },
+              subtotal: item.quantity * item.unitPrice,
+              taxRate: item.taxRate || 21,
+              taxAmount: 0,
+              total: 0,
+              serviceDetails: {
+                name: service?.name || item.description,
+                duration: service?.durationMinutes || 60,
+                date: updateData.serviceDate || invoice.serviceDate,
+                professionalName: professional?.name || 'N/A',
+              },
+            };
+          })
+        );
+        invoice.items = processedItems;
+      }
+
+      if (updateData.dueDate) {
+        invoice.dueDate = new Date(updateData.dueDate);
+      }
+
+      if (updateData.serviceDate) {
+        invoice.serviceDate = new Date(updateData.serviceDate);
+      }
+
+      if (updateData.notes) {
+        invoice.notes = { ...invoice.notes, ...updateData.notes };
+      }
+
+      // Recalculate totals
+      invoice.calculateTotals();
+      invoice.updatedAt = new Date();
+      await invoice.save();
+
+      // Log invoice update
+      await AuditLog.create({
+        action: 'invoice_updated',
+        entityType: 'invoice',
+        entityId: invoice._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          before: originalData,
+          after: {
+            items: invoice.items,
+            totals: invoice.totals,
+            notes: invoice.notes,
+            dueDate: invoice.dueDate,
+          },
+        },
+        business: {
+          clinicalRelevant: false,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'invoice_controller',
+          priority: 'medium',
+        },
+        timestamp: new Date(),
+      });
+
+      // Populate and return updated invoice
+      await invoice.populate([
+        { path: 'patientId', select: 'personalInfo contactInfo' },
+        { path: 'professionalId', select: 'name specialties' }
+      ]);
+
+      res.status(200).json({
+        success: true,
+        message: 'Invoice updated successfully',
+        data: { invoice },
+      });
+    } catch (error) {
+      logger.error('Update invoice error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Generate PDF for invoice
+   */
+  static async generateInvoicePDF(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { invoiceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+
+      const invoice = await Invoice.findById(invoiceId)
+        .populate('patientId', 'personalInfo contactInfo')
+        .populate('professionalId', 'name specialties licenseNumber');
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invoice not found',
+        });
+      }
+
+      // Check permissions
+      const canView = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === invoice.professionalId?.toString());
+
+      if (!canView && authUser.role === 'patient') {
+        const patient = await Patient.findOne({ userId: authUser._id });
+        if (!patient || patient._id.toString() !== invoice.patientId?.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied: Cannot generate PDF for this invoice',
+          });
+        }
+      } else if (!canView) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot generate PDF for this invoice',
+        });
+      }
+
+      // For now, generate a simple PDF placeholder (would use a real PDF library like puppeteer or pdf-lib)
+      const pdfContent = `Invoice ${invoice.invoiceNumber}\nTotal: ${invoice.totals.total} ${invoice.totals.currency}`;
+      const pdfBuffer = Buffer.from(pdfContent);
+
+      // Update invoice with PDF URL/path if needed
+      if (!invoice.document.pdfUrl) {
+        // In a real implementation, you'd save the PDF to storage and update the URL
+        invoice.document.pdfUrl = `/api/v1/invoices/${invoice._id}/pdf`;
+        invoice.document.pdfGeneratedAt = new Date();
+        invoice.document.isGenerated = true;
+        await invoice.save();
+      }
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Factura-${invoice.invoiceNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+
+      res.status(200).send(pdfBuffer);
+    } catch (error) {
+      logger.error('Generate invoice PDF error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Duplicate invoice (create copy as draft)
+   */
+  static async duplicateInvoice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { invoiceId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+
+      const originalInvoice = await Invoice.findById(invoiceId);
+      if (!originalInvoice) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invoice not found',
+        });
+      }
+
+      // Check permissions
+      const canDuplicate = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && authUser.professionalId?.toString() === originalInvoice.professionalId?.toString());
+
+      if (!canDuplicate) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot duplicate this invoice',
+        });
+      }
+
+      // Generate new invoice number
+      const invoiceNumber = await (Invoice as any).generateInvoiceNumber(originalInvoice.series);
+
+      // Create duplicate with new number and draft status
+      const duplicateInvoice = new Invoice({
+        ...originalInvoice.toObject(),
+        _id: undefined,
+        invoiceNumber,
+        status: 'draft',
+        issueDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        sentAt: undefined,
+        paidAt: undefined,
+        pdfUrl: undefined,
+        createdBy: authUser._id,
+        createdAt: undefined,
+        updatedAt: undefined,
+      });
+
+      // Recalculate totals
+      duplicateInvoice.calculateTotals();
+      await duplicateInvoice.save();
+
+      // Log invoice duplication
+      await AuditLog.create({
+        action: 'invoice_duplicated',
+        entityType: 'invoice',
+        entityId: duplicateInvoice._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          originalInvoiceId: originalInvoice._id.toString(),
+          originalInvoiceNumber: originalInvoice.invoiceNumber,
+          duplicateInvoiceNumber: duplicateInvoice.invoiceNumber,
+        },
+        business: {
+          clinicalRelevant: false,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'invoice_controller',
+          priority: 'medium',
+        },
+        timestamp: new Date(),
+      });
+
+      // Populate and return the duplicate
+      await duplicateInvoice.populate([
+        { path: 'patientId', select: 'personalInfo contactInfo' },
+        { path: 'professionalId', select: 'name specialties' }
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: 'Invoice duplicated successfully',
+        data: { invoice: duplicateInvoice },
+      });
+    } catch (error) {
+      logger.error('Duplicate invoice error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Export invoices to CSV
+   */
+  static async exportInvoices(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authUser = (req as AuthRequest).user!;
+      const { format = 'csv', ...queryParams } = req.query;
+
+      // Only admin and reception can export
+      if (!['admin', 'reception'].includes(authUser.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot export invoices',
+        });
+      }
+
+      // Build filter using same logic as getInvoices
+      const filter: any = { deletedAt: null };
+
+      // Apply query filters (reusing logic from getInvoices)
+      if (queryParams.patientId) filter.patientId = new Types.ObjectId(queryParams.patientId as string);
+      if (queryParams.professionalId) filter.professionalId = new Types.ObjectId(queryParams.professionalId as string);
+      if (queryParams.status) filter.status = queryParams.status;
+      
+      if (queryParams.dateFrom || queryParams.dateTo) {
+        filter.issueDate = {};
+        if (queryParams.dateFrom) filter.issueDate.$gte = new Date(queryParams.dateFrom as string);
+        if (queryParams.dateTo) filter.issueDate.$lte = new Date(queryParams.dateTo as string);
+      }
+
+      if (queryParams.search) {
+        filter.$or = [
+          { invoiceNumber: { $regex: queryParams.search, $options: 'i' } },
+          { 'customer.name': { $regex: queryParams.search, $options: 'i' } },
+        ];
+      }
+
+      // Get invoices for export (no pagination)
+      const invoices = await Invoice.find(filter)
+        .populate('patientId', 'personalInfo contactInfo')
+        .populate('professionalId', 'name')
+        .sort({ issueDate: -1 });
+
+      if (format === 'csv') {
+        // Generate CSV content
+        const csvHeader = [
+          'Invoice Number',
+          'Patient Name',
+          'Professional',
+          'Issue Date',
+          'Due Date',
+          'Service Date',
+          'Status',
+          'Subtotal',
+          'Tax',
+          'Total',
+          'Currency',
+          'Items'
+        ].join(',');
+
+        const csvRows = invoices.map(invoice => {
+          const patient = invoice.patientId as any;
+          const professional = invoice.professionalId as any;
+          
+          return [
+            invoice.invoiceNumber,
+            `"${patient?.personalInfo?.name || 'N/A'}"`,
+            `"${professional?.name || 'N/A'}"`,
+            invoice.issueDate.toISOString().split('T')[0],
+            invoice.dueDate.toISOString().split('T')[0],
+            invoice.serviceDate.toISOString().split('T')[0],
+            invoice.status,
+            invoice.totals.subtotal.toFixed(2),
+            invoice.totals.totalTax.toFixed(2),
+            invoice.totals.total.toFixed(2),
+            invoice.totals.currency,
+            `"${invoice.items.map(item => item.description).join('; ')}"`,
+          ].join(',');
+        });
+
+        const csvContent = [csvHeader, ...csvRows].join('\n');
+
+        // Set CSV headers
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="invoices_export.csv"');
+
+        res.status(200).send(csvContent);
+      } else {
+        // Return JSON export
+        res.status(200).json({
+          success: true,
+          data: { 
+            invoices: invoices,
+            exportedAt: new Date(),
+            totalRecords: invoices.length,
+          },
+        });
+      }
+
+      // Log export action
+      await AuditLog.create({
+        action: 'invoices_exported',
+        entityType: 'invoice',
+        entityId: 'bulk_export',
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: {
+          format,
+          recordCount: invoices.length,
+          filters: queryParams,
+        },
+        security: {
+          riskLevel: 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: false,
+            gdprRelevant: true,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: false,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          source: 'invoice_controller',
+          priority: 'medium',
+        },
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      logger.error('Export invoices error:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Delete invoice (soft delete)
    */
   static async deleteInvoice(req: Request, res: Response, next: NextFunction) {
