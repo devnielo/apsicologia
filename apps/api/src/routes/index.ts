@@ -1,0 +1,48 @@
+import { Router } from 'express';
+import authRoutes from './auth.routes.js';
+import userRoutes from './user.routes.js';
+
+const router: Router = Router();
+
+// API version prefix
+const API_VERSION = '/v1';
+
+// Health check for the entire API
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'apsicologia API is healthy',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Mount route modules
+router.use(`${API_VERSION}/auth`, authRoutes);
+router.use(`${API_VERSION}/users`, userRoutes);
+
+// API info route
+router.get('/info', (req, res) => {
+  res.status(200).json({
+    name: 'apsicologia API',
+    version: '1.0.0',
+    description: 'Complete psychology clinic management system',
+    endpoints: {
+      health: '/api/health',
+      auth: `/api${API_VERSION}/auth`,
+      // More endpoints will be added as we implement them
+    },
+    features: [
+      'JWT Authentication with 2FA',
+      'Role-based Access Control',
+      'Comprehensive Audit Logging',
+      'Rate Limiting',
+      'Input Validation',
+      'Security Headers',
+    ],
+  });
+});
+
+export default router;

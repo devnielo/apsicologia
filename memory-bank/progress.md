@@ -1,7 +1,7 @@
 # Progreso del Proyecto - apsicologia
 
 ## Estado General
-**Progreso Global:** 5% - Fase de Inicialización
+**Progreso Global:** 25% - Fundación Técnica Completada
 **Última actualización:** 14/8/2025
 
 ## Componentes Completados ✅
@@ -36,8 +36,32 @@
 - [x] **Database setup** - MongoDB connection y schemas base ✅
 
 ### Backend API (Prioridad Alta)
-- [ ] **Authentication system** - JWT, RBAC, 2FA opcional
-- [x] **Database Models** - User, Patient, Professional schemas ✅
+- [x] **Authentication system** - JWT, RBAC, 2FA opcional ✅
+  - [x] Controlador de autenticación completo con login/logout
+  - [x] JWT con refresh tokens y cookies HTTP-only
+  - [x] 2FA con TOTP (Google Authenticator compatible)
+  - [x] Middleware de autenticación y autorización RBAC
+  - [x] Rate limiting y validación de entrada
+  - [x] Rutas de autenticación con documentación OpenAPI
+- [x] **User Management System** - CRUD usuarios completo ✅
+  - [x] Controlador de usuarios con todos los métodos CRUD
+  - [x] Paginación, filtrado y búsqueda de usuarios
+  - [x] Gestión de roles y permisos granular
+  - [x] Sistema de activación/desactivación de usuarios
+  - [x] Estadísticas de usuarios para dashboard
+  - [x] Validación robusta con express-validator
+  - [x] Middleware de validación reutilizable
+  - [x] Audit logging completo de todas las acciones
+  - [x] Rutas RESTful con documentación Swagger
+- [x] **Database Models Completos** - 13 modelos con lógica de negocio avanzada ✅
+  - [x] User, Patient, Professional (autenticación y gestión de usuarios)
+  - [x] Service, Room (catálogos base)
+  - [x] Appointment (citas con estados y flujo completo)
+  - [x] Invoice, Payment (facturación y pagos multi-gateway)
+  - [x] FormSchema, FormResponse (formularios dinámicos)
+  - [x] Note (notas clínicas con firmas digitales)
+  - [x] File (gestión de archivos con versionado y seguridad)
+  - [x] AuditLog (auditoría empresarial con compliance)
 - [ ] **User management** - CRUD users, roles, permissions
 - [ ] **Patient management** - CRUD pacientes, historiales
 - [ ] **Professional management** - Perfiles, especialidades, disponibilidad

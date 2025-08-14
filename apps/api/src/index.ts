@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { httpLogger } from './config/logger.js';
 import env from './config/env.js';
@@ -12,8 +13,8 @@ import logger from './config/logger.js';
 import { errorHandler } from './middleware/error.js';
 import { notFound } from './middleware/notFound.js';
 
-// Import routes (will be created later)
-// import authRoutes from './routes/auth.js';
+// Import routes
+import apiRoutes from './routes/index.js';
 // import userRoutes from './routes/users.js';
 // import patientRoutes from './routes/patients.js';
 // import professionalRoutes from './routes/professionals.js';
@@ -77,6 +78,7 @@ app.use(httpLogger);
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -105,12 +107,8 @@ app.get('/api', (req, res) => {
   });
 });
 
-// API routes (will be uncommented as we create them)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
-// app.use('/api/patients', patientRoutes);
-// app.use('/api/professionals', professionalRoutes);
-// app.use('/api/appointments', appointmentRoutes);
+// Mount API routes
+app.use('/api', apiRoutes);
 
 // Error handling middleware (must be last)
 app.use(notFound);

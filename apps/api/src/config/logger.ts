@@ -1,5 +1,6 @@
 import pino from 'pino';
 import pinoHttp from 'pino-http';
+import { randomUUID } from 'crypto';
 import env, { isDevelopment } from './env.js';
 
 // Base logger configuration
@@ -36,7 +37,7 @@ export const httpLogger = pinoHttp({
   logger,
   
   // Custom request ID
-  genReqId: (req) => req.headers['x-request-id'] || crypto.randomUUID(),
+  genReqId: (req) => req.headers['x-request-id'] || randomUUID(),
   
   // Custom serializers
   serializers: {
