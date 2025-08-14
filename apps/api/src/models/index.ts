@@ -9,6 +9,7 @@ export { Invoice } from './Invoice.js';
 export { Payment } from './Payment.js';
 export { FormSchema } from './FormSchema.js';
 export { FormResponse } from './FormResponse.js';
+export { Note } from './Note.js';
 
 // Export types separately
 export type { IUserDocument } from './User.js';
@@ -21,6 +22,7 @@ export type { IInvoiceDocument } from './Invoice.js';
 export type { IPaymentDocument } from './Payment.js';
 export type { IFormSchemaDocument } from './FormSchema.js';
 export type { IFormResponseDocument } from './FormResponse.js';
+export type { INoteDocument } from './Note.js';
 
 // Re-export types for convenience
 export type * from '@apsicologia/shared/types';
