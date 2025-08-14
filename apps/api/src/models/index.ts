@@ -7,6 +7,8 @@ export { Room } from './Room.js';
 export { Appointment } from './Appointment.js';
 export { Invoice } from './Invoice.js';
 export { Payment } from './Payment.js';
+export { FormSchema } from './FormSchema.js';
+export { FormResponse } from './FormResponse.js';
 
 // Export types separately
 export type { IUserDocument } from './User.js';
@@ -17,6 +19,8 @@ export type { IRoomDocument } from './Room.js';
 export type { IAppointmentDocument } from './Appointment.js';
 export type { IInvoiceDocument } from './Invoice.js';
 export type { IPaymentDocument } from './Payment.js';
+export type { IFormSchemaDocument } from './FormSchema.js';
+export type { IFormResponseDocument } from './FormResponse.js';
 
 // Re-export types for convenience
 export type * from '@apsicologia/shared/types';
