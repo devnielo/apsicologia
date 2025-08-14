@@ -1,0 +1,252 @@
+# Reglas y Patrones del Proyecto apsicologia
+
+## Arquitectura y Organización
+
+### Estructura del Monorepo
+- **apps/** contiene aplicaciones independientes (web, api, docs)
+- **packages/** contiene código compartido y reutilizable
+- **Workspaces de pnpm** para gestión de dependencias
+- **Configuraciones compartidas** en packages/config/
+
+### Convenciones de Nomenclatura
+- **Archivos:** kebab-case para archivos y carpetas
+- **Componentes React:** PascalCase
+- **Funciones y variables:** camelCase
+- **Constantes:** UPPER_SNAKE_CASE
+- **Interfaces TypeScript:** prefijo 'I' (IUser, IAppointment)
+- **Types:** sin prefijo (User, Appointment)
+
+### Patrones de Desarrollo
+
+#### Backend (Express API)
+```
+apps/api/src/
+├── routes/          # Un archivo por entidad
+├── controllers/     # Lógica de negocio
+├── models/          # Mongoose schemas
+├── middleware/      # Auth, validation, error handling
+├── services/        # Business logic reutilizable
+├── utils/           # Utilidades y helpers
+└── types/           # TypeScript types
+```
+
+#### Frontend (Next.js)
+```
+apps/web/src/
+├── app/             # App Router pages
+├── components/      # Componentes React organizados por dominio
+├── lib/             # Utilidades del cliente
+├── hooks/           # Custom React hooks
+└── types/           # TypeScript types
+```
+
+## Stack Tecnológico Confirmado
+
+### Backend Core
+- **Node.js 20** + **Express** para API REST
+- **MongoDB** con **Mongoose** para persistencia
+- **Redis** para cache y sessions
+- **BullMQ** para colas de trabajos
+- **Zod** para validación (schemas compartidos)
+- **Pino** para logging estructurado
+- **JWT** para autenticación
+
+### Frontend Core
+- **Next.js 14 App Router** + **React 18**
+- **TypeScript** strict mode
+- **TailwindCSS** con sistema OKLCH
+- **shadcn/ui** sobre **Radix UI**
+- **TanStack Query** para server state
+- **React Hook Form** + **Zod** para formularios
+
+### Herramientas Especializadas
+- **FullCalendar** para calendario (elegido sobre React Big Calendar)
+- **Tiptap** para editor de texto rico
+- **Recharts** para gráficas y estadísticas
+- **react-jsonschema-form** para formularios dinámicos
+- **MinIO** para almacenamiento de archivos
+- **Jitsi Meet** para videollamadas
+
+## Paleta de Colores y Diseño
+
+### Sistema OKLCH (implementado en TailwindCSS)
+```css
+:root {
+  --color-primary: 76.8% 0.12 15.2;      /* Cálido principal */
+  --color-secondary: 58.5% 0.08 25;      /* Neutro complementario */
+  --color-accent: 70% 0.12 220;          /* Azul/teal amigable */
+  --color-success: 72% 0.12 150;         /* Verde éxito */
+  --color-warning: 83% 0.14 80;          /* Amarillo advertencia */
+  --color-danger: 62% 0.18 25;           /* Rojo peligro */
+  --bg: 98% 0 0;                         /* Fondo claro */
+  --fg: 21% 0 0;                         /* Texto oscuro */
+  --muted: 94% 0.02 260;                 /* Neutro suave */
+}
+```
+
+### Principios de Diseño
+- **Accesibilidad WCAG AA** obligatoria
+- **Diseño limpio y profesional** orientado a salud
+- **Componentes consistentes** con shadcn/ui
+- **Iconografía clara** con lucide-react
+
+## Patrones de Seguridad
+
+### Autenticación y Autorización
+- **JWT tokens:** Access (15min) + Refresh (7 días)
+- **RBAC:** admin, professional, reception, patient
+- **2FA opcional** con TOTP
+- **Session management** en Redis
+
+### RGPD y Privacidad
+- **Audit logs** para todas las acciones
+- **Consent tracking** con timestamps
+- **Data export** en formato JSON estructurado
+- **Right to deletion** con soft delete + anonymization
+
+### Validación y Sanitización
+- **Zod schemas** compartidos entre frontend y backend
+- **Input sanitization** en todas las entradas
+- **Rate limiting** por IP y usuario
+- **CORS estricto** y headers de seguridad
+
+## Base de Datos y Performance
+
+### Mongoose Schemas
+- **Indexes compuestos** para queries frecuentes
+- **Pre/post middleware** para audit logs
+- **Validation** tanto en schema como en API
+- **Population selectiva** para optimizar queries
+
+### Caching Strategy
+- **Redis TTL:** Sessions (24h), Slots (15min), Stats (1h)
+- **Browser cache** con TanStack Query
+- **Database indexing** desde el diseño inicial
+- **Computed values** cachados para calendario
+
+### Optimizaciones
+- **Lazy loading** de componentes pesados
+- **Infinite queries** para listados largos
+- **Image optimization** con Next.js
+- **Bundle splitting** automático
+
+## Flujos de Trabajo Críticos
+
+### Slot Generation (Calendario)
+```typescript
+interface SlotGenerationRules {
+  professionalId: ObjectId;
+  serviceId: ObjectId;
+  weeklyAvailability: RRULE[];
+  bufferMinutes: number;
+  vacations: DateRange[];
+  holidays: Date[];
+}
+```
+
+### Conflict Prevention
+1. **Database unique index** en (professionalId, timeSlot)
+2. **Optimistic locking** con version field
+3. **Real-time validation** antes de guardar
+4. **UI feedback** inmediato en drag & drop
+
+### Email Automation
+- **React Email templates** para consistencia
+- **BullMQ queue** para reliability  
+- **Nodemailer SMTP** con retry logic
+- **Event-driven triggers** (nueva cita, recordatorio, etc.)
+
+## Testing Strategy
+
+### Pirámide de Testing
+```
+E2E Tests (Playwright)     ←  Critical user journeys
+Integration Tests          ←  API endpoints + DB
+Unit Tests (Jest)          ←  Pure functions, utilities
+```
+
+### Coverage Goals
+- **80% code coverage** mínimo
+- **100% critical paths** (auth, payments, appointments)
+- **API contract testing** con OpenAPI
+- **Performance testing** para calendario
+
+## Desarrollo y CI/CD
+
+### Scripts Esenciales
+- `pnpm dev` - Desarrollo completo (todos los servicios)
+- `pnpm build` - Build del monorepo completo
+- `pnpm test` - Testing suite completa
+- `pnpm db:seed` - Datos de desarrollo
+
+### Quality Gates
+- **TypeScript strict** sin errores
+- **ESLint + Prettier** configurados y pasando
+- **Tests unitarios** pasando
+- **Build exitoso** en CI
+
+### Git Workflow
+- **Commits atómicos** con conventional commits
+- **Feature branches** desde main
+- **PR reviews** obligatorios para main
+- **Automated testing** en cada PR
+
+## Integraciones Externas
+
+### MinIO (File Storage)
+- **Presigned URLs** para uploads directos
+- **Bucket organization:** `/patients/{id}/`, `/appointments/{id}/`
+- **Access control** con URL expiration
+
+### Jitsi Meet
+- **Room generation:** Unique ID por appointment
+- **JWT authentication** opcional
+- **Configuration:** Audio/video defaults, display name
+
+### Email Provider
+- **SMTP configuration** flexible
+- **Template system** con React Email
+- **Delivery tracking** y error handling
+
+## Patrones de UI/UX
+
+### Componente Architecture
+```typescript
+// Compound component pattern
+export const AppointmentCard = {
+  Root: AppointmentCardRoot,
+  Header: AppointmentCardHeader,
+  Content: AppointmentCardContent,
+  Actions: AppointmentCardActions,
+};
+```
+
+### State Management
+- **Server state:** TanStack Query
+- **Form state:** React Hook Form + Zod
+- **Global state:** React Context (mínimo)
+- **Local state:** useState/useReducer
+
+### Navigation Patterns
+- **Sidebar navigation** para admin panel
+- **Breadcrumbs** para orientación
+- **Search global** en header
+- **Quick actions** contextual
+
+## Notas de Implementación
+
+### Decisiones Arquitectónicas
+1. **Monorepo pnpm** elegido sobre Turborepo por simplicidad
+2. **Single MongoDB instance** para single-tenant simplicity
+3. **FullCalendar** elegido sobre React Big Calendar por features
+4. **Express sobre Fastify** por ecosystem maduro
+
+### Pain Points Identificados
+- **Slot generation algorithm:** Complejidad alta, implementar incrementalmente
+- **Jitsi integration:** Documentación limitada, empezar con SaaS
+- **Performance del calendario:** Caching agresivo desde el inicio
+
+### Escalabilidad Futura
+- **Microservicios:** Fácil extracción por dominio si necesario
+- **Multi-tenant:** Preparado con tenant-aware schemas
+- **Horizontal scaling:** Redis cluster, MongoDB sharding ready
