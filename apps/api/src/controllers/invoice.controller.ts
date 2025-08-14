@@ -265,8 +265,8 @@ export class InvoiceController {
 
       // If professional role, can only create invoices for their patients
       if (authUser.role === 'professional') {
-        const isAssigned = patient.assignedProfessionals?.some(
-          profId => profId.toString() === authUser.professionalId?.toString()
+        const isAssigned = patient.clinicalInfo.assignedProfessionals?.some(
+          (profId: any) => profId.toString() === authUser.professionalId?.toString()
         );
         if (!isAssigned) {
           return res.status(403).json({

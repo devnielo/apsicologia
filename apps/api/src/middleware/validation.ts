@@ -1,25 +1,134 @@
 import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
+import { z, ZodSchema, ZodError } from '@apsicologia/shared/validations';
 
 /**
- * Validation middleware to handle express-validator results
+ * Create a validation middleware for Zod schemas
  */
-export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
-  const errors = validationResult(req);
-  
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      errors: errors.array().map(error => ({
-        field: error.type === 'field' ? error.path : 'unknown',
-        message: error.msg,
-        value: error.type === 'field' ? error.value : undefined,
-      })),
-    });
-  }
-  
-  next();
+export const validateRequest = (schema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Validate the entire request object (params, query, body)
+      schema.parse({
+        params: req.params,
+        query: req.query,
+        body: req.body,
+      });
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+          code: err.code,
+        }));
+
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors,
+        });
+      }
+
+      // Handle other validation errors
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request format',
+      });
+    }
+  };
+};
+
+/**
+ * Validate only request body
+ */
+export const validateBody = (schema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.body);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+          code: err.code,
+        }));
+
+        return res.status(400).json({
+          success: false,
+          message: 'Body validation error',
+          errors,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request body',
+      });
+    }
+  };
+};
+
+/**
+ * Validate only query parameters
+ */
+export const validateQuery = (schema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.query);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+          code: err.code,
+        }));
+
+        return res.status(400).json({
+          success: false,
+          message: 'Query validation error',
+          errors,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid query parameters',
+      });
+    }
+  };
+};
+
+/**
+ * Validate only route parameters
+ */
+export const validateParams = (schema: ZodSchema) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.params);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+          code: err.code,
+        }));
+
+        return res.status(400).json({
+          success: false,
+          message: 'Parameters validation error',
+          errors,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid route parameters',
+      });
+    }
+  };
 };
 
 export default validateRequest;

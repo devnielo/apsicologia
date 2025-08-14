@@ -1,100 +1,710 @@
 import mongoose, { Document, Schema } from 'mongoose';
-
-// Define PatientGender type directly
-type PatientGender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
+import { IPatient } from '@apsicologia/shared/types';
 
 export interface IPatientDocument extends Document {
   _id: mongoose.Types.ObjectId;
-  userId?: mongoose.Types.ObjectId;
-  name: string;
-  email: string;
-  phone: string;
-  birthDate?: Date;
-  gender?: PatientGender;
   
-  // Contact information
-  address?: {
-    street?: string;
-    city?: string;
-    postalCode?: string;
-    country?: string;
+  // User account reference (optional - for patient portal access)
+  userId?: mongoose.Types.ObjectId;
+  
+  // Personal Information
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    fullName: string; // Computed field
+    dateOfBirth: Date;
+    age: number; // Computed field
+    gender: 'male' | 'female' | 'non-binary' | 'other' | 'prefer-not-to-say';
+    nationality?: string;
+    idNumber?: string; // DNI, passport, etc.
+    idType?: 'dni' | 'nie' | 'passport' | 'other';
+    maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed' | 'separated' | 'domestic-partner';
+    occupation?: string;
+    employer?: string;
   };
-  emergencyContact?: {
+  
+  // Contact Information
+  contactInfo: {
+    email: string;
+    phone: string;
+    alternativePhone?: string;
+    preferredContactMethod: 'email' | 'phone' | 'sms' | 'whatsapp';
+    address: {
+      street: string;
+      city: string;
+      postalCode: string;
+      state?: string;
+      country: string;
+    };
+  };
+  
+  // Emergency Contact
+  emergencyContact: {
     name: string;
     relationship: string;
     phone: string;
     email?: string;
   };
   
-  // Medical information
-  allergies: string[];
-  medicalConditions: string[];
-  medications: string[];
+  // Clinical Information
+  clinicalInfo: {
+    // Assigned professionals
+    primaryProfessional?: mongoose.Types.ObjectId;
+    assignedProfessionals: mongoose.Types.ObjectId[];
+    
+    // Medical history
+    medicalHistory: {
+      conditions: string[];
+      medications: {
+        name: string;
+        dosage: string;
+        frequency: string;
+        prescribedBy?: string;
+        startDate: Date;
+        endDate?: Date;
+        active: boolean;
+        notes?: string;
+      }[];
+      allergies: {
+        type: 'medication' | 'food' | 'environmental' | 'other';
+        allergen: string;
+        severity: 'mild' | 'moderate' | 'severe';
+        reaction: string;
+        notes?: string;
+      }[];
+      surgeries: {
+        procedure: string;
+        date: Date;
+        hospital?: string;
+        surgeon?: string;
+        notes?: string;
+      }[];
+      hospitalizations: {
+        reason: string;
+        admissionDate: Date;
+        dischargeDate?: Date;
+        hospital: string;
+        notes?: string;
+      }[];
+    };
+    
+    // Mental health history
+    mentalHealthHistory: {
+      previousTreatments: {
+        type: 'therapy' | 'medication' | 'hospitalization' | 'other';
+        provider?: string;
+        startDate: Date;
+        endDate?: Date;
+        reason: string;
+        outcome?: string;
+        notes?: string;
+      }[];
+      diagnoses: {
+        condition: string;
+        diagnosedBy?: string;
+        diagnosisDate: Date;
+        icdCode?: string;
+        status: 'active' | 'resolved' | 'in-remission' | 'chronic';
+        severity?: 'mild' | 'moderate' | 'severe';
+        notes?: string;
+      }[];
+      riskFactors: {
+        factor: string;
+        level: 'low' | 'moderate' | 'high';
+        notes?: string;
+        assessedDate: Date;
+        assessedBy: mongoose.Types.ObjectId;
+      }[];
+    };
+    
+    // Current treatment
+    currentTreatment: {
+      treatmentPlan?: string;
+      goals: string[];
+      startDate: Date;
+      expectedDuration?: string;
+      frequency?: string;
+      notes?: string;
+    };
+  };
   
-  // Professional relationships
-  assignedProfessionals: mongoose.Types.ObjectId[];
-  primaryProfessional?: mongoose.Types.ObjectId;
+  // Episodes and treatment cycles
+  episodes: {
+    episodeId: string;
+    title: string;
+    description?: string;
+    startDate: Date;
+    endDate?: Date;
+    status: 'active' | 'completed' | 'on-hold' | 'cancelled';
+    primaryProfessional: mongoose.Types.ObjectId;
+    treatmentType: string;
+    goals: string[];
+    outcome?: string;
+    notes?: string;
+    appointmentIds: mongoose.Types.ObjectId[];
+  }[];
+  
+  // Insurance and billing
+  insurance: {
+    hasInsurance: boolean;
+    primaryInsurance?: {
+      provider: string;
+      policyNumber: string;
+      groupNumber?: string;
+      policyHolder: string;
+      relationshipToPolicyHolder: 'self' | 'spouse' | 'child' | 'other';
+      effectiveDate: Date;
+      expirationDate?: Date;
+      copayAmount?: number;
+      deductibleAmount?: number;
+      coveragePercentage?: number;
+      mentalHealthBenefit: boolean;
+      sessionLimit?: number;
+      sessionsUsed?: number;
+      authorizationRequired: boolean;
+      authorizationNumber?: string;
+      notes?: string;
+    };
+    secondaryInsurance?: {
+      provider: string;
+      policyNumber: string;
+      groupNumber?: string;
+      policyHolder: string;
+      relationshipToPolicyHolder: 'self' | 'spouse' | 'child' | 'other';
+      effectiveDate: Date;
+      expirationDate?: Date;
+      copayAmount?: number;
+      deductibleAmount?: number;
+      coveragePercentage?: number;
+    };
+    paymentMethod: 'insurance' | 'self-pay' | 'sliding-scale' | 'pro-bono';
+    financialAssistance?: {
+      approved: boolean;
+      discountPercentage?: number;
+      reason?: string;
+      validUntil?: Date;
+      approvedBy?: mongoose.Types.ObjectId;
+    };
+  };
+  
+  // Preferences and configuration
+  preferences: {
+    // Communication preferences
+    language: string;
+    communicationPreferences: {
+      appointmentReminders: boolean;
+      reminderMethods: ('email' | 'sms' | 'phone' | 'push')[];
+      reminderTiming: number[]; // Hours before appointment
+      newsletters: boolean;
+      marketingCommunications: boolean;
+    };
+    
+    // Appointment preferences
+    appointmentPreferences: {
+      preferredTimes: {
+        dayOfWeek: number; // 0-6, 0 = Sunday
+        startTime: string; // HH:mm format
+        endTime: string;
+      }[];
+      preferredProfessionals: mongoose.Types.ObjectId[];
+      sessionFormat: 'in-person' | 'video' | 'phone' | 'any';
+      sessionDuration: number; // minutes
+      bufferBetweenSessions?: number; // minutes
+      notes?: string;
+    };
+    
+    // Portal access
+    portalAccess: {
+      enabled: boolean;
+      lastLogin?: Date;
+      passwordLastChanged?: Date;
+      twoFactorEnabled: boolean;
+      loginNotifications: boolean;
+    };
+  };
+  
+  // GDPR and consent management
+  gdprConsent: {
+    dataProcessing: {
+      consented: boolean;
+      consentDate: Date;
+      consentMethod: 'verbal' | 'written' | 'digital';
+      consentVersion: string;
+      witnessedBy?: mongoose.Types.ObjectId;
+      notes?: string;
+    };
+    marketingCommunications: {
+      consented: boolean;
+      consentDate?: Date;
+      withdrawnDate?: Date;
+      method: 'verbal' | 'written' | 'digital';
+    };
+    dataSharing: {
+      healthcareProfessionals: boolean;
+      insuranceProviders: boolean;
+      emergencyContacts: boolean;
+      researchPurposes?: boolean;
+      consentDate: Date;
+    };
+    rightToErasure: {
+      requested: boolean;
+      requestDate?: Date;
+      processedDate?: Date;
+      processedBy?: mongoose.Types.ObjectId;
+      retentionReason?: string;
+      notes?: string;
+    };
+    dataPortability: {
+      lastExportDate?: Date;
+      exportFormat?: string;
+      exportedBy?: mongoose.Types.ObjectId;
+    };
+  };
   
   // Tags and categorization
-  tags: string[];
-  source: 'online' | 'referral' | 'direct' | 'other';
-  referredBy?: string;
+  tags: {
+    name: string;
+    category: 'clinical' | 'administrative' | 'billing' | 'custom';
+    color?: string;
+    addedBy: mongoose.Types.ObjectId;
+    addedDate: Date;
+  }[];
   
-  // Communication preferences
-  newsletterOptIn: boolean;
-  communicationPreferences: {
-    email: boolean;
-    sms: boolean;
-    phone: boolean;
+  // Status and lifecycle
+  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased';
+  
+  // Relationship tracking
+  relationships: {
+    relatedPatientId: mongoose.Types.ObjectId;
+    relationship: 'spouse' | 'child' | 'parent' | 'sibling' | 'guardian' | 'other';
+    description?: string;
+    canAccessInformation: boolean;
+    emergencyContact: boolean;
+  }[];
+  
+  // Referral information
+  referral: {
+    source?: 'self' | 'physician' | 'family' | 'friend' | 'insurance' | 'online' | 'other';
+    referringPhysician?: {
+      name: string;
+      specialty?: string;
+      phone?: string;
+      email?: string;
+      notes?: string;
+    };
+    referringPerson?: string;
+    referralDate?: Date;
+    referralReason?: string;
+    referralNotes?: string;
   };
   
-  // Consent and privacy
-  consents: {
-    treatmentConsent: {
-      granted: boolean;
-      grantedAt?: Date;
-      document?: string;
-    };
-    dataProcessing: {
-      granted: boolean;
-      grantedAt?: Date;
-      document?: string;
-    };
-    marketing: {
-      granted: boolean;
-      grantedAt?: Date;
-    };
+  // Statistics and metrics
+  statistics: {
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    noShowAppointments: number;
+    firstAppointmentDate?: Date;
+    lastAppointmentDate?: Date;
+    totalInvoiceAmount: number;
+    totalPaidAmount: number;
+    averageSessionRating?: number;
   };
   
-  // Clinical information
-  clinicalNotes?: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  status: 'active' | 'inactive' | 'discharged' | 'pending';
+  // Notes and observations
+  administrativeNotes: {
+    noteId: string;
+    content: string;
+    category: 'general' | 'billing' | 'scheduling' | 'clinical' | 'behavior';
+    isPrivate: boolean;
+    addedBy: mongoose.Types.ObjectId;
+    addedDate: Date;
+    lastModified?: Date;
+    lastModifiedBy?: mongoose.Types.ObjectId;
+  }[];
   
-  // Financial
-  billingInfo?: {
-    preferredPaymentMethod?: 'cash' | 'card' | 'transfer' | 'insurance';
-    insuranceProvider?: string;
-    insuranceNumber?: string;
-  };
-  
-  // Soft delete and audit
-  isActive: boolean;
-  deletedAt?: Date;
-  lastContactAt?: Date;
+  // Audit and compliance
+  createdBy: mongoose.Types.ObjectId;
+  lastModifiedBy?: mongoose.Types.ObjectId;
+  version: number;
   
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date;
   
-  // Virtuals
-  age?: number;
-  fullAddress?: string;
+  // Instance methods
+  calculateAge(): number;
+  getFullName(): string;
+  addEpisode(episode: any): Promise<this>;
+  closeEpisode(episodeId: string, outcome?: string): Promise<this>;
+  addTag(tag: string, category: string, addedBy: mongoose.Types.ObjectId): Promise<this>;
+  removeTag(tagName: string): Promise<this>;
+  updateInsuranceUsage(sessionsUsed: number): Promise<this>;
+  exportData(): Promise<any>;
+  softDelete(): Promise<this>;
+  generatePatientNumber(): string;
 }
+
+// Sub-schemas
+const AddressSchema = new Schema({
+  street: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  city: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  postalCode: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  state: {
+    type: String,
+    trim: true,
+  },
+  country: {
+    type: String,
+    required: true,
+    trim: true,
+    default: 'Spain',
+  },
+}, { _id: false });
+
+const PersonalInfoSchema = new Schema({
+  firstName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [50, 'First name cannot exceed 50 characters'],
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [50, 'Last name cannot exceed 50 characters'],
+  },
+  fullName: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true,
+  },
+  dateOfBirth: {
+    type: Date,
+    required: true,
+    index: true,
+    validate: {
+      validator: function(date: Date) {
+        return date <= new Date();
+      },
+      message: 'Date of birth cannot be in the future',
+    },
+  },
+  age: {
+    type: Number,
+    required: true,
+    min: [0, 'Age cannot be negative'],
+    max: [150, 'Age cannot exceed 150 years'],
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'non-binary', 'other', 'prefer-not-to-say'],
+    required: true,
+  },
+  nationality: {
+    type: String,
+    trim: true,
+  },
+  idNumber: {
+    type: String,
+    trim: true,
+    sparse: true,
+    index: true,
+  },
+  idType: {
+    type: String,
+    enum: ['dni', 'nie', 'passport', 'other'],
+  },
+  maritalStatus: {
+    type: String,
+    enum: ['single', 'married', 'divorced', 'widowed', 'separated', 'domestic-partner'],
+  },
+  occupation: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Occupation cannot exceed 100 characters'],
+  },
+  employer: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Employer cannot exceed 100 characters'],
+  },
+}, { _id: false });
+
+const ContactInfoSchema = new Schema({
+  email: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true,
+    index: true,
+    validate: {
+      validator: function(email: string) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      },
+      message: 'Invalid email format',
+    },
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true,
+  },
+  alternativePhone: {
+    type: String,
+    trim: true,
+  },
+  preferredContactMethod: {
+    type: String,
+    enum: ['email', 'phone', 'sms', 'whatsapp'],
+    default: 'email',
+  },
+  address: {
+    type: AddressSchema,
+    required: true,
+  },
+}, { _id: false });
+
+const EmergencyContactSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [100, 'Emergency contact name cannot exceed 100 characters'],
+  },
+  relationship: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [50, 'Relationship cannot exceed 50 characters'],
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true,
+  },
+}, { _id: false });
+
+const MedicationSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  dosage: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  frequency: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  prescribedBy: {
+    type: String,
+    trim: true,
+  },
+  startDate: {
+    type: Date,
+    required: true,
+  },
+  endDate: {
+    type: Date,
+  },
+  active: {
+    type: Boolean,
+    default: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Medication notes cannot exceed 500 characters'],
+  },
+}, { timestamps: false });
+
+const AllergySchema = new Schema({
+  type: {
+    type: String,
+    enum: ['medication', 'food', 'environmental', 'other'],
+    required: true,
+  },
+  allergen: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  severity: {
+    type: String,
+    enum: ['mild', 'moderate', 'severe'],
+    required: true,
+  },
+  reaction: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
+}, { timestamps: false });
+
+const SurgerySchema = new Schema({
+  procedure: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+  },
+  hospital: {
+    type: String,
+    trim: true,
+  },
+  surgeon: {
+    type: String,
+    trim: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
+}, { timestamps: false });
+
+const HospitalizationSchema = new Schema({
+  reason: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  admissionDate: {
+    type: Date,
+    required: true,
+  },
+  dischargeDate: {
+    type: Date,
+  },
+  hospital: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
+}, { timestamps: false });
+
+const EpisodeSchema = new Schema({
+  episodeId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  description: {
+    type: String,
+    trim: true,
+  },
+  startDate: {
+    type: Date,
+    required: true,
+  },
+  endDate: {
+    type: Date,
+  },
+  status: {
+    type: String,
+    enum: ['active', 'completed', 'on-hold', 'cancelled'],
+    default: 'active',
+  },
+  primaryProfessional: {
+    type: Schema.Types.ObjectId,
+    ref: 'Professional',
+    required: true,
+  },
+  treatmentType: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  goals: [{
+    type: String,
+    trim: true,
+  }],
+  outcome: {
+    type: String,
+    trim: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+  },
+  appointmentIds: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Appointment',
+  }],
+}, { timestamps: false });
+
+const TagSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true,
+  },
+  category: {
+    type: String,
+    enum: ['clinical', 'administrative', 'billing', 'custom'],
+    default: 'custom',
+  },
+  color: {
+    type: String,
+    trim: true,
+  },
+  addedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  addedDate: {
+    type: Date,
+    default: Date.now,
+  },
+}, { _id: false });
 
 const PatientSchema = new Schema<IPatientDocument>(
   {
-    // Link to user account (optional for patients who don't have login access)
+    // User account reference
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -102,163 +712,487 @@ const PatientSchema = new Schema<IPatientDocument>(
       index: true,
     },
     
-    // Basic information
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-      maxlength: [100, 'Name cannot exceed 100 characters'],
-      index: true,
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      lowercase: true,
-      trim: true,
-      index: true,
-    },
-    phone: {
-      type: String,
-      required: [true, 'Phone is required'],
-      trim: true,
-      index: true,
-    },
-    birthDate: {
-      type: Date,
-      index: true,
-    },
-    gender: {
-      type: String,
-      enum: ['male', 'female', 'other', 'prefer_not_to_say'],
+    // Personal Information
+    personalInfo: {
+      type: PersonalInfoSchema,
+      required: true,
     },
     
-    // Contact information
-    address: {
-      street: { type: String, trim: true },
-      city: { type: String, trim: true },
-      postalCode: { type: String, trim: true },
-      country: { type: String, trim: true, default: 'España' },
+    // Contact Information
+    contactInfo: {
+      type: ContactInfoSchema,
+      required: true,
     },
+    
+    // Emergency Contact
     emergencyContact: {
-      name: { type: String, trim: true },
-      relationship: { type: String, trim: true },
-      phone: { type: String, trim: true },
-      email: { type: String, lowercase: true, trim: true },
+      type: EmergencyContactSchema,
+      required: true,
     },
     
-    // Medical information
-    allergies: {
-      type: [String],
-      default: [],
-    },
-    medicalConditions: {
-      type: [String],
-      default: [],
-    },
-    medications: {
-      type: [String],
-      default: [],
-    },
-    
-    // Professional relationships
-    assignedProfessionals: {
-      type: [Schema.Types.ObjectId],
-      ref: 'Professional',
-      default: [],
-      index: true,
-    },
-    primaryProfessional: {
-      type: Schema.Types.ObjectId,
-      ref: 'Professional',
-      index: true,
-    },
-    
-    // Tags and categorization
-    tags: {
-      type: [String],
-      default: [],
-      index: true,
-    },
-    source: {
-      type: String,
-      enum: ['online', 'referral', 'direct', 'other'],
-      default: 'direct',
-      index: true,
-    },
-    referredBy: {
-      type: String,
-      trim: true,
-    },
-    
-    // Communication preferences
-    newsletterOptIn: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-    communicationPreferences: {
-      email: { type: Boolean, default: true },
-      sms: { type: Boolean, default: false },
-      phone: { type: Boolean, default: true },
-    },
-    
-    // Consent and privacy
-    consents: {
-      treatmentConsent: {
-        granted: { type: Boolean, default: false },
-        grantedAt: { type: Date },
-        document: { type: String }, // File path or URL
+    // Clinical Information
+    clinicalInfo: {
+      primaryProfessional: {
+        type: Schema.Types.ObjectId,
+        ref: 'Professional',
+        index: true,
       },
+      assignedProfessionals: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Professional',
+      }],
+      medicalHistory: {
+        conditions: [{
+          type: String,
+          trim: true,
+        }],
+        medications: [MedicationSchema],
+        allergies: [AllergySchema],
+        surgeries: [SurgerySchema],
+        hospitalizations: [HospitalizationSchema],
+      },
+      mentalHealthHistory: {
+        previousTreatments: [{
+          type: {
+            type: String,
+            enum: ['therapy', 'medication', 'hospitalization', 'other'],
+            required: true,
+          },
+          provider: String,
+          startDate: {
+            type: Date,
+            required: true,
+          },
+          endDate: Date,
+          reason: {
+            type: String,
+            required: true,
+          },
+          outcome: String,
+          notes: String,
+        }],
+        diagnoses: [{
+          condition: {
+            type: String,
+            required: true,
+          },
+          diagnosedBy: String,
+          diagnosisDate: {
+            type: Date,
+            required: true,
+          },
+          icdCode: String,
+          status: {
+            type: String,
+            enum: ['active', 'resolved', 'in-remission', 'chronic'],
+            default: 'active',
+          },
+          severity: {
+            type: String,
+            enum: ['mild', 'moderate', 'severe'],
+          },
+          notes: String,
+        }],
+        riskFactors: [{
+          factor: {
+            type: String,
+            required: true,
+          },
+          level: {
+            type: String,
+            enum: ['low', 'moderate', 'high'],
+            required: true,
+          },
+          notes: String,
+          assessedDate: {
+            type: Date,
+            required: true,
+          },
+          assessedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'Professional',
+            required: true,
+          },
+        }],
+      },
+      currentTreatment: {
+        treatmentPlan: String,
+        goals: [String],
+        startDate: {
+          type: Date,
+          required: true,
+        },
+        expectedDuration: String,
+        frequency: String,
+        notes: String,
+      },
+    },
+    
+    // Episodes
+    episodes: [EpisodeSchema],
+    
+    // Insurance and billing
+    insurance: {
+      hasInsurance: {
+        type: Boolean,
+        default: false,
+      },
+      primaryInsurance: {
+        provider: String,
+        policyNumber: String,
+        groupNumber: String,
+        policyHolder: String,
+        relationshipToPolicyHolder: {
+          type: String,
+          enum: ['self', 'spouse', 'child', 'other'],
+        },
+        effectiveDate: Date,
+        expirationDate: Date,
+        copayAmount: Number,
+        deductibleAmount: Number,
+        coveragePercentage: Number,
+        mentalHealthBenefit: Boolean,
+        sessionLimit: Number,
+        sessionsUsed: {
+          type: Number,
+          default: 0,
+        },
+        authorizationRequired: {
+          type: Boolean,
+          default: false,
+        },
+        authorizationNumber: String,
+        notes: String,
+      },
+      secondaryInsurance: {
+        provider: String,
+        policyNumber: String,
+        groupNumber: String,
+        policyHolder: String,
+        relationshipToPolicyHolder: {
+          type: String,
+          enum: ['self', 'spouse', 'child', 'other'],
+        },
+        effectiveDate: Date,
+        expirationDate: Date,
+        copayAmount: Number,
+        deductibleAmount: Number,
+        coveragePercentage: Number,
+      },
+      paymentMethod: {
+        type: String,
+        enum: ['insurance', 'self-pay', 'sliding-scale', 'pro-bono'],
+        default: 'self-pay',
+      },
+      financialAssistance: {
+        approved: {
+          type: Boolean,
+          default: false,
+        },
+        discountPercentage: Number,
+        reason: String,
+        validUntil: Date,
+        approvedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+      },
+    },
+    
+    // Preferences
+    preferences: {
+      language: {
+        type: String,
+        default: 'es',
+        enum: ['es', 'en', 'ca', 'eu', 'gl'],
+      },
+      communicationPreferences: {
+        appointmentReminders: {
+          type: Boolean,
+          default: true,
+        },
+        reminderMethods: [{
+          type: String,
+          enum: ['email', 'sms', 'phone', 'push'],
+        }],
+        reminderTiming: [{
+          type: Number, // Hours before appointment
+        }],
+        newsletters: {
+          type: Boolean,
+          default: false,
+        },
+        marketingCommunications: {
+          type: Boolean,
+          default: false,
+        },
+      },
+      appointmentPreferences: {
+        preferredTimes: [{
+          dayOfWeek: {
+            type: Number,
+            min: 0,
+            max: 6,
+          },
+          startTime: String, // HH:mm
+          endTime: String,   // HH:mm
+        }],
+        preferredProfessionals: [{
+          type: Schema.Types.ObjectId,
+          ref: 'Professional',
+        }],
+        sessionFormat: {
+          type: String,
+          enum: ['in-person', 'video', 'phone', 'any'],
+          default: 'in-person',
+        },
+        sessionDuration: {
+          type: Number,
+          default: 50, // minutes
+        },
+        bufferBetweenSessions: Number,
+        notes: String,
+      },
+      portalAccess: {
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        lastLogin: Date,
+        passwordLastChanged: Date,
+        twoFactorEnabled: {
+          type: Boolean,
+          default: false,
+        },
+        loginNotifications: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    },
+    
+    // GDPR Consent
+    gdprConsent: {
       dataProcessing: {
-        granted: { type: Boolean, default: false },
-        grantedAt: { type: Date },
-        document: { type: String },
+        consented: {
+          type: Boolean,
+          required: true,
+        },
+        consentDate: {
+          type: Date,
+          required: true,
+        },
+        consentMethod: {
+          type: String,
+          enum: ['verbal', 'written', 'digital'],
+          required: true,
+        },
+        consentVersion: {
+          type: String,
+          required: true,
+          default: '1.0',
+        },
+        witnessedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        notes: String,
       },
-      marketing: {
-        granted: { type: Boolean, default: false },
-        grantedAt: { type: Date },
+      marketingCommunications: {
+        consented: {
+          type: Boolean,
+          default: false,
+        },
+        consentDate: Date,
+        withdrawnDate: Date,
+        method: {
+          type: String,
+          enum: ['verbal', 'written', 'digital'],
+        },
+      },
+      dataSharing: {
+        healthcareProfessionals: {
+          type: Boolean,
+          default: true,
+        },
+        insuranceProviders: {
+          type: Boolean,
+          default: false,
+        },
+        emergencyContacts: {
+          type: Boolean,
+          default: true,
+        },
+        researchPurposes: {
+          type: Boolean,
+          default: false,
+        },
+        consentDate: {
+          type: Date,
+          required: true,
+        },
+      },
+      rightToErasure: {
+        requested: {
+          type: Boolean,
+          default: false,
+        },
+        requestDate: Date,
+        processedDate: Date,
+        processedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        retentionReason: String,
+        notes: String,
+      },
+      dataPortability: {
+        lastExportDate: Date,
+        exportFormat: String,
+        exportedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
       },
     },
     
-    // Clinical information
-    clinicalNotes: {
-      type: String,
-      maxlength: [2000, 'Clinical notes cannot exceed 2000 characters'],
-    },
-    riskLevel: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'low',
-      index: true,
-    },
+    // Tags
+    tags: [TagSchema],
+    
+    // Status
     status: {
       type: String,
-      enum: ['active', 'inactive', 'discharged', 'pending'],
-      default: 'pending',
+      enum: ['active', 'inactive', 'discharged', 'transferred', 'deceased'],
+      default: 'active',
       index: true,
     },
     
-    // Financial
-    billingInfo: {
-      preferredPaymentMethod: {
-        type: String,
-        enum: ['cash', 'card', 'transfer', 'insurance'],
+    // Relationships
+    relationships: [{
+      relatedPatientId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Patient',
+        required: true,
       },
-      insuranceProvider: { type: String, trim: true },
-      insuranceNumber: { type: String, trim: true },
+      relationship: {
+        type: String,
+        enum: ['spouse', 'child', 'parent', 'sibling', 'guardian', 'other'],
+        required: true,
+      },
+      description: String,
+      canAccessInformation: {
+        type: Boolean,
+        default: false,
+      },
+      emergencyContact: {
+        type: Boolean,
+        default: false,
+      },
+    }],
+    
+    // Referral
+    referral: {
+      source: {
+        type: String,
+        enum: ['self', 'physician', 'family', 'friend', 'insurance', 'online', 'other'],
+      },
+      referringPhysician: {
+        name: String,
+        specialty: String,
+        phone: String,
+        email: String,
+        notes: String,
+      },
+      referringPerson: String,
+      referralDate: Date,
+      referralReason: String,
+      referralNotes: String,
     },
     
-    // Soft delete and audit
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
+    // Statistics
+    statistics: {
+      totalAppointments: {
+        type: Number,
+        default: 0,
+      },
+      completedAppointments: {
+        type: Number,
+        default: 0,
+      },
+      cancelledAppointments: {
+        type: Number,
+        default: 0,
+      },
+      noShowAppointments: {
+        type: Number,
+        default: 0,
+      },
+      firstAppointmentDate: Date,
+      lastAppointmentDate: Date,
+      totalInvoiceAmount: {
+        type: Number,
+        default: 0,
+      },
+      totalPaidAmount: {
+        type: Number,
+        default: 0,
+      },
+      averageSessionRating: Number,
     },
+    
+    // Administrative notes
+    administrativeNotes: [{
+      noteId: {
+        type: String,
+        required: true,
+      },
+      content: {
+        type: String,
+        required: true,
+      },
+      category: {
+        type: String,
+        enum: ['general', 'billing', 'scheduling', 'clinical', 'behavior'],
+        default: 'general',
+      },
+      isPrivate: {
+        type: Boolean,
+        default: false,
+      },
+      addedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      addedDate: {
+        type: Date,
+        default: Date.now,
+      },
+      lastModified: Date,
+      lastModifiedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    }],
+    
+    // Audit fields
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    lastModifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    version: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    
+    // Soft delete
     deletedAt: {
-      type: Date,
-      index: true,
-    },
-    lastContactAt: {
       type: Date,
       index: true,
     },
@@ -272,72 +1206,48 @@ const PatientSchema = new Schema<IPatientDocument>(
         delete ret.__v;
         return ret;
       },
-      virtuals: true,
     },
   }
 );
 
-// Compound indexes for common queries
-PatientSchema.index({ name: 'text', email: 'text' }); // Text search
-PatientSchema.index({ status: 1, isActive: 1 });
-PatientSchema.index({ assignedProfessionals: 1, isActive: 1 });
-PatientSchema.index({ tags: 1, isActive: 1 });
+// Compound indexes for efficient queries
+PatientSchema.index({ 'personalInfo.fullName': 'text', 'contactInfo.email': 'text' });
+PatientSchema.index({ 'contactInfo.email': 1, deletedAt: 1 });
+PatientSchema.index({ 'contactInfo.phone': 1, deletedAt: 1 });
+PatientSchema.index({ 'personalInfo.idNumber': 1, deletedAt: 1 });
+PatientSchema.index({ status: 1, createdAt: -1 });
+PatientSchema.index({ 'clinicalInfo.primaryProfessional': 1, status: 1 });
+PatientSchema.index({ 'tags.name': 1, 'tags.category': 1 });
 PatientSchema.index({ createdAt: -1 });
-PatientSchema.index({ lastContactAt: -1 });
 
-// Ensure email uniqueness for active patients
-PatientSchema.index(
-  { email: 1, isActive: 1 },
-  { 
-    unique: true,
-    partialFilterExpression: { isActive: true },
-    name: 'unique_active_patient_email'
+// Unique constraints
+PatientSchema.index({ 'contactInfo.email': 1 }, { unique: true, partialFilterExpression: { deletedAt: null } });
+PatientSchema.index({ 'personalInfo.idNumber': 1, 'personalInfo.idType': 1 }, { 
+  unique: true, 
+  sparse: true,
+  partialFilterExpression: { 
+    deletedAt: null,
+    'personalInfo.idNumber': { $exists: true, $ne: '' }
   }
-);
-
-// Virtual for age calculation
-PatientSchema.virtual('age').get(function(this: IPatientDocument) {
-  if (!this.birthDate) return undefined;
-  const today = new Date();
-  const birthYear = this.birthDate.getFullYear();
-  const currentYear = today.getFullYear();
-  let age = currentYear - birthYear;
-  
-  // Adjust if birthday hasn't occurred this year
-  const birthMonth = this.birthDate.getMonth();
-  const currentMonth = today.getMonth();
-  if (currentMonth < birthMonth || 
-      (currentMonth === birthMonth && today.getDate() < this.birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-});
-
-// Virtual for full address
-PatientSchema.virtual('fullAddress').get(function(this: IPatientDocument) {
-  if (!this.address) return undefined;
-  
-  const parts = [
-    this.address.street,
-    this.address.city,
-    this.address.postalCode,
-    this.address.country
-  ].filter(Boolean);
-  
-  return parts.length > 0 ? parts.join(', ') : undefined;
 });
 
 // Pre-save middleware
 PatientSchema.pre('save', function(this: IPatientDocument, next) {
-  // Update lastContactAt when patient is modified
-  if (this.isModified() && !this.isModified('lastContactAt')) {
-    this.lastContactAt = new Date();
+  // Auto-calculate age and full name
+  if (this.isModified('personalInfo.dateOfBirth') || this.isModified('personalInfo.firstName') || this.isModified('personalInfo.lastName')) {
+    this.personalInfo.age = this.calculateAge();
+    this.personalInfo.fullName = this.getFullName();
   }
   
-  // Ensure primary professional is in assigned professionals
-  if (this.primaryProfessional && !this.assignedProfessionals.includes(this.primaryProfessional)) {
-    this.assignedProfessionals.push(this.primaryProfessional);
+  // Update version on modifications
+  if (this.isModified() && !this.isNew) {
+    this.version += 1;
+  }
+  
+  // Set default communication preferences
+  if (this.isNew && !this.preferences.communicationPreferences.reminderMethods.length) {
+    this.preferences.communicationPreferences.reminderMethods = ['email'];
+    this.preferences.communicationPreferences.reminderTiming = [24, 2]; // 24 hours and 2 hours before
   }
   
   next();
@@ -345,78 +1255,185 @@ PatientSchema.pre('save', function(this: IPatientDocument, next) {
 
 // Static methods
 PatientSchema.statics.findByEmail = function(email: string) {
-  return this.findOne({ email: email.toLowerCase(), isActive: true });
-};
-
-PatientSchema.statics.findByProfessional = function(professionalId: mongoose.Types.ObjectId) {
-  return this.find({ 
-    assignedProfessionals: professionalId,
-    isActive: true 
-  }).sort({ lastContactAt: -1 });
-};
-
-PatientSchema.statics.findByStatus = function(status: string) {
-  return this.find({ status, isActive: true });
-};
-
-PatientSchema.statics.findByTags = function(tags: string[]) {
-  return this.find({ 
-    tags: { $in: tags },
-    isActive: true 
+  return this.findOne({
+    'contactInfo.email': email.toLowerCase(),
+    deletedAt: null,
   });
 };
 
-PatientSchema.statics.searchByName = function(query: string) {
+PatientSchema.statics.findByPhone = function(phone: string) {
+  return this.findOne({
+    $or: [
+      { 'contactInfo.phone': phone },
+      { 'contactInfo.alternativePhone': phone },
+    ],
+    deletedAt: null,
+  });
+};
+
+PatientSchema.statics.findByIdNumber = function(idNumber: string, idType?: string) {
+  const query: any = {
+    'personalInfo.idNumber': idNumber,
+    deletedAt: null,
+  };
+  
+  if (idType) {
+    query['personalInfo.idType'] = idType;
+  }
+  
+  return this.findOne(query);
+};
+
+PatientSchema.statics.findByProfessional = function(professionalId: string, status?: string) {
+  const query: any = {
+    $or: [
+      { 'clinicalInfo.primaryProfessional': professionalId },
+      { 'clinicalInfo.assignedProfessionals': professionalId },
+    ],
+    deletedAt: null,
+  };
+  
+  if (status) {
+    query.status = status;
+  }
+  
+  return this.find(query).sort({ 'personalInfo.fullName': 1 });
+};
+
+PatientSchema.statics.searchPatients = function(searchTerm: string, limit?: number) {
+  const regex = new RegExp(searchTerm, 'i');
+  
   return this.find({
-    $text: { $search: query },
-    isActive: true
-  }).sort({ score: { $meta: 'textScore' } });
+    $or: [
+      { 'personalInfo.fullName': regex },
+      { 'personalInfo.firstName': regex },
+      { 'personalInfo.lastName': regex },
+      { 'contactInfo.email': regex },
+      { 'contactInfo.phone': regex },
+      { 'personalInfo.idNumber': regex },
+    ],
+    deletedAt: null,
+  })
+    .sort({ 'personalInfo.fullName': 1 })
+    .limit(limit || 20);
+};
+
+PatientSchema.statics.getByTag = function(tagName: string, category?: string) {
+  const query: any = {
+    'tags.name': tagName,
+    deletedAt: null,
+  };
+  
+  if (category) {
+    query['tags.category'] = category;
+  }
+  
+  return this.find(query);
 };
 
 // Instance methods
-PatientSchema.methods.assignToProfessional = function(professionalId: mongoose.Types.ObjectId) {
-  if (!this.assignedProfessionals.includes(professionalId)) {
-    this.assignedProfessionals.push(professionalId);
-  }
-  return this.save();
-};
-
-PatientSchema.methods.removeProfessional = function(professionalId: mongoose.Types.ObjectId) {
-  this.assignedProfessionals = this.assignedProfessionals.filter(
-    (id: mongoose.Types.ObjectId) => !id.equals(professionalId)
-  );
+PatientSchema.methods.calculateAge = function(): number {
+  const today = new Date();
+  const birthDate = new Date(this.personalInfo.dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
   
-  // If removing primary professional, clear it
-  if (this.primaryProfessional?.equals(professionalId)) {
-    this.primaryProfessional = undefined;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
   }
   
-  return this.save();
+  return Math.max(0, age);
 };
 
-PatientSchema.methods.addTag = function(tag: string) {
-  if (!this.tags.includes(tag)) {
-    this.tags.push(tag);
-  }
-  return this.save();
+PatientSchema.methods.getFullName = function(): string {
+  return `${this.personalInfo.firstName} ${this.personalInfo.lastName}`.trim();
 };
 
-PatientSchema.methods.removeTag = function(tag: string) {
-  this.tags = this.tags.filter((t: string) => t !== tag);
-  return this.save();
-};
-
-PatientSchema.methods.updateConsent = function(
-  consentType: keyof IPatientDocument['consents'],
-  granted: boolean,
-  document?: string
-) {
-  this.consents[consentType] = {
-    granted,
-    grantedAt: granted ? new Date() : undefined,
-    document
+PatientSchema.methods.addEpisode = function(episode: any) {
+  // Generate unique episode ID
+  const episodeId = `EP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const newEpisode = {
+    episodeId,
+    ...episode,
+    startDate: episode.startDate || new Date(),
+    status: 'active',
+    appointmentIds: [],
   };
+  
+  this.episodes.push(newEpisode);
   return this.save();
+};
+
+PatientSchema.methods.closeEpisode = function(episodeId: string, outcome?: string) {
+  const episode = this.episodes.find((ep: any) => ep.episodeId === episodeId);
+  if (episode) {
+    episode.status = 'completed';
+    episode.endDate = new Date();
+    if (outcome) {
+      episode.outcome = outcome;
+    }
+  }
+  return this.save();
+};
+
+PatientSchema.methods.addTag = function(tag: string, category: string, addedBy: mongoose.Types.ObjectId) {
+  // Check if tag already exists
+  const existingTag = this.tags.find((t: any) => t.name === tag && t.category === category);
+  if (existingTag) {
+    return this.save();
+  }
+  
+  this.tags.push({
+    name: tag,
+    category,
+    addedBy,
+    addedDate: new Date(),
+  });
+  
+  return this.save();
+};
+
+PatientSchema.methods.removeTag = function(tagName: string) {
+  this.tags = this.tags.filter((tag: any) => tag.name !== tagName);
+  return this.save();
+};
+
+PatientSchema.methods.updateInsuranceUsage = function(sessionsUsed: number) {
+  if (this.insurance.primaryInsurance) {
+    this.insurance.primaryInsurance.sessionsUsed = sessionsUsed;
+  }
+  return this.save();
+};
+
+PatientSchema.methods.exportData = function() {
+  const exportData = this.toObject();
+  
+  // Add export metadata
+  exportData._exportMetadata = {
+    exportDate: new Date(),
+    exportFormat: 'json',
+    version: '1.0',
+    gdprCompliant: true,
+  };
+  
+  // Update data portability log
+  this.gdprConsent.dataPortability.lastExportDate = new Date();
+  this.gdprConsent.dataPortability.exportFormat = 'json';
+  
+  return this.save().then(() => exportData);
+};
+
+PatientSchema.methods.softDelete = function() {
+  this.deletedAt = new Date();
+  this.status = 'inactive';
+  return this.save();
+};
+
+PatientSchema.methods.generatePatientNumber = function(): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substr(2, 5);
+  return `PAT-${timestamp}-${random}`.toUpperCase();
 };
 
 export const Patient = mongoose.model<IPatientDocument>('Patient', PatientSchema);

@@ -106,4 +106,5 @@ export const SearchFiltersSchema = z.object({
 });
 
 // Re-export zod for convenience
-export { z, ZodError } from 'zod';
+export { z, ZodError, ZodSchema } from 'zod';
+export type { ZodType, ZodTypeAny } from 'zod';

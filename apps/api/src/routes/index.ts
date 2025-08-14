@@ -7,6 +7,7 @@ import serviceRoutes from './service.routes.js';
 import roomRoutes from './room.routes.js';
 import appointmentRoutes from './appointment.routes.js';
 import invoiceRoutes from './invoice.routes.js';
+import paymentRoutes from './payment.routes.js';
 
 const router: Router = Router();
 
@@ -34,6 +35,7 @@ router.use(`${API_VERSION}/services`, serviceRoutes);
 router.use(`${API_VERSION}/rooms`, roomRoutes);
 router.use(`${API_VERSION}/appointments`, appointmentRoutes);
 router.use(`${API_VERSION}/invoices`, invoiceRoutes);
+router.use(`${API_VERSION}/payments`, paymentRoutes);
 
 // API info route
 router.get('/info', (req, res) => {
