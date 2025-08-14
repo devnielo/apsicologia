@@ -796,8 +796,8 @@ export class ProfessionalController {
         vacations: professional.vacations,
         bufferMinutes: professional.bufferMinutes,
         maxPatientsPerDay: professional.maxPatientsPerDay,
-        consultationTypes: professional.consultationTypes,
-        telehealthSetup: professional.telehealthSetup,
+        // consultationTypes: professional.consultationTypes, // This field doesn't exist in current model
+        // telehealthSetup: professional.telehealthSetup, // This field doesn't exist in current model
       };
 
       res.status(200).json({

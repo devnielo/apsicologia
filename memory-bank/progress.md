@@ -75,6 +75,26 @@
   - [x] Creación automática de cuentas de usuario sincronizadas
   - [x] Estados profesionales (active/inactive/on_leave/suspended)
   - [x] 9 endpoints RESTful con validación médica especializada
+- [x] **Service Management System** - CRUD servicios completo ✅
+  - [x] Controlador de servicios con configuración avanzada
+  - [x] Información de servicios (nombre, descripción, categoría, duración, precio)
+  - [x] Configuración de reservas (anticipación máxima/mínima, aprobación requerida)
+  - [x] Políticas de cancelación configurables con penalizaciones
+  - [x] Restricciones de edad y contraindicaciones
+  - [x] Asignación de servicios a profesionales
+  - [x] Estadísticas agregadas por servicio
+  - [x] Estados de servicio (activo/inactivo) con validaciones
+  - [x] 10 endpoints RESTful con validaciones especializadas
+- [x] **Room Management System** - CRUD salas completo ✅
+  - [x] Controlador de salas con gestión física y virtual
+  - [x] Información de salas (nombre, descripción, tipo, capacidad, ubicación)
+  - [x] Salas físicas con datos de accesibilidad y equipamiento
+  - [x] Salas virtuales con integración Jitsi Meet
+  - [x] Reglas de reserva (duración mín/máx, buffers, anticipación)
+  - [x] Disponibilidad y estadísticas de uso
+  - [x] Estados de sala (activa/inactiva) con validaciones
+  - [x] 10 endpoints RESTful con validaciones especializadas
+  - [x] Generación automática de enlaces Jitsi para videollamadas
 - [x] **Database Models Completos** - 13 modelos con lógica de negocio avanzada ✅
   - [x] User, Patient, Professional (autenticación y gestión de usuarios)
   - [x] Service, Room (catálogos base)
@@ -84,12 +104,12 @@
   - [x] Note (notas clínicas con firmas digitales)
   - [x] File (gestión de archivos con versionado y seguridad)
   - [x] AuditLog (auditoría empresarial con compliance)
-- [ ] **User management** - CRUD users, roles, permissions
-- [ ] **Patient management** - CRUD pacientes, historiales
-- [ ] **Professional management** - Perfiles, especialidades, disponibilidad
-- [ ] **Appointment system** - CRUD citas, calendario, slots
-- [ ] **Service management** - Servicios, precios, duración
-- [ ] **Room management** - Salas físicas y virtuales
+- [x] **User management** - CRUD users, roles, permissions ✅
+- [x] **Patient management** - CRUD pacientes, historiales ✅
+- [x] **Professional management** - Perfiles, especialidades, disponibilidad ✅
+- [x] **Appointment system** - CRUD citas, calendario, slots ✅
+- [x] **Service management** - Servicios, precios, duración ✅
+- [x] **Room management** - Salas físicas y virtuales ✅
 - [ ] **File management** - MinIO integration, uploads
 - [ ] **Email system** - Nodemailer + React Email templates
 - [ ] **Billing system** - Facturación, PDF generation, pagos

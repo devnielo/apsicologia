@@ -3,6 +3,9 @@ import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
 import patientRoutes from './patient.routes.js';
 import professionalRoutes from './professional.routes.js';
+import serviceRoutes from './service.routes.js';
+import roomRoutes from './room.routes.js';
+import appointmentRoutes from './appointment.routes.js';
 
 const router: Router = Router();
 
@@ -26,6 +29,9 @@ router.use(`${API_VERSION}/auth`, authRoutes);
 router.use(`${API_VERSION}/users`, userRoutes);
 router.use(`${API_VERSION}/patients`, patientRoutes);
 router.use(`${API_VERSION}/professionals`, professionalRoutes);
+router.use(`${API_VERSION}/services`, serviceRoutes);
+router.use(`${API_VERSION}/rooms`, roomRoutes);
+router.use(`${API_VERSION}/appointments`, appointmentRoutes);
 
 // API info route
 router.get('/info', (req, res) => {
