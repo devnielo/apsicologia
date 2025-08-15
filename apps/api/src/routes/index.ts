@@ -1,7 +1,11 @@
 import { Router } from 'express';
-// COMPLETELY BASIC ROUTES - NO CONTROLLERS FOR NOW
-// import authRoutes from './auth.routes.js';
-// import userRoutes from './user.routes.js';
+// Import route modules
+import authRoutes from './auth.routes.js';
+import userRoutes from './user.routes.js';
+import patientRoutes from './patient.routes.js';
+import professionalRoutes from './professional.routes.js';
+import serviceRoutes from './service.routes.js';
+import roomRoutes from './room.routes.js';
 
 const router: Router = Router();
 
@@ -20,13 +24,15 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Mount route modules - COMPLETELY DISABLED FOR NOW
-// router.use(`${API_VERSION}/auth`, authRoutes);
-// router.use(`${API_VERSION}/users`, userRoutes);
-// router.use(`${API_VERSION}/patients`, patientRoutes);
-// router.use(`${API_VERSION}/professionals`, professionalRoutes);
-// router.use(`${API_VERSION}/services`, serviceRoutes);
-// router.use(`${API_VERSION}/rooms`, roomRoutes);
+// Mount route modules - Core functionality enabled
+router.use(`${API_VERSION}/auth`, authRoutes);
+router.use(`${API_VERSION}/users`, userRoutes);
+router.use(`${API_VERSION}/patients`, patientRoutes);
+router.use(`${API_VERSION}/professionals`, professionalRoutes);
+router.use(`${API_VERSION}/services`, serviceRoutes);
+router.use(`${API_VERSION}/rooms`, roomRoutes);
+
+// Advanced features - To be enabled next
 // router.use(`${API_VERSION}/files`, fileRoutes);
 // router.use(`${API_VERSION}/forms`, formRoutes);
 // router.use(`${API_VERSION}/notes`, noteRoutes);
