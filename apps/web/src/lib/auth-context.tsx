@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ['auth', 'profile'],
     queryFn: async () => {
       const token = Cookies.get('auth-token');
       if (!token) return null;
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         Cookies.set('refresh-token', data.refreshToken, { expires: 7 }); // 7 days
         
         // Update query cache
-        queryClient.setQueryData(['auth', 'me'], data.user);
+        queryClient.setQueryData(['auth', 'profile'], data.user);
       }
     },
     onError: (error: any) => {
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Always clean up local state
       Cookies.remove('auth-token');
       Cookies.remove('refresh-token');
-      queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.setQueryData(['auth', 'profile'], null);
       queryClient.clear();
     },
   });

@@ -97,7 +97,7 @@ export const api = {
       apiClient.post<ApiResponse>('/auth/logout'),
 
     me: () =>
-      apiClient.get<ApiResponse<any>>('/auth/me'),
+      apiClient.get<ApiResponse<any>>('/auth/profile'),
 
     refresh: (refreshToken: string) =>
       apiClient.post<ApiResponse<{
