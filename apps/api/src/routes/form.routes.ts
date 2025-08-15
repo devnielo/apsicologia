@@ -180,6 +180,21 @@ router.get(
 );
 
 /**
+ * @route   GET /api/forms/responses
+ * @desc    Get form responses with pagination and filtering
+ * @access  Private (Admin, Reception, Professional)
+ * @query   {page?, limit?, formId?, patientId?, appointmentId?, sortBy?, sortOrder?}
+ */
+router.get(
+  '/responses',
+  authenticate,
+  authorize(['admin', 'reception', 'professional'] as any),
+  responseQueryValidation,
+  validateRequest,
+  FormController.getFormResponses
+);
+
+/**
  * @route   GET /api/forms/:formId
  * @desc    Get form schema by ID
  * @access  Private (Based on form permissions)
@@ -239,21 +254,6 @@ router.post(
   formResponseValidation,
   validateRequest,
   FormController.submitFormResponse
-);
-
-/**
- * @route   GET /api/forms/responses
- * @desc    Get form responses with pagination and filtering
- * @access  Private (Admin, Reception, Professional)
- * @query   {page?, limit?, formId?, patientId?, appointmentId?, sortBy?, sortOrder?}
- */
-router.get(
-  '/responses',
-  authenticate,
-  authorize(['admin', 'reception', 'professional'] as any),
-  responseQueryValidation,
-  validateRequest,
-  FormController.getFormResponses
 );
 
 /**
