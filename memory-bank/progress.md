@@ -141,13 +141,25 @@
 - ✅ Paginación funcionando
 - ✅ Filtros y búsquedas operativos
 
+#### **3. Frontend Next.js (🚧 EN PROGRESO - 40% Completado)**
+
+**Configuración Base:**
+- ✅ Next.js 14 con App Router configurado
+- ✅ TypeScript + ESLint configuración
+- ✅ TailwindCSS con paleta OKLCH personalizada
+- ✅ Servidor de desarrollo funcionando en localhost:3000
+- ✅ Página inicial con diseño profesional
+- ✅ Sistema de CSS con variables apsicologia brand
+- ⚠️ Autoprefixer agregado (fixed CSS compilation)
+- 🔄 **Estado:** Frontend base operativo y compilando correctamente
+
 ### ⏭️ PRÓXIMOS PASOS
 
-1. **Frontend Next.js (Pendiente)**
-   - Configuración inicial de Next.js 14
-   - Configuración de TailwindCSS + shadcn/ui
+1. **Frontend Next.js (Continuación)**
    - Implementación de autenticación
    - Páginas de administración
+   - Componentes shadcn/ui
+   - Cliente API con TanStack Query
 
 2. **Servicios Externos (Pendiente)**
    - Configuración de MinIO para archivos

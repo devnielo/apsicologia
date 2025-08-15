@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* apsicologia Brand Colors (OKLCH) */
+    --primary: 76.8% 0.12 15.2;          /* Cálido principal */
+    --primary-foreground: 21% 0 0;       /* Texto sobre primario */
+    --secondary: 58.5% 0.08 25;          /* Neutro complementario */
+    --secondary-foreground: 21% 0 0;     /* Texto sobre secundario */
+    --accent: 70% 0.12 220;              /* Azul/teal amigable */
+    --accent-foreground: 21% 0 0;        /* Texto sobre accent */
+    --success: 72% 0.12 150;             /* Verde éxito */
+    --success-foreground: 21% 0 0;       /* Texto sobre success */
+    --warning: 83% 0.14 80;              /* Amarillo advertencia */
+    --warning-foreground: 21% 0 0;       /* Texto sobre warning */
+    --destructive: 62% 0.18 25;          /* Rojo peligro */
+    --destructive-foreground: 98% 0 0;   /* Texto sobre destructive */
+
+    /* Neutros y Base */
+    --background: 98% 0 0;               /* Fondo claro */
+    --foreground: 21% 0 0;               /* Texto oscuro */
+    --muted: 94% 0.02 260;               /* Neutro suave */
+    --muted-foreground: 45% 0.02 260;    /* Texto sobre muted */
+    
+    /* UI Elements */
+    --card: 98% 0 0;                     /* Fondo de tarjetas */
+    --card-foreground: 21% 0 0;          /* Texto de tarjetas */
+    --popover: 98% 0 0;                  /* Fondo de popovers */
+    --popover-foreground: 21% 0 0;       /* Texto de popovers */
+    --border: 90% 0.02 260;              /* Bordes */
+    --input: 90% 0.02 260;               /* Fondo de inputs */
+    --ring: 76.8% 0.12 15.2;             /* Anillo de foco */
+
+    /* Radius */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark theme variant - opcional para futuro */
+    --background: 21% 0 0;
+    --foreground: 98% 0 0;
+    --muted: 32% 0.02 260;
+    --muted-foreground: 60% 0.02 260;
+    --card: 25% 0 0;
+    --card-foreground: 98% 0 0;
+    --popover: 25% 0 0;
+    --popover-foreground: 98% 0 0;
+    --border: 32% 0.02 260;
+    --input: 32% 0.02 260;
+    --ring: 76.8% 0.12 15.2;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Professional medical styling */
+@layer components {
+  .medical-card {
+    @apply bg-card border border-border rounded-lg shadow-sm;
+  }
+  
+  .medical-input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  .medical-button-primary {
+    @apply bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2;
+  }
+  
+  .medical-button-secondary {
+    @apply bg-secondary text-secondary-foreground hover:opacity-80 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2;
+  }
+}
