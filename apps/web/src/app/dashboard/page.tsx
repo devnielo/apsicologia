@@ -201,13 +201,16 @@ export default function DashboardPage() {
                 </h3>
               </div>
               <div className="space-y-2">
-                <button className="medical-button-primary w-full text-left">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Nueva Cita
+                <button 
+                  onClick={() => router.push('/admin/patients')}
+                  className="medical-button-primary w-full text-left"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Gestión de Pacientes
                 </button>
                 <button className="medical-button-secondary w-full text-left">
-                  <Users className="h-4 w-4 mr-2" />
-                  Agregar Paciente
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Nueva Cita
                 </button>
                 <button className="medical-button-secondary w-full text-left">
                   <FileText className="h-4 w-4 mr-2" />
