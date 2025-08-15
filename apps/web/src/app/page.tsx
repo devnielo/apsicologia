@@ -55,9 +55,9 @@ export default function HomePage() {
           </div>
           
           <div className="mt-12">
-            <button className="medical-button-primary mr-4">
+            <a href="/auth/login" className="medical-button-primary mr-4">
               Acceder al Panel
-            </button>
+            </a>
             <button className="medical-button-secondary">
               Documentación
             </button>
