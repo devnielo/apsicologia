@@ -26,12 +26,21 @@ class RedisClient {
 
       logger.info('Connecting to Redis...');
 
-      this.client = new Redis(env.REDIS_URL, {
-        enableReadyCheck: true,
-        maxRetriesPerRequest: 3,
+      const redisConfig = {
+        host: env.REDIS_HOST,
+        port: env.REDIS_PORT,
+        password: env.REDIS_PASSWORD,
+        db: env.REDIS_DB,
+        connectTimeout: 5000,
         lazyConnect: true,
-        keepAlive: 30000,
-      });
+        retryDelayOnFailover: 1000,
+        enableReadyCheck: true,
+        maxRetriesPerRequest: 0, // No retry on failure
+        retryDelayOnClusterDown: 300,
+        enableOfflineQueue: false,
+      };
+
+      this.client = new Redis(redisConfig);
 
       this.client.on('connect', () => {
         logger.info('Redis connecting...');
@@ -53,7 +62,21 @@ class RedisClient {
         logger.info('Redis reconnecting...');
       });
 
-      await this.client.connect();
+      // Wait for connection to be ready
+      await new Promise((resolve, reject) => {
+        if (this.client?.status === 'ready') {
+          resolve(void 0);
+          return;
+        }
+
+        this.client?.once('ready', resolve);
+        this.client?.once('error', reject);
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          reject(new Error('Redis connection timeout'));
+        }, 10000);
+      });
 
       // Graceful shutdown
       process.on('SIGINT', () => this.disconnect());

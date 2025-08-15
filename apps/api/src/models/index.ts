@@ -29,4 +29,4 @@ export type { IFileDocument } from './File.js';
 export type { IAuditLogDocument } from './AuditLog.js';
 
 // Re-export types for convenience
-export type * from '@apsicologia/shared/types';
+// export type * from '@apsicologia/shared/types'; // TODO: Enable when shared package is ready

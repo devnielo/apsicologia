@@ -1,28 +1,33 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
+import { createServer, Server } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { httpLogger } from './config/logger.js';
+import dotenv from 'dotenv';
+
+// Load environment variables first
+dotenv.config();
+
+// Import configurations
 import env from './config/env.js';
 import database from './config/database.js';
 import redis from './config/redis.js';
-import logger from './config/logger.js';
-
-// Import middleware
-import { errorHandler } from './middleware/error.js';
-import { notFound } from './middleware/notFound.js';
 
 // Import routes
 import apiRoutes from './routes/index.js';
-// import userRoutes from './routes/users.js';
-// import patientRoutes from './routes/patients.js';
-// import professionalRoutes from './routes/professionals.js';
-// import appointmentRoutes from './routes/appointments.js';
 
+console.log('🚀 Starting apsicologia API server...');
+
+// Type-safe environment variables
+const PORT = env.PORT;
+const HOST = env.HOST;
+const NODE_ENV = env.NODE_ENV;
+
+// Create Express application
 const app: Application = express();
 
-// Trust proxy for rate limiting and real IP detection
+// Trust proxy for load balancers
 app.set('trust proxy', 1);
 
 // Security middleware
@@ -43,9 +48,9 @@ app.use(helmet({
   },
 }));
 
-// CORS configuration
+// CORS
 app.use(cors({
-  origin: env.CORS_ORIGIN.split(',').map((origin: string) => origin.trim()),
+  origin: env.CORS_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
@@ -72,104 +77,198 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// HTTP logging
-app.use(httpLogger);
-
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true,
+  type: 'application/json'
+}));
+
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb' 
+}));
+
 app.use(cookieParser());
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  const health = {
+// Health check endpoint with service status
+app.get('/health', (req: Request, res: Response) => {
+  const healthData = {
     status: 'ok',
+    message: 'apsicologia API is healthy',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: env.NODE_ENV,
+    uptime: Math.floor(process.uptime()),
+    environment: NODE_ENV,
+    version: '0.1.0',
+    node: process.version,
     services: {
-      database: database.isConnected(),
-      redis: redis.isConnected(),
+      database: {
+        status: database.isConnected() ? 'connected' : 'disconnected',
+        name: 'MongoDB'
+      },
+      redis: {
+        status: redis.isConnected() ? 'connected' : 'disconnected',
+        name: 'Redis'
+      }
     },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+    }
   };
 
-  const httpStatus = health.services.database && health.services.redis ? 200 : 503;
-  res.status(httpStatus).json(health);
-});
-
-// API version endpoint
-app.get('/api', (req, res) => {
-  res.json({
-    name: env.APP_NAME,
-    version: '0.1.0',
-    environment: env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
+  res.status(200).json(healthData);
 });
 
 // Mount API routes
 app.use('/api', apiRoutes);
 
-// Error handling middleware (must be last)
-app.use(notFound);
-app.use(errorHandler);
-
-// Graceful shutdown
-const gracefulShutdown = async (signal: string) => {
-  logger.info(`Received ${signal}, shutting down gracefully...`);
-  
-  // Close server
-  server.close(() => {
-    logger.info('HTTP server closed');
-    
-    // Close database and redis connections
-    Promise.all([
-      database.disconnect(),
-      redis.disconnect(),
-    ])
-      .then(() => {
-        logger.info('All connections closed');
-        process.exit(0);
-      })
-      .catch((error) => {
-        logger.error('Error during shutdown:', error);
-        process.exit(1);
-      });
+// Root endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: 'apsicologia API is running',
+    name: env.APP_NAME,
+    version: '0.1.0',
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      docs: '/api/info'
+    }
   });
+});
+
+// 404 handler
+app.use('*', (req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Global error handler
+app.use((err: Error, req: Request, res: Response, next: any) => {
+  console.error('❌ Server error:', err);
+  
+  res.status(500).json({
+    success: false,
+    message: NODE_ENV === 'development' ? err.message : 'Internal server error',
+    timestamp: new Date().toISOString(),
+    ...(NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Create HTTP server
+const httpServer: Server = createServer(app);
+
+// Server startup function
+const startServer = async (): Promise<void> => {
+  try {
+    // Connect to services
+    console.log('🔧 Connecting to services...');
+    
+    // Connect to MongoDB (non-blocking)
+    try {
+      await database.connect();
+      console.log('✅ MongoDB connected successfully');
+    } catch (error) {
+      console.warn('⚠️  MongoDB connection failed:', error instanceof Error ? error.message : 'Unknown error');
+      console.warn('   → Server will continue without MongoDB');
+    }
+    
+    // Connect to Redis (non-blocking)
+    try {
+      await redis.connect();
+      console.log('✅ Redis connected successfully');
+    } catch (error) {
+      console.warn('⚠️  Redis connection failed:', error instanceof Error ? error.message : 'Unknown error');
+      console.warn('   → Server will continue without Redis');
+    }
+
+    // Start HTTP server
+    return new Promise((resolve, reject) => {
+      httpServer.listen(PORT, HOST, () => {
+        console.log(`✅ Server running on http://${HOST}:${PORT}`);
+        console.log(`📋 Health check: http://${HOST}:${PORT}/health`);
+        console.log(`🔧 API info: http://${HOST}:${PORT}/api/info`);
+        console.log(`🌍 Environment: ${NODE_ENV}`);
+        console.log(`📦 Node.js: ${process.version}`);
+        console.log(`🎯 Ready to accept connections!`);
+        resolve();
+      });
+
+      httpServer.on('error', (error: Error) => {
+        console.error('❌ Server failed to start:', error);
+        reject(error);
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    throw error;
+  }
+};
+
+// Graceful shutdown function
+const gracefulShutdown = async (signal: string): Promise<void> => {
+  console.log(`\n🛑 ${signal} received. Starting graceful shutdown...`);
+  
+  // Close HTTP server first
+  httpServer.close(async (err) => {
+    if (err) {
+      console.error('❌ Error closing HTTP server:', err);
+      process.exit(1);
+    }
+    
+    console.log('✅ HTTP server closed successfully');
+    
+    // Close database connections
+    try {
+      await Promise.all([
+        database.disconnect().catch(err => console.warn('⚠️  Database disconnect warning:', err)),
+        redis.disconnect().catch(err => console.warn('⚠️  Redis disconnect warning:', err))
+      ]);
+      console.log('✅ All services disconnected successfully');
+    } catch (error) {
+      console.warn('⚠️  Some services had disconnect warnings:', error);
+    }
+    
+    console.log('👋 apsicologia API shutdown complete');
+    process.exit(0);
+  });
+
+  // Force close after 15 seconds
+  setTimeout(() => {
+    console.error('⚠️  Force closing server after timeout');
+    process.exit(1);
+  }, 15000);
 };
 
 // Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // Start server
-const startServer = async () => {
-  try {
-    // Connect to services
-    await database.connect();
-    await redis.connect();
-    
-    // Start HTTP server
-    const server = app.listen(env.PORT, env.HOST, () => {
-      logger.info(`🚀 Server running on ${env.HOST}:${env.PORT} in ${env.NODE_ENV} mode`);
-      logger.info(`📋 Health check: http://${env.HOST}:${env.PORT}/health`);
-      logger.info(`🔧 API info: http://${env.HOST}:${env.PORT}/api`);
-    });
+console.log('🔧 Initializing server startup...');
 
-    return server;
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-};
+startServer().catch((error) => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+});
 
-// Export for graceful shutdown
-let server: any;
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  startServer().then((s) => {
-    server = s;
-  });
-}
-
+export { app, httpServer };
 export default app;

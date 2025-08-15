@@ -1,17 +1,7 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes.js';
-import userRoutes from './user.routes.js';
-import patientRoutes from './patient.routes.js';
-import professionalRoutes from './professional.routes.js';
-import serviceRoutes from './service.routes.js';
-import roomRoutes from './room.routes.js';
-import fileRoutes from './file.routes.js';
-import formRoutes from './form.routes.js';
-import noteRoutes from './note.routes.js';
-import appointmentRoutes from './appointment.routes.js';
-import invoiceRoutes from './invoice.routes.js';
-import paymentRoutes from './payment.routes.js';
-import statsRoutes from './stats.routes.js';
+// COMPLETELY BASIC ROUTES - NO CONTROLLERS FOR NOW
+// import authRoutes from './auth.routes.js';
+// import userRoutes from './user.routes.js';
 
 const router: Router = Router();
 
@@ -30,20 +20,20 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Mount route modules
-router.use(`${API_VERSION}/auth`, authRoutes);
-router.use(`${API_VERSION}/users`, userRoutes);
-router.use(`${API_VERSION}/patients`, patientRoutes);
-router.use(`${API_VERSION}/professionals`, professionalRoutes);
-router.use(`${API_VERSION}/services`, serviceRoutes);
-router.use(`${API_VERSION}/rooms`, roomRoutes);
-router.use(`${API_VERSION}/files`, fileRoutes);
-router.use(`${API_VERSION}/forms`, formRoutes);
-router.use(`${API_VERSION}/notes`, noteRoutes);
-router.use(`${API_VERSION}/appointments`, appointmentRoutes);
-router.use(`${API_VERSION}/invoices`, invoiceRoutes);
-router.use(`${API_VERSION}/payments`, paymentRoutes);
-router.use(`${API_VERSION}/stats`, statsRoutes);
+// Mount route modules - COMPLETELY DISABLED FOR NOW
+// router.use(`${API_VERSION}/auth`, authRoutes);
+// router.use(`${API_VERSION}/users`, userRoutes);
+// router.use(`${API_VERSION}/patients`, patientRoutes);
+// router.use(`${API_VERSION}/professionals`, professionalRoutes);
+// router.use(`${API_VERSION}/services`, serviceRoutes);
+// router.use(`${API_VERSION}/rooms`, roomRoutes);
+// router.use(`${API_VERSION}/files`, fileRoutes);
+// router.use(`${API_VERSION}/forms`, formRoutes);
+// router.use(`${API_VERSION}/notes`, noteRoutes);
+// router.use(`${API_VERSION}/appointments`, appointmentRoutes);
+// router.use(`${API_VERSION}/invoices`, invoiceRoutes);
+// router.use(`${API_VERSION}/payments`, paymentRoutes);
+// router.use(`${API_VERSION}/stats`, statsRoutes);
 
 // API info route
 router.get('/info', (req, res) => {

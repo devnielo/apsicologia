@@ -452,7 +452,6 @@ const ContactInfoSchema = new Schema({
     required: true,
     trim: true,
     lowercase: true,
-    index: true,
     validate: {
       validator: function(email: string) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

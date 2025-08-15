@@ -9,7 +9,7 @@ const loggerConfig: pino.LoggerOptions = {
   level: env.LOG_LEVEL,
   
   // Pretty print in development
-  ...(isDevelopment() && {
+  ...(isDevelopment && {
     transport: {
       target: 'pino-pretty',
       options: {
@@ -21,7 +21,7 @@ const loggerConfig: pino.LoggerOptions = {
   }),
 
   // Production configuration
-  ...(!isDevelopment() && {
+  ...(!isDevelopment && {
     formatters: {
       level: (label) => ({ level: label }),
     },
@@ -29,8 +29,8 @@ const loggerConfig: pino.LoggerOptions = {
   }),
 };
 
-// Create base logger
-const logger = pino(loggerConfig, env.LOG_FILE ? pino.destination(env.LOG_FILE) : undefined);
+// Create base logger (disable file logging for now)
+const logger = pino(loggerConfig);
 
 // HTTP logger middleware
 export const httpLogger = pinoHttp({

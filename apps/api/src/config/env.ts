@@ -7,6 +7,7 @@ interface Config {
   // Server
   NODE_ENV: string;
   PORT: number;
+  HOST: string;
   API_VERSION: string;
   
   // Database
@@ -60,6 +61,10 @@ interface Config {
   APP_NAME: string;
   APP_URL: string;
   FRONTEND_URL: string;
+  
+  // Logging
+  LOG_LEVEL: string;
+  LOG_FILE?: string;
 }
 
 const requiredEnvVars = [
@@ -79,6 +84,7 @@ const config: Config = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3001', 10),
+  HOST: process.env.HOST || '0.0.0.0',
   API_VERSION: process.env.API_VERSION || 'v1',
   
   // Database
@@ -134,6 +140,15 @@ const config: Config = {
   APP_NAME: process.env.APP_NAME || 'apsicologia',
   APP_URL: process.env.APP_URL || 'http://localhost:3001',
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  
+  // Logging
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+  LOG_FILE: process.env.LOG_FILE,
 };
+
+// Helper functions
+export const isDevelopment = config.NODE_ENV === 'development';
+export const isProduction = config.NODE_ENV === 'production';
+export const isTest = config.NODE_ENV === 'test';
 
 export default config;

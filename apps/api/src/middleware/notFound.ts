@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { createNotFoundError } from './error.js';
 
+// Simple 404 handler
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
-  const error = createNotFoundError(`Route ${req.originalUrl} not found`);
-  next(error);
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.path} not found`,
+    timestamp: new Date().toISOString(),
+  });
 };
