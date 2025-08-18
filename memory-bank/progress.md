@@ -206,10 +206,55 @@
 
 **🔄 Estado:** Frontend completamente operativo con flujo auth completo
 
+#### **6. Módulo de Administración - Pacientes (🔄 EN PROGRESO - 75% Completado)**
+
+**Refactorización Completada:**
+- ✅ Componente PatientsManager.tsx creado y extraído de page.tsx
+- ✅ Separación de responsabilidades: autenticación vs gestión de pacientes
+- ✅ Estructura de API corregida para coincidir con backend real
+- ✅ Interfaces TypeScript actualizadas (Patient, PatientsApiResponse)
+- ✅ Schema de validación Zod actualizado para nueva estructura
+- ✅ Props 'key' añadidas en elementos de lista (React warnings eliminadas)
+- ✅ Funciones handleEdit y handleDelete actualizadas
+- ✅ Vista de tabla y móvil actualizadas con nueva estructura de datos
+- ✅ Mejora en manejo de sesiones en login (redirección automática)
+
+**Estructura de Datos Implementada:**
+```typescript
+interface Patient {
+  _id: string;
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    dateOfBirth?: Date;
+    gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  };
+  contactInfo: {
+    email: string;
+    phone?: string;
+    address: string;
+  };
+  emergencyContact: string;
+  medicalHistory: string;
+  tags?: string[];
+  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased';
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+**🔄 Tareas Pendientes en Módulo Pacientes:**
+- ⏳ Implementar modales para crear/editar/ver pacientes
+- ⏳ Completar formularios con nueva estructura de datos
+- ⏳ Añadir validación de formularios con react-hook-form + zod
+- ⏳ Implementar funcionalidad de búsqueda y filtros
+- ⏳ Testing completo del CRUD de pacientes
+
 ### ⏭️ PRÓXIMOS PASOS
 
 1. **Páginas de Administración (Alta Prioridad)**
-   - CRUD de pacientes con interfaz completa
+   - 🔄 **CRUD de pacientes** - Completar modales y formularios (75% completado)
    - CRUD de profesionales con disponibilidades
    - Gestión de servicios y precios
    - Administración de salas físicas y virtuales
@@ -236,6 +281,7 @@
 - ✅ ~~Problema con endpoint /forms (RESUELTO)~~
 - ✅ ~~Profesionales no aparecían en API (RESUELTO)~~
 - ✅ ~~Error 404 en /auth/me endpoint (RESUELTO - corregido a /auth/profile)~~
+- ✅ ~~TypeError: patients.map is not a function en /admin/patients (RESUELTO - estructura de respuesta API corregida)~~
 - ⚠️ MongoDB Compass connection issue (no crítico)
 - ⚠️ Next.js metadata themeColor warnings (no crítico)
 

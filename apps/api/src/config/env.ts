@@ -83,7 +83,7 @@ if (missingEnvVars.length > 0) {
 const config: Config = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '3001', 10),
+  PORT: parseInt(process.env.PORT || '3000', 10),
   HOST: process.env.HOST || '0.0.0.0',
   API_VERSION: process.env.API_VERSION || 'v1',
   

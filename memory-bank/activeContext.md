@@ -1,8 +1,8 @@
 # Contexto Activo - apsicologia
 
 ## Estado Actual del Proyecto
-**Fecha:** 14/8/2025
-**Fase:** Desarrollo del Backend Core - Sistema de Pagos
+**Fecha:** 15/8/2025
+**Fase:** Desarrollo Frontend - Módulo de Administración de Pacientes
 
 ## Current Progress Status
 
@@ -29,6 +29,42 @@
 - **User Management**: `/api/v1/users/*` - CRUD operations con RBAC
 - **Invoice Management**: `/api/v1/invoices/*` - Facturación completa con PDF, series, etc.
 - **Payment Management**: `/api/v1/payments/*` - Pagos, reembolsos, estadísticas
+
+## 🔄 Trabajo Actual en Progreso
+
+### Módulo de Administración de Pacientes (Frontend)
+**Estado:** 75% Completado - Refactorización y Corrección de Estructura
+
+#### ✅ Completado Recientemente:
+1. **Refactorización de Componentes**
+   - Extraído `PatientsManager.tsx` de `apps/web/src/app/admin/patients/page.tsx`
+   - Separación clara de responsabilidades: autenticación vs gestión
+   - Eliminación de código duplicado y lógica redundante
+
+2. **Corrección de Estructura de API**
+   - Actualizada interfaz `Patient` para coincidir con backend real
+   - Corregida `PatientsApiResponse` con estructura `{ patients: Patient[], pagination: {...} }`
+   - Schema Zod actualizado con campos anidados (`personalInfo`, `contactInfo`, etc.)
+
+3. **Mejoras de UX/UI**
+   - Props `key` añadidas en elementos de lista (eliminadas warnings de React)
+   - Funciones `handleEdit` y `handleDelete` actualizadas con nueva estructura
+   - Vista de tabla y móvil sincronizadas con datos reales
+   - Estados de paciente expandidos: active, inactive, discharged, transferred, deceased
+
+4. **Mejora en Autenticación**
+   - Login page ahora verifica sesión activa y redirige automáticamente
+   - Redirección inteligente según rol: `/admin/dashboard` vs `/dashboard`
+
+#### ⏳ Pendiente por Completar:
+- **Modales CRUD**: Implementar modales para crear, editar y ver pacientes
+- **Formularios**: Completar formularios con react-hook-form + nueva estructura
+- **Validación**: Integrar validación Zod en formularios
+- **Búsqueda/Filtros**: Implementar funcionalidad de búsqueda y filtros
+- **Testing**: Verificar flujo completo de CRUD
+
+#### 🎯 Próximo Paso Inmediato:
+Completar la implementación de modales para crear/editar pacientes con la nueva estructura de datos.
 
 ## Trabajo Reciente Completado
 

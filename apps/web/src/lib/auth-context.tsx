@@ -72,6 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         Cookies.set('auth-token', data.accessToken, { expires: 1 }); // 1 day
         Cookies.set('refresh-token', data.refreshToken, { expires: 7 }); // 7 days
         
+        // Store user data in localStorage for role-based redirects
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.accessToken);
+        
         // Update query cache
         queryClient.setQueryData(['auth', 'profile'], data.user);
       }
@@ -96,6 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Always clean up local state
       Cookies.remove('auth-token');
       Cookies.remove('refresh-token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
       queryClient.setQueryData(['auth', 'profile'], null);
       queryClient.clear();
     },

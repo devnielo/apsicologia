@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +28,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('auth-token='))
+      ?.split('=')[1];
+    
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData);
+        // Redirect based on user role
+        if (user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        // If there's an error parsing, clear the invalid data
+        localStorage.removeItem('user');
+        document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
+    }
+  }, [router]);
+
   const {
     register,
     handleSubmit,
@@ -40,7 +67,35 @@ export default function LoginPage() {
     try {
       setLoginError('');
       await login(data.email, data.password);
-      router.push('/dashboard');
+      
+      // Esperar un momento para que el contexto actualice el localStorage
+      setTimeout(() => {
+        // Get user data from localStorage to determine redirect
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          // Redirect based on user role
+          switch (user.role) {
+            case 'admin':
+              router.push('/admin/dashboard');
+              break;
+            case 'professional':
+              router.push('/dashboard');
+              break;
+            case 'reception':
+              router.push('/dashboard');
+              break;
+            case 'patient':
+              router.push('/dashboard');
+              break;
+            default:
+              router.push('/dashboard');
+          }
+        } else {
+          // Fallback if no user data
+          router.push('/dashboard');
+        }
+      }, 100); // Pequeño delay para asegurar que el localStorage se actualice
     } catch (error: any) {
       console.error('Login error:', error);
       if (error.response?.data?.message) {

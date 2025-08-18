@@ -28,10 +28,7 @@ export const metadata: Metadata = {
     },
   ],
   creator: 'apsicologia',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'oklch(98% 0 0)' },
-    { media: '(prefers-color-scheme: dark)', color: 'oklch(21% 0 0)' },
-  ],
+
   openGraph: {
     type: 'website',
     locale: 'es_ES',

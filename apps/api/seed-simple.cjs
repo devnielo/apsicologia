@@ -28,199 +28,309 @@ async function seedData() {
     await Patient.deleteMany({});
     await Service.deleteMany({});
     await Room.deleteMany({});
+    // Also clear users that are not admin
+    await User.deleteMany({ role: { $ne: 'admin' } });
     console.log('🗑️ Cleared existing seed data');
+    
+    // Drop indexes that might cause conflicts
+    try {
+      await Patient.collection.dropIndex('episodes.episodeId_1');
+      console.log('🗑️ Dropped episodes.episodeId_1 index');
+    } catch (error) {
+      console.log('ℹ️ Index episodes.episodeId_1 does not exist or already dropped');
+    }
 
     // Create professional 1
-    const hashedPassword1 = await bcrypt.hash('Professional2024!', 12);
-    const user1 = new User({
-      email: 'maria.garcia@arribapsicologia.com',
-      passwordHash: hashedPassword1,
-      name: 'Dr. María García López',
-      phone: '+34 666 111 222',
-      role: 'professional',
-      isActive: true
-    });
-    await user1.save();
-
-    const professional1 = new Professional({
-      personalInfo: {
-        firstName: 'Dr. María',
-        lastName: 'García López',
-        title: 'Dra.',
-        degree: 'Doctora en Psicología Clínica',
-        licenseNumber: 'PSI-2019-001',
-        dateOfBirth: new Date('1985-03-15'),
-        gender: 'female'
-      },
-      contactInfo: {
+    let user1 = await User.findOne({ email: 'maria.garcia@arribapsicologia.com' });
+    if (!user1) {
+      const hashedPassword1 = await bcrypt.hash('Professional2024!', 12);
+      user1 = new User({
         email: 'maria.garcia@arribapsicologia.com',
+        passwordHash: hashedPassword1,
+        name: 'Dr. María García López',
         phone: '+34 666 111 222',
-        address: {
-          street: 'Calle de la Salud, 15',
-          city: 'Madrid',
-          state: 'Madrid',
-          postalCode: '28001',
-          country: 'España'
-        }
-      },
-      professionalInfo: {
-        specialties: ['Terapia Cognitivo-Conductual', 'Trastornos de Ansiedad', 'Depresión'],
-        languages: ['Español', 'Inglés'],
-        yearsOfExperience: 8
-      }
-    });
-    await professional1.save();
-    user1.professionalId = professional1._id;
-    await user1.save();
-    console.log('👨‍⚕️ Created Dr. María García López');
+        role: 'professional',
+        isActive: true
+      });
+      await user1.save();
+      console.log('✅ Created user: Dr. María García López');
+    } else {
+      console.log('ℹ️ User already exists: Dr. María García López');
+    }
+
+    let professional1 = await Professional.findOne({ userId: user1._id });
+     if (!professional1) {
+       professional1 = new Professional({
+         userId: user1._id,
+         name: 'Dr. María García López',
+         email: 'maria.garcia@arribapsicologia.com',
+         phone: '+34 666 111 222',
+         licenseNumber: 'PSI-2015-001',
+         specialties: ['Terapia Cognitivo-Conductual', 'Trastornos de Ansiedad', 'Depresión'],
+         bio: 'Doctora en Psicología Clínica con 8 años de experiencia',
+         title: 'Dra.',
+         yearsOfExperience: 8,
+         services: [],
+         defaultServiceDuration: 60,
+         weeklyAvailability: [
+           { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
+           { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', isAvailable: true },
+           { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', isAvailable: true },
+           { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', isAvailable: true },
+           { dayOfWeek: 5, startTime: '09:00', endTime: '17:00', isAvailable: true }
+         ],
+         bufferMinutes: 15,
+         timezone: 'Europe/Madrid',
+         assignedRooms: [],
+         vacations: [],
+         settings: {
+           allowOnlineBooking: true,
+           requireApproval: false,
+           notificationPreferences: {
+             email: true,
+             sms: false,
+             push: true
+           }
+         }
+       });
+       await professional1.save();
+       console.log('✅ Created professional: Dr. María García López');
+     } else {
+       console.log('ℹ️ Professional already exists: Dr. María García López');
+     }
+     user1.professionalId = professional1._id;
+     await user1.save();
 
     // Create professional 2
-    const hashedPassword2 = await bcrypt.hash('Professional2024!', 12);
-    const user2 = new User({
-      email: 'carlos.rodriguez@arribapsicologia.com',
-      passwordHash: hashedPassword2,
-      name: 'Dr. Carlos Rodríguez Martín',
-      phone: '+34 666 333 444',
-      role: 'professional',
-      isActive: true
-    });
-    await user2.save();
-
-    const professional2 = new Professional({
-      personalInfo: {
-        firstName: 'Dr. Carlos',
-        lastName: 'Rodríguez Martín',
-        title: 'Dr.',
-        degree: 'Doctor en Psicología',
-        licenseNumber: 'PSI-2018-002',
-        dateOfBirth: new Date('1980-07-22'),
-        gender: 'male'
-      },
-      contactInfo: {
+    let user2 = await User.findOne({ email: 'carlos.rodriguez@arribapsicologia.com' });
+    if (!user2) {
+      const hashedPassword2 = await bcrypt.hash('Professional2024!', 12);
+      user2 = new User({
         email: 'carlos.rodriguez@arribapsicologia.com',
+        passwordHash: hashedPassword2,
+        name: 'Dr. Carlos Rodríguez Martín',
         phone: '+34 666 333 444',
-        address: {
-          street: 'Avenida del Bienestar, 28',
-          city: 'Madrid',
-          state: 'Madrid',
-          postalCode: '28002',
-          country: 'España'
-        }
-      },
-      professionalInfo: {
-        specialties: ['Psicología Infantil', 'Terapia Familiar', 'TDAH'],
-        languages: ['Español', 'Catalán'],
-        yearsOfExperience: 12
-      }
-    });
-    await professional2.save();
-    user2.professionalId = professional2._id;
-    await user2.save();
-    console.log('👨‍⚕️ Created Dr. Carlos Rodríguez Martín');
+        role: 'professional',
+        isActive: true
+      });
+      await user2.save();
+      console.log('✅ Created user: Dr. Carlos Rodríguez Martín');
+    } else {
+      console.log('ℹ️ User already exists: Dr. Carlos Rodríguez Martín');
+    }
+
+    let professional2 = await Professional.findOne({ userId: user2._id });
+     if (!professional2) {
+       professional2 = new Professional({
+         userId: user2._id,
+         name: 'Dr. Carlos Rodríguez Martín',
+         email: 'carlos.rodriguez@arribapsicologia.com',
+         phone: '+34 666 333 444',
+         licenseNumber: 'PSI-2018-002',
+         specialties: ['Psicología Infantil', 'Terapia Familiar', 'TDAH'],
+         bio: 'Doctor en Psicología con 12 años de experiencia especializado en terapia infantil y familiar',
+         title: 'Dr.',
+         yearsOfExperience: 12,
+         services: [],
+         defaultServiceDuration: 60,
+         weeklyAvailability: [
+           { dayOfWeek: 1, startTime: '10:00', endTime: '18:00', isAvailable: true },
+           { dayOfWeek: 2, startTime: '10:00', endTime: '18:00', isAvailable: true },
+           { dayOfWeek: 3, startTime: '10:00', endTime: '18:00', isAvailable: true },
+           { dayOfWeek: 4, startTime: '10:00', endTime: '18:00', isAvailable: true },
+           { dayOfWeek: 5, startTime: '10:00', endTime: '16:00', isAvailable: true }
+         ],
+         bufferMinutes: 10,
+         timezone: 'Europe/Madrid',
+         assignedRooms: [],
+         vacations: [],
+         settings: {
+           allowOnlineBooking: true,
+           requireApproval: true,
+           notificationPreferences: {
+             email: true,
+             sms: true,
+             push: true
+           }
+         }
+       });
+       await professional2.save();
+       console.log('✅ Created professional: Dr. Carlos Rodríguez Martín');
+     } else {
+       console.log('ℹ️ Professional already exists: Dr. Carlos Rodríguez Martín');
+     }
+     user2.professionalId = professional2._id;
+     await user2.save();
 
     // Create patient 1
-    const hashedPasswordP1 = await bcrypt.hash('Patient2024!', 12);
-    const userP1 = new User({
-      email: 'ana.martinez@email.com',
-      passwordHash: hashedPasswordP1,
-      name: 'Ana Martínez González',
-      phone: '+34 666 555 666',
-      role: 'patient',
-      isActive: true
-    });
-    await userP1.save();
-
-    const patient1 = new Patient({
-      personalInfo: {
-        firstName: 'Ana',
-        lastName: 'Martínez González',
-        dateOfBirth: new Date('1992-05-10'),
-        gender: 'female',
-        nationality: 'Española',
-        occupation: 'Ingeniera de Software'
-      },
-      contactInfo: {
+    let userP1 = await User.findOne({ email: 'ana.martinez@email.com' });
+    if (!userP1) {
+      const hashedPasswordP1 = await bcrypt.hash('Patient2024!', 12);
+      userP1 = new User({
         email: 'ana.martinez@email.com',
+        passwordHash: hashedPasswordP1,
+        name: 'Ana Martínez González',
         phone: '+34 666 555 666',
-        emergencyContact: {
-          name: 'Pedro Martínez',
-          relationship: 'Padre',
-          phone: '+34 666 777 888'
+        role: 'patient',
+        isActive: true
+      });
+      await userP1.save();
+      console.log('✅ Created user: Ana Martínez González');
+    } else {
+      console.log('ℹ️ User already exists: Ana Martínez González');
+    }
+
+    let patient1 = await Patient.findOne({ 'contactInfo.email': 'ana.martinez@email.com' });
+    if (!patient1) {
+      patient1 = new Patient({
+        personalInfo: {
+          firstName: 'Ana',
+          lastName: 'Martínez González',
+          dateOfBirth: new Date('1992-05-10'),
+          gender: 'female',
+          nationality: 'Española',
+          occupation: 'Ingeniera de Software'
         },
-        address: {
-          street: 'Calle Mayor, 45',
-          city: 'Madrid',
-          state: 'Madrid',
-          postalCode: '28013',
-          country: 'España'
-        }
-      },
-      clinicalInfo: {
-        primaryConcerns: ['Ansiedad laboral', 'Estrés'],
-        currentMedications: [],
-        allergies: ['Ninguna conocida'],
-        medicalHistory: ['Operación de apendicitis en 2018'],
-        familyHistory: ['Historial familiar de ansiedad'],
-        previousTherapy: false,
-        assignedProfessionals: [professional1._id]
-      }
-    });
-    await patient1.save();
+        contactInfo: {
+          email: 'ana.martinez@email.com',
+          phone: '+34 666 555 666',
+          emergencyContact: {
+            name: 'Pedro Martínez',
+            relationship: 'Padre',
+            phone: '+34 666 777 888'
+          },
+          address: {
+            street: 'Calle Mayor, 42',
+            city: 'Madrid',
+            state: 'Madrid',
+            postalCode: '28013',
+            country: 'España'
+          }
+        },
+        medicalInfo: {
+          allergies: ['Polen'],
+          medications: [],
+          medicalHistory: ['Operación de apendicitis en 2018'],
+          familyHistory: ['Historial familiar de ansiedad'],
+          previousTherapy: false,
+          assignedProfessionals: [professional1._id]
+        },
+        episodes: []
+      });
+      await patient1.save();
+      console.log('✅ Created patient: Ana Martínez González');
+    } else {
+      console.log('ℹ️ Patient already exists: Ana Martínez González');
+    }
     userP1.patientId = patient1._id;
     await userP1.save();
-    console.log('🏥 Created Ana Martínez González');
 
     // Create patient 2
-    const hashedPasswordP2 = await bcrypt.hash('Patient2024!', 12);
-    const userP2 = new User({
-      email: 'miguel.fernandez@email.com',
-      passwordHash: hashedPasswordP2,
-      name: 'Miguel Fernández López',
-      phone: '+34 666 999 000',
-      role: 'patient',
-      isActive: true
-    });
-    await userP2.save();
-
-    const patient2 = new Patient({
-      personalInfo: {
-        firstName: 'Miguel',
-        lastName: 'Fernández López',
-        dateOfBirth: new Date('1988-11-25'),
-        gender: 'male',
-        nationality: 'Española',
-        occupation: 'Profesor'
-      },
-      contactInfo: {
+    let userP2 = await User.findOne({ email: 'miguel.fernandez@email.com' });
+    if (!userP2) {
+      const hashedPasswordP2 = await bcrypt.hash('Patient2024!', 12);
+      userP2 = new User({
         email: 'miguel.fernandez@email.com',
+        passwordHash: hashedPasswordP2,
+        name: 'Miguel Fernández López',
         phone: '+34 666 999 000',
+        role: 'patient',
+        isActive: true
+      });
+      await userP2.save();
+      console.log('✅ Created user: Miguel Fernández López');
+    } else {
+      console.log('ℹ️ User already exists: Miguel Fernández López');
+    }
+
+    let patient2 = await Patient.findOne({ 'contactInfo.email': 'miguel.fernandez@email.com' });
+    if (!patient2) {
+      patient2 = new Patient({
+        personalInfo: {
+          firstName: 'Miguel',
+          lastName: 'Fernández López',
+          dateOfBirth: new Date('1985-11-30'),
+          gender: 'male',
+          nationality: 'Española',
+          idNumber: '87654321B',
+          idType: 'dni',
+          maritalStatus: 'married',
+          occupation: 'Profesor'
+        },
+        contactInfo: {
+          email: 'miguel.fernandez@email.com',
+          phone: '+34 666 444 555',
+          preferredContactMethod: 'phone',
+          address: {
+            street: 'Plaza de España, 8',
+            city: 'Barcelona',
+            postalCode: '08014',
+            country: 'España'
+          }
+        },
         emergencyContact: {
           name: 'Carmen López',
           relationship: 'Esposa',
-          phone: '+34 666 111 000'
+          phone: '+34 666 777 888'
         },
-        address: {
-          street: 'Plaza de España, 12',
-          city: 'Madrid',
-          state: 'Madrid',
-          postalCode: '28008',
-          country: 'España'
+        clinicalInfo: {
+          assignedProfessionals: [professional2._id],
+          medicalHistory: {
+            conditions: ['Depresión', 'Insomnio'],
+            medications: [
+              {
+                name: 'Sertralina',
+                dosage: '50mg',
+                frequency: 'Diaria',
+                startDate: new Date('2024-01-01'),
+                active: true
+              }
+            ],
+            allergies: [],
+            surgeries: [],
+            hospitalizations: []
+          },
+          mentalHealthHistory: {
+            previousTreatments: [
+              {
+                type: 'therapy',
+                startDate: new Date('2023-06-01'),
+                endDate: new Date('2023-12-01'),
+                reason: 'Depresión',
+                outcome: 'Mejoría parcial'
+              }
+            ],
+            diagnoses: [],
+            riskFactors: []
+          },
+          currentTreatment: {
+            goals: ['Reducir síntomas depresivos', 'Mejorar calidad del sueño'],
+            startDate: new Date()
+          }
+        },
+        episodes: [],
+        insurance: {
+          hasInsurance: true,
+          paymentMethod: 'insurance'
+        },
+        preferences: {
+          language: 'es',
+          communicationPreferences: {
+            appointmentReminders: true,
+            reminderMethods: ['phone', 'sms'],
+            reminderTiming: [24, 2],
+            newsletters: true,
+            marketingCommunications: false
+          }
         }
-      },
-      clinicalInfo: {
-        primaryConcerns: ['Depresión', 'Problemas de sueño'],
-        currentMedications: ['Sertralina 50mg'],
-        allergies: ['Polen'],
-        medicalHistory: ['Episodio depresivo en 2020'],
-        familyHistory: ['Padre con depresión'],
-        previousTherapy: true,
-        assignedProfessionals: [professional2._id]
-      }
-    });
-    await patient2.save();
+      });
+      await patient2.save();
+      console.log('✅ Created patient: Miguel Fernández López');
+    } else {
+      console.log('ℹ️ Patient already exists: Miguel Fernández López');
+    }
     userP2.patientId = patient2._id;
     await userP2.save();
-    console.log('🏥 Created Miguel Fernández López');
 
     // Create services
     const services = [
