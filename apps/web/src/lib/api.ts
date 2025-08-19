@@ -126,7 +126,16 @@ export const api = {
 
   // Patients
   patients: {
-    list: (params?: { page?: number; limit?: number; search?: string }) =>
+    list: (params?: { 
+      page?: number; 
+      limit?: number; 
+      search?: string; 
+      status?: string;
+      gender?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      professionalId?: string;
+    }) =>
       apiClient.get<ApiResponse<any[]>>('/patients', { params }),
 
     get: (id: string) =>
@@ -140,6 +149,17 @@ export const api = {
 
     delete: (id: string) =>
       apiClient.delete<ApiResponse>(`/patients/${id}`),
+
+    export: (params?: { format?: 'csv' | 'excel'; filters?: any }) =>
+      apiClient.get<Blob>('/patients/export', { 
+        params, 
+        responseType: 'blob' 
+      }),
+
+    bulkImport: (file: FormData) =>
+      apiClient.post<ApiResponse<any>>('/patients/import', file, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }),
   },
 
   // Professionals

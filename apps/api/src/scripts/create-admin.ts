@@ -11,7 +11,7 @@ interface AdminData {
   phone?: string;
 }
 
-async function createAdminUser(data: AdminData): Promise<void> {
+export async function createAdminUser(data: AdminData): Promise<any> {
   try {
     console.log('🔧 Connecting to database...');
     await database.connect();
@@ -28,7 +28,7 @@ async function createAdminUser(data: AdminData): Promise<void> {
       console.log(`   ID: ${existingAdmin._id}`);
       console.log(`   Name: ${existingAdmin.name}`);
       console.log(`   Created: ${existingAdmin.createdAt}`);
-      return;
+      return existingAdmin;
     }
 
     // Create new admin user
@@ -88,8 +88,6 @@ async function createAdminUser(data: AdminData): Promise<void> {
     } catch (error) {
       console.warn('⚠️  Warning during database disconnect:', error);
     }
-    
-    process.exit(0);
   }
 }
 
@@ -143,5 +141,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-export { createAdminUser };
 export default main;

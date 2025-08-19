@@ -93,6 +93,8 @@ interface Patient {
       allergies?: any[];
       surgeries?: any[];
       hospitalizations?: any[];
+      familyHistory?: string;
+      notes?: string;
     };
   };
   gdprConsent: {
@@ -158,7 +160,9 @@ const patientSchema = z.object({
       medications: z.array(z.any()).default([]),
       allergies: z.array(z.any()).default([]),
       surgeries: z.array(z.any()).default([]),
-      hospitalizations: z.array(z.any()).default([])
+      hospitalizations: z.array(z.any()).default([]),
+      familyHistory: z.string().optional(),
+      notes: z.string().optional()
     }).optional()
   }).optional(),
   gdprConsent: z.object({
@@ -202,16 +206,21 @@ const GenderBadge = ({ gender }: { gender?: Patient['personalInfo']['gender'] })
   const genderConfig = {
     male: { label: 'Masculino', variant: 'outline' as const },
     female: { label: 'Femenino', variant: 'outline' as const },
+    'non-binary': { label: 'No binario', variant: 'outline' as const },
     other: { label: 'Otro', variant: 'outline' as const },
-    prefer_not_to_say: { label: 'Prefiere no decir', variant: 'outline' as const }
+    'prefer-not-to-say': { label: 'Prefiere no decir', variant: 'outline' as const }
   };
 
   const config = genderConfig[gender];
+  if (!config) return null;
   return <Badge variant={config.variant}>{config.label}</Badge>;
 };
 
 export default function PatientsManager() {
   const queryClient = useQueryClient();
+
+  // Get current user from localStorage
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // States
   const [searchTerm, setSearchTerm] = useState('');
@@ -230,6 +239,18 @@ export default function PatientsManager() {
   const [genderFilter, setGenderFilter] = useState<string>('');
   const [dateFromFilter, setDateFromFilter] = useState<string>('');
   const [dateToFilter, setDateToFilter] = useState<string>('');
+
+  // Get current user on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        setCurrentUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Fetch patients query
   const {
@@ -258,8 +279,17 @@ export default function PatientsManager() {
       if (dateFromFilter) params.dateFrom = dateFromFilter;
       if (dateToFilter) params.dateTo = dateToFilter;
       
+      // Add professional filter for non-admin users
+      if (currentUser?.role === 'professional' && currentUser?.professionalId) {
+        params.professionalId = currentUser.professionalId;
+      }
+      
       const response = await api.patients.list(params);
-      return response.data.data;
+      const data = response.data.data;
+      if (Array.isArray(data)) {
+        return { patients: data, pagination: { currentPage: 1, totalPages: 1, totalPatients: data.length, hasNext: false, hasPrev: false } };
+      }
+      return data || { patients: [], pagination: { currentPage: 1, totalPages: 1, totalPatients: 0, hasNext: false, hasPrev: false } };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -272,10 +302,13 @@ export default function PatientsManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
-      handleCloseCreateModal();
+      setShowCreateModal(false);
+      form.reset();
+      alert('Paciente creado exitosamente');
     },
     onError: (error: any) => {
       console.error('Error creating patient:', error);
+      alert('Error al crear el paciente. Por favor, intenta nuevamente.');
     },
   });
 
@@ -287,10 +320,14 @@ export default function PatientsManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
-      handleCloseEditModal();
+      setShowEditModal(false);
+      setEditingPatient(null);
+      form.reset();
+      alert('Paciente actualizado exitosamente');
     },
     onError: (error: any) => {
       console.error('Error updating patient:', error);
+      alert('Error al actualizar el paciente. Por favor, intenta nuevamente.');
     },
   });
 
@@ -302,9 +339,65 @@ export default function PatientsManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      alert('Paciente eliminado exitosamente');
     },
     onError: (error: any) => {
       console.error('Error deleting patient:', error);
+      alert('Error al eliminar el paciente. Por favor, intenta nuevamente.');
+    },
+  });
+
+  // Export patients mutation
+  const exportMutation = useMutation({
+    mutationFn: async (format: 'csv' | 'excel') => {
+      const params = {
+        format,
+        filters: {
+          search: searchTerm,
+          status: statusFilter,
+          gender: genderFilter,
+          dateFrom: dateFromFilter,
+          dateTo: dateToFilter,
+          ...(currentUser?.role === 'professional' && currentUser?.professionalId && {
+            professionalId: currentUser.professionalId
+          })
+        }
+      };
+      const response = await api.patients.export(params);
+      return response.data;
+    },
+    onSuccess: (data: Blob, format: 'csv' | 'excel') => {
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `pacientes_${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      alert('Exportación completada exitosamente');
+    },
+    onError: (error: any) => {
+      console.error('Error exporting patients:', error);
+      alert('Error al exportar los pacientes. Por favor, intenta nuevamente.');
+    },
+  });
+
+  // Import patients mutation
+  const importMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.patients.bulkImport(formData);
+      return response.data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      alert(`Importación completada: ${data.imported || 0} pacientes importados exitosamente`);
+    },
+    onError: (error: any) => {
+      console.error('Error importing patients:', error);
+      alert('Error al importar los pacientes. Verifica el formato del archivo e intenta nuevamente.');
     },
   });
 
@@ -334,20 +427,10 @@ export default function PatientsManager() {
     form.reset();
   };
 
-  const handleCloseViewModal = () => {
-    setShowViewModal(false);
-    setViewingPatient(null);
-  };
-
   // Handle edit
   const handleEdit = (patient: Patient) => {
     setEditingPatient(patient);
-    setSelectedPatient(patient);
     
-    // Reset form first
-    form.reset();
-    
-    // Set form values with proper structure
     form.setValue('personalInfo', {
       firstName: patient.personalInfo.firstName,
       lastName: patient.personalInfo.lastName,
@@ -358,6 +441,7 @@ export default function PatientsManager() {
     form.setValue('contactInfo', {
       email: patient.contactInfo.email,
       phone: patient.contactInfo.phone || '',
+      preferredContactMethod: patient.contactInfo.preferredContactMethod || 'email',
       address: patient.contactInfo.address || {
         street: '',
         city: '',
@@ -375,14 +459,14 @@ export default function PatientsManager() {
     });
     
     form.setValue('clinicalInfo', {
-      medicalHistory: patient.clinicalInfo?.medicalHistory || {
-        conditions: [],
-        medications: [],
-        allergies: [],
-        surgeries: [],
-        hospitalizations: [],
-        familyHistory: '',
-        notes: ''
+      medicalHistory: {
+        conditions: patient.clinicalInfo?.medicalHistory?.conditions || [],
+        medications: patient.clinicalInfo?.medicalHistory?.medications || [],
+        allergies: patient.clinicalInfo?.medicalHistory?.allergies || [],
+        surgeries: patient.clinicalInfo?.medicalHistory?.surgeries || [],
+        hospitalizations: patient.clinicalInfo?.medicalHistory?.hospitalizations || [],
+        familyHistory: patient.clinicalInfo?.medicalHistory?.familyHistory || '',
+        notes: patient.clinicalInfo?.medicalHistory?.notes || ''
       }
     });
     
@@ -403,6 +487,21 @@ export default function PatientsManager() {
     setViewingPatient(patient);
     setSelectedPatient(patient);
     setShowViewModal(true);
+  };
+
+  // Handle export
+  const handleExport = (format: 'csv' | 'excel') => {
+    exportMutation.mutate(format);
+  };
+
+  // Handle import
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      importMutation.mutate(file);
+      // Reset input
+      event.target.value = '';
+    }
   };
 
   // Handle filters

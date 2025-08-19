@@ -12,7 +12,8 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "db:seed": "tsx src/scripts/seed.ts",
+    "db:seed": "tsx src/scripts/seed-data.ts",
+    "db:init": "tsx src/scripts/init-database.ts",
     "create-admin": "tsx src/scripts/create-admin.ts"
   },
   "dependencies": {

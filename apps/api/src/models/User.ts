@@ -9,6 +9,7 @@ export interface IUserDocument extends Document {
   passwordHash: string;
   name: string;
   phone?: string;
+  profileImage?: string; // Base64 encoded image or empty
   role: UserRole;
   professionalId?: mongoose.Types.ObjectId;
   patientId?: mongoose.Types.ObjectId;
@@ -87,6 +88,11 @@ const UserSchema = new Schema<IUserDocument>(
       trim: true,
       sparse: true, // Allow multiple null values but unique non-null values
       index: true,
+    },
+    profileImage: {
+      type: String,
+      trim: true,
+      default: null,
     },
     role: {
       type: String,
