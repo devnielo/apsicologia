@@ -1272,6 +1272,53 @@ export class PatientController {
       next(error);
     }
   }
+
+  /**
+   * Fix fullName field for all patients (temporary endpoint)
+   */
+  static async fixPatientNames(req: Request, res: Response, next: NextFunction) {
+    try {
+      const authUser = (req as AuthRequest).user!;
+      
+      // Only allow admin users to run this fix
+      if (authUser.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admin users can run this operation',
+        });
+      }
+
+      // Get all patients that need fullName update
+      const patients = await Patient.find({ deletedAt: null });
+      
+      let updatedCount = 0;
+      
+      for (const patient of patients) {
+        // Calculate the correct fullName
+        const correctFullName = `${patient.personalInfo.firstName} ${patient.personalInfo.lastName}`.trim();
+        
+        // Update if different or missing
+        if (patient.personalInfo.fullName !== correctFullName) {
+          patient.personalInfo.fullName = correctFullName;
+          patient.personalInfo.age = patient.calculateAge();
+          await patient.save();
+          updatedCount++;
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully updated ${updatedCount} patient records`,
+        data: {
+          totalPatients: patients.length,
+          updatedPatients: updatedCount,
+        },
+      });
+    } catch (error) {
+      logger.error('Fix patient names error:', error);
+      next(error);
+    }
+  }
 }
 
 export default PatientController;

@@ -43,6 +43,17 @@ router.get(
 );
 
 /**
+ * @route   POST /api/v1/patients/fix-names
+ * @desc    Fix fullName field for all patients (temporary endpoint)
+ * @access  Private (Admin only)
+ */
+router.post(
+  '/fix-names',
+  authenticate,
+  PatientController.fixPatientNames
+);
+
+/**
  * @route   GET /api/v1/patients/:patientId
  * @desc    Get patient by ID with full details
  * @access  Private (Admin, Reception, Professional, Patient self)
