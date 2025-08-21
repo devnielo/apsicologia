@@ -44,7 +44,9 @@ async function seedData() {
         name: 'Administrador Principal',
         phone: '+34600000000',
         role: 'admin',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       await adminUser.save();
       console.log('✅ Created admin user: Administrador Principal');
@@ -70,7 +72,9 @@ async function seedData() {
         name: 'Dr. María García López',
         phone: '+34 666 111 222',
         role: 'professional',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       await user1.save();
       console.log('✅ Created user: Dr. María García López');
@@ -111,7 +115,9 @@ async function seedData() {
              sms: false,
              push: true
            }
-         }
+         },
+         createdAt: new Date(),
+         updatedAt: new Date()
        });
        await professional1.save();
        console.log('✅ Created professional: Dr. María García López');
@@ -131,7 +137,9 @@ async function seedData() {
         name: 'Dr. Carlos Rodríguez Martín',
         phone: '+34 666 333 444',
         role: 'professional',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       await user2.save();
       console.log('✅ Created user: Dr. Carlos Rodríguez Martín');
@@ -172,7 +180,9 @@ async function seedData() {
              sms: true,
              push: true
            }
-         }
+         },
+         createdAt: new Date(),
+         updatedAt: new Date()
        });
        await professional2.save();
        console.log('✅ Created professional: Dr. Carlos Rodríguez Martín');
@@ -182,245 +192,7 @@ async function seedData() {
      user2.professionalId = professional2._id;
      await user2.save();
 
-    // Create patient 1
-    let userP1 = await User.findOne({ email: 'ana.martinez@email.com' });
-    if (!userP1) {
-      const hashedPasswordP1 = await bcrypt.hash('Patient2024!', 12);
-      userP1 = new User({
-        email: 'ana.martinez@email.com',
-        passwordHash: hashedPasswordP1,
-        name: 'Ana Martínez González',
-        phone: '+34 666 555 666',
-        role: 'patient',
-        isActive: true
-      });
-      await userP1.save();
-      console.log('✅ Created user: Ana Martínez González');
-    } else {
-      console.log('ℹ️ User already exists: Ana Martínez González');
-    }
 
-    let patient1 = await Patient.findOne({ 'contactInfo.email': 'ana.martinez@email.com' });
-    if (!patient1) {
-      patient1 = new Patient({
-        personalInfo: {
-          firstName: 'Ana',
-          lastName: 'Martínez González',
-          dateOfBirth: new Date('1992-05-10'),
-          gender: 'female',
-          nationality: 'Española',
-          occupation: 'Ingeniera de Software'
-        },
-        contactInfo: {
-          email: 'ana.martinez@email.com',
-          phone: '+34 666 555 666',
-          preferredContactMethod: 'email',
-          address: {
-            street: 'Calle Mayor, 42',
-            city: 'Madrid',
-            state: 'Madrid',
-            postalCode: '28013',
-            country: 'España'
-          }
-        },
-        emergencyContact: {
-          name: 'Pedro Martínez',
-          relationship: 'Padre',
-          phone: '+34 666 777 888'
-        },
-        clinicalInfo: {
-          assignedProfessionals: [professional1._id],
-          medicalHistory: {
-            conditions: ['Ansiedad'],
-            medications: [],
-            allergies: [{
-              name: 'Polen',
-              severity: 'mild',
-              reaction: 'Estornudos'
-            }],
-            surgeries: [{
-              name: 'Apendicectomía',
-              date: new Date('2018-03-15'),
-              hospital: 'Hospital General'
-            }],
-            hospitalizations: []
-          },
-          mentalHealthHistory: {
-            previousTreatments: [],
-            diagnoses: [],
-            riskFactors: ['Historial familiar de ansiedad']
-          },
-          currentTreatment: {
-            goals: ['Reducir ansiedad laboral', 'Mejorar manejo del estrés'],
-            startDate: new Date()
-          }
-        },
-        insurance: {
-          hasInsurance: true,
-          paymentMethod: 'insurance'
-        },
-        preferences: {
-          language: 'es',
-          communicationPreferences: {
-            appointmentReminders: true,
-            reminderMethods: ['email'],
-            reminderTiming: [24, 2],
-            newsletters: true,
-            marketingCommunications: false
-          }
-        },
-        gdprConsent: {
-          hasConsented: true,
-          consentDate: new Date(),
-          consentVersion: '1.0'
-        },
-        tags: ['ansiedad', 'laboral'],
-        status: 'active',
-        episodes: [],
-        notes: [],
-        relationships: [],
-        referrals: [],
-        statistics: {
-          totalAppointments: 0,
-          completedAppointments: 0,
-          cancelledAppointments: 0,
-          noShowAppointments: 0,
-          totalPayments: 0,
-          outstandingBalance: 0
-        }
-      });
-      await patient1.save();
-      console.log('✅ Created patient: Ana Martínez González');
-    } else {
-      console.log('ℹ️ Patient already exists: Ana Martínez González');
-    }
-    userP1.patientId = patient1._id;
-    await userP1.save();
-
-    // Create patient 2
-    let userP2 = await User.findOne({ email: 'miguel.fernandez@email.com' });
-    if (!userP2) {
-      const hashedPasswordP2 = await bcrypt.hash('Patient2024!', 12);
-      userP2 = new User({
-        email: 'miguel.fernandez@email.com',
-        passwordHash: hashedPasswordP2,
-        name: 'Miguel Fernández López',
-        phone: '+34 666 999 000',
-        role: 'patient',
-        isActive: true
-      });
-      await userP2.save();
-      console.log('✅ Created user: Miguel Fernández López');
-    } else {
-      console.log('ℹ️ User already exists: Miguel Fernández López');
-    }
-
-    let patient2 = await Patient.findOne({ 'contactInfo.email': 'miguel.fernandez@email.com' });
-    if (!patient2) {
-      patient2 = new Patient({
-        personalInfo: {
-          firstName: 'Miguel',
-          lastName: 'Fernández López',
-          dateOfBirth: new Date('1985-11-30'),
-          gender: 'male',
-          nationality: 'Española',
-          idNumber: '87654321B',
-          idType: 'dni',
-          maritalStatus: 'married',
-          occupation: 'Profesor'
-        },
-        contactInfo: {
-          email: 'miguel.fernandez@email.com',
-          phone: '+34 666 444 555',
-          preferredContactMethod: 'phone',
-          address: {
-            street: 'Plaza de España, 8',
-            city: 'Barcelona',
-            postalCode: '08014',
-            country: 'España'
-          }
-        },
-        emergencyContact: {
-          name: 'Carmen López',
-          relationship: 'Esposa',
-          phone: '+34 666 777 888'
-        },
-        clinicalInfo: {
-          assignedProfessionals: [professional2._id],
-          medicalHistory: {
-            conditions: ['Depresión', 'Insomnio'],
-            medications: [
-              {
-                name: 'Sertralina',
-                dosage: '50mg',
-                frequency: 'Diaria',
-                startDate: new Date('2024-01-01'),
-                active: true
-              }
-            ],
-            allergies: [],
-            surgeries: [],
-            hospitalizations: []
-          },
-          mentalHealthHistory: {
-            previousTreatments: [
-              {
-                type: 'therapy',
-                startDate: new Date('2023-06-01'),
-                endDate: new Date('2023-12-01'),
-                reason: 'Depresión',
-                outcome: 'Mejoría parcial'
-              }
-            ],
-            diagnoses: [],
-            riskFactors: []
-          },
-          currentTreatment: {
-            goals: ['Reducir síntomas depresivos', 'Mejorar calidad del sueño'],
-            startDate: new Date()
-          }
-        },
-        episodes: [],
-        insurance: {
-          hasInsurance: true,
-          paymentMethod: 'insurance'
-        },
-        preferences: {
-          language: 'es',
-          communicationPreferences: {
-            appointmentReminders: true,
-            reminderMethods: ['phone', 'sms'],
-            reminderTiming: [24, 2],
-            newsletters: true,
-            marketingCommunications: false
-          }
-        },
-        gdprConsent: {
-          hasConsented: true,
-          consentDate: new Date(),
-          consentVersion: '1.0'
-        },
-        tags: ['depresión', 'insomnio'],
-        status: 'active',
-        notes: [],
-        relationships: [],
-        referrals: [],
-        statistics: {
-          totalAppointments: 0,
-          completedAppointments: 0,
-          cancelledAppointments: 0,
-          noShowAppointments: 0,
-          totalPayments: 0,
-          outstandingBalance: 0
-        }
-      });
-      await patient2.save();
-      console.log('✅ Created patient: Miguel Fernández López');
-    } else {
-      console.log('ℹ️ Patient already exists: Miguel Fernández López');
-    }
-    userP2.patientId = patient2._id;
-    await userP2.save();
 
     // Create services
     const services = [
@@ -431,7 +203,9 @@ async function seedData() {
         duration: 50,
         price: 60.00,
         currency: 'EUR',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         name: 'Terapia Infantil',
@@ -440,7 +214,9 @@ async function seedData() {
         duration: 45,
         price: 55.00,
         currency: 'EUR',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         name: 'Evaluación Psicológica',
@@ -449,7 +225,9 @@ async function seedData() {
         duration: 90,
         price: 120.00,
         currency: 'EUR',
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
 
@@ -524,13 +302,21 @@ async function seedData() {
       const birthYear = 1970 + Math.floor(Math.random() * 35);
       const gender = i % 2 === 0 ? 'male' : 'female';
       const professionalId = i % 2 === 0 ? professional1._id : professional2._id;
+      
+      // Calcular edad basada en fecha de nacimiento
+      const dateOfBirth = new Date(birthYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+      const today = new Date();
+      const age = today.getFullYear() - dateOfBirth.getFullYear() - 
+        (today.getMonth() < dateOfBirth.getMonth() || 
+         (today.getMonth() === dateOfBirth.getMonth() && today.getDate() < dateOfBirth.getDate()) ? 1 : 0);
 
       const additionalPatient = new Patient({
         personalInfo: {
           firstName: firstName,
           lastName: lastName,
           fullName: `${firstName} ${lastName}`,
-          dateOfBirth: new Date(birthYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          dateOfBirth: dateOfBirth,
+          age: age,
           gender: gender,
           nationality: 'Española',
           idNumber: `${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
@@ -556,6 +342,7 @@ async function seedData() {
           phone: `+34 6${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`
         },
         clinicalInfo: {
+          primaryProfessional: professionalId,
           assignedProfessionals: [professionalId],
           medicalHistory: {
             conditions: [condition],
@@ -622,7 +409,9 @@ async function seedData() {
           noShowAppointments: Math.floor(Math.random() * 2),
           totalPayments: Math.floor(Math.random() * 1000),
           outstandingBalance: Math.floor(Math.random() * 200)
-        }
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       
       await additionalPatient.save();
@@ -631,7 +420,7 @@ async function seedData() {
     }
 
     // Crear citas históricas para algunos pacientes (no todos)
-    const allPatients = [patient1, patient2, ...additionalPatients];
+    const allPatients = [...additionalPatients];
     const allServices = await Service.find({});
     const allRooms = await Room.find({});
     const professionals = [professional1, professional2];

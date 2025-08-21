@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -8,122 +9,87 @@ import { api } from '@/lib/api';
 import {
   PatientsHeader,
   PatientsTable,
-  PatientModal,
-  PatientDetailsModal,
   DeletePatientDialog
 } from './components';
+import { Patient, PatientFilters } from './types';
 
-interface Patient {
-  _id: string;
-  personalInfo: {
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    dateOfBirth: Date;
-    age: number;
-    gender: string;
-    profilePicture?: string;
-    idNumber?: string;
-    nationality?: string;
-    occupation?: string;
-    maritalStatus?: string;
+// API functions
+const fetchPatients = async (filters: PatientFilters = {}): Promise<Patient[]> => {
+  const params: any = {
+    page: 1,
+    limit: 50,
   };
-  contactInfo: {
-    email: string;
-    phone: string;
-    alternativePhone?: string;
-    preferredContactMethod: string;
-    address: {
-      street: string;
-      city: string;
-      postalCode: string;
-      state?: string;
-      country: string;
-    };
-  };
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-    email?: string;
-  };
-  clinicalInfo?: any;
-  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased';
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-// API functions usando el cliente api existente
-const fetchPatients = async (): Promise<Patient[]> => {
-  const response = await api.patients.list();
-  return response.data.data || [];
-};
+  if (filters.search) params.search = filters.search;
+  if (filters.status && filters.status !== 'all') params.status = filters.status;
+  if (filters.gender && filters.gender !== 'all') params.gender = filters.gender;
+  if (filters.professionalId) params.professionalId = filters.professionalId;
+  if (filters.dateFrom) params.dateFrom = filters.dateFrom.toISOString();
+  if (filters.dateTo) params.dateTo = filters.dateTo.toISOString();
 
-const createPatient = async (patientData: any): Promise<Patient> => {
-  const response = await api.patients.create(patientData);
-  return response.data.data;
-};
-
-const updatePatient = async ({ id, data }: { id: string; data: any }): Promise<Patient> => {
-  const response = await api.patients.update(id, data);
-  return response.data.data;
+  const response = await api.patients.list(params);
+  
+  // Debug: Log the response structure
+  console.log('API Response:', response);
+  console.log('Response data:', response.data);
+  
+  // Extract patients array from response
+  const patients = Array.isArray(response.data.data?.patients) 
+    ? response.data.data.patients 
+    : Array.isArray(response.data.data) 
+    ? response.data.data 
+    : Array.isArray(response.data) 
+    ? response.data 
+    : [];
+  
+  console.log('Extracted patients:', patients);
+  if (patients.length > 0) {
+    console.log('First patient:', patients[0]);
+  }
+  
+  return patients;
 };
 
 const deletePatient = async (id: string): Promise<void> => {
   await api.patients.delete(id);
 };
 
+const exportPatients = async (filters: PatientFilters = {}) => {
+  const response = await api.patients.export({ filters, format: 'csv' });
+  return response.data;
+};
+
 export default function PatientsPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
   
-  // Estados para modales
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  // Estados
+  const [filters, setFilters] = useState<PatientFilters>({
+    search: '',
+    status: 'all',
+    gender: 'all'
+  });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   
-  // Estados para filtros y búsqueda
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [filtersAdvanced, setFiltersAdvanced] = useState<PatientFilters>({
+    search: '',
+    status: 'all',
+    gender: 'all',
+    professionalId: undefined
+  });
 
   // Query para obtener pacientes
   const {
-    data: patients = [],
+    data: patients,
     isLoading: patientsLoading,
-    error: patientsError
+    error: patientsError,
+    refetch: refetchPatients
   } = useQuery({
-    queryKey: ['patients'],
-    queryFn: fetchPatients,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
-
-  // Mutación para crear paciente
-  const createMutation = useMutation({
-    mutationFn: createPatient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
-      toast.success('Paciente creado exitosamente');
-      setIsCreateModalOpen(false);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Error al crear paciente');
-    },
-  });
-
-  // Mutación para actualizar paciente
-  const updateMutation = useMutation({
-    mutationFn: updatePatient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
-      toast.success('Paciente actualizado exitosamente');
-      setIsEditModalOpen(false);
-      setSelectedPatient(null);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Error al actualizar paciente');
-    },
+    queryKey: ['patients', filters],
+    queryFn: () => fetchPatients(filters),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Mutación para eliminar paciente
@@ -134,42 +100,52 @@ export default function PatientsPage() {
       toast.success('Paciente eliminado exitosamente');
       setIsDeleteDialogOpen(false);
       setSelectedPatient(null);
+      refetchPatients();
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Error al eliminar paciente');
     },
   });
 
-  // Filtrar pacientes
-  const filteredPatients = patients.filter((patient) => {
-    const matchesSearch = searchQuery === '' || 
-      patient.personalInfo.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.contactInfo.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.contactInfo.phone.includes(searchQuery);
-    
-    const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  // Mutación para exportar
+  const exportMutation = useMutation({
+    mutationFn: exportPatients,
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'pacientes.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Pacientes exportados exitosamente');
+    },
+    onError: () => {
+      toast.error('Error al exportar pacientes');
+    },
   });
 
-  // Calcular estadísticas
-  const totalPatients = patients.length;
-  const activePatients = patients.filter(p => p.status === 'active').length;
+  // Filtrado local optimizado
+  const validPatients = Array.isArray(patients) ? patients : [];
+  const filteredPatients = useMemo(() => {
+    return validPatients.filter((p: Patient) => {
+      if (!p || !p.personalInfo) return false;
+      
+      const search = filtersAdvanced.search?.toLowerCase() || '';
+      const matchesSearch = !search || 
+        p.personalInfo.fullName?.toLowerCase().includes(search) ||
+        p.contactInfo?.email?.toLowerCase().includes(search) ||
+        p.contactInfo?.phone?.includes(search);
+      
+      return matchesSearch;
+    });
+  }, [validPatients, filtersAdvanced]);
 
   // Handlers
   const handleCreatePatient = () => {
-    setSelectedPatient(null);
-    setIsCreateModalOpen(true);
-  };
-
-  const handleEditPatient = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsEditModalOpen(true);
-  };
-
-  const handleViewPatient = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsDetailsModalOpen(true);
+    router.push('/admin/patients/new');
   };
 
   const handleDeletePatient = (patient: Patient) => {
@@ -177,118 +153,58 @@ export default function PatientsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleSavePatient = async (data: any) => {
+  const handleDeleteConfirm = async () => {
     if (selectedPatient) {
-      await updateMutation.mutateAsync({ id: selectedPatient._id, data });
-    } else {
-      await createMutation.mutateAsync(data);
+      deleteMutation.mutate(selectedPatient.id);
     }
   };
 
-  const handleConfirmDelete = async (patient: Patient) => {
-    await deleteMutation.mutateAsync(patient._id);
-  };
-
-  const handleImportPatients = () => {
-    toast.info('Función de importación en desarrollo');
-  };
-
-  const handleExportPatients = () => {
-    toast.info('Función de exportación en desarrollo');
-  };
-
-  const handleBulkActions = () => {
-    toast.info('Acciones masivas en desarrollo');
-  };
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Acceso Denegado</h2>
-          <p className="text-muted-foreground">No tienes permisos para acceder a esta página.</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (patientsError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Error al cargar pacientes</h2>
-          <p className="text-muted-foreground">
-            {patientsError instanceof Error ? patientsError.message : 'Error desconocido'}
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <h2 className="text-xl font-semibold mb-2">Error al cargar pacientes</h2>
+        <p className="text-muted-foreground mb-4">
+          {patientsError?.message || 'Ha ocurrido un error inesperado'}
+        </p>
+        <button 
+          onClick={() => refetchPatients()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="h-full p-6 space-y-6">
+    <div className="flex-1 space-y-6 p-6 h-full w-full">
       <PatientsHeader
-        totalPatients={totalPatients}
-        activePatients={activePatients}
+        totalPatients={validPatients.length}
         onCreatePatient={handleCreatePatient}
-        onImportPatients={handleImportPatients}
-        onExportPatients={handleExportPatients}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        onBulkActions={handleBulkActions}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onExport={async () => exportMutation.mutate(filters)}
+        isExporting={exportMutation.isPending}
       />
 
       <PatientsTable
         patients={filteredPatients}
-        onViewPatient={handleViewPatient}
-        onEditPatient={handleEditPatient}
         onDeletePatient={handleDeletePatient}
         isLoading={patientsLoading}
       />
 
-      {/* Modal para crear/editar paciente */}
-      <PatientModal
-        isOpen={isCreateModalOpen || isEditModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setIsEditModalOpen(false);
-          setSelectedPatient(null);
-        }}
-        patient={selectedPatient}
-        onSave={handleSavePatient}
-        isLoading={createMutation.isPending || updateMutation.isPending}
-      />
-
-      {/* Modal para ver detalles del paciente */}
-      <PatientDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => {
-          setIsDetailsModalOpen(false);
-          setSelectedPatient(null);
-        }}
-        patient={selectedPatient}
-        onEdit={handleEditPatient}
-      />
-
-      {/* Dialog para eliminar paciente */}
       <DeletePatientDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => {
           setIsDeleteDialogOpen(false);
           setSelectedPatient(null);
         }}
+        onConfirm={handleDeleteConfirm}
         patient={selectedPatient}
-        onConfirm={handleConfirmDelete}
         isLoading={deleteMutation.isPending}
       />
     </div>

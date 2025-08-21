@@ -136,7 +136,17 @@ export const api = {
       dateTo?: string;
       professionalId?: string;
     }) =>
-      apiClient.get<ApiResponse<any[]>>('/patients', { params }),
+      apiClient.get<ApiResponse<{
+        patients: any[];
+        pagination: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+      }>>('/patients', { params }),
 
     get: (id: string) =>
       apiClient.get<ApiResponse<any>>(`/patients/${id}`),

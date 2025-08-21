@@ -23,40 +23,7 @@ import {
   FileText,
   Clock
 } from 'lucide-react';
-
-interface Patient {
-  _id: string;
-  personalInfo: {
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    profilePicture?: string;
-    idNumber?: string;
-    nationality?: string;
-    occupation?: string;
-    maritalStatus?: string;
-  };
-  contactInfo: {
-    email: string;
-    phone: string;
-    alternativePhone?: string;
-    preferredContactMethod: string;
-    address: {
-      street: string;
-      city: string;
-      postalCode: string;
-      state?: string;
-      country: string;
-    };
-  };
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-    email?: string;
-  };
-  status: string;
-}
+import { Patient } from '../types';
 
 interface DeletePatientDialogProps {
   isOpen: boolean;
@@ -138,7 +105,7 @@ export function DeletePatientDialog({
                       {patient.personalInfo.fullName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      ID: {patient._id.slice(-8)}
+                      ID: {patient._id ? patient._id.slice(-8) : 'N/A'}
                     </p>
                   </div>
                 </div>
