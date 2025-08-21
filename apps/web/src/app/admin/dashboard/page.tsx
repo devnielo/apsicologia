@@ -11,7 +11,18 @@ import {
   DollarSign,
   Activity,
   Clock,
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  TrendingUp,
+  AlertCircle,
 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface User {
   id: string;
@@ -74,169 +85,208 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-card p-6 rounded-lg border">
-        <h2 className="text-xl font-semibold text-foreground mb-2">
-          ¡Bienvenido/a de vuelta, {user?.name}!
-        </h2>
-        <p className="text-muted-foreground">
-          Aquí tienes un resumen de tu actividad en la plataforma apsicologia.
-        </p>
+      {/* Header with Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Bienvenido/a de vuelta, {user?.name}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => router.push('/admin/patients')} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nuevo Paciente
+          </Button>
+          <Button variant="outline" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Nueva Cita
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      {statsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-card p-6 rounded-lg border">
-              <div className="animate-pulse">
-                <div className="h-8 bg-muted rounded mb-2"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="flex items-center">
-              <div className="bg-primary/10 text-primary rounded-lg p-3">
-                <Calendar className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.appointments?.total || 0}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? '...' : stats?.patients?.total || 0}
                 </p>
-                <p className="text-muted-foreground text-sm">Citas Totales</p>
+                <p className="text-sm text-muted-foreground">Pacientes Totales</p>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="flex items-center">
-              <div className="bg-green-500/10 text-green-600 rounded-lg p-3">
+              <div className="bg-primary/10 text-primary rounded-lg p-3">
                 <Users className="h-6 w-6" />
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.patients?.total || 0}
+            </div>
+            <div className="mt-4 flex items-center text-sm">
+              <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+              <span className="text-green-600">+12% desde el mes pasado</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? '...' : stats?.appointments?.total || 0}
                 </p>
-                <p className="text-muted-foreground text-sm">Pacientes</p>
+                <p className="text-sm text-muted-foreground">Citas Este Mes</p>
+              </div>
+              <div className="bg-blue-500/10 text-blue-600 rounded-lg p-3">
+                <Calendar className="h-6 w-6" />
               </div>
             </div>
-          </div>
+            <div className="mt-4 flex items-center text-sm">
+              <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+              <span className="text-green-600">+8% desde el mes pasado</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="flex items-center">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  €{statsLoading ? '...' : stats?.revenue?.total || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Ingresos</p>
+              </div>
+              <div className="bg-green-500/10 text-green-600 rounded-lg p-3">
+                <DollarSign className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm">
+              <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+              <span className="text-green-600">+15% desde el mes pasado</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? '...' : stats?.notes?.total || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Notas Clínicas</p>
+              </div>
               <div className="bg-yellow-500/10 text-yellow-600 rounded-lg p-3">
                 <FileText className="h-6 w-6" />
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-foreground">
-                  {stats?.notes?.total || 0}
-                </p>
-                <p className="text-muted-foreground text-sm">Notas Clínicas</p>
-              </div>
             </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="flex items-center">
-              <div className="bg-blue-500/10 text-blue-600 rounded-lg p-3">
-                <DollarSign className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-foreground">
-                  €{stats?.revenue?.total || 0}
-                </p>
-                <p className="text-muted-foreground text-sm">Facturación</p>
-              </div>
+            <div className="mt-4 flex items-center text-sm">
+              <AlertCircle className="h-4 w-4 text-yellow-600 mr-1" />
+              <span className="text-yellow-600">3 pendientes de revisión</span>
             </div>
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Quick Actions and Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-card p-6 rounded-lg border">
-          <div className="flex items-center mb-4">
-            <Activity className="h-5 w-5 text-primary mr-2" />
-            <h3 className="text-lg font-semibold text-foreground">
-              Acciones Rápidas
-            </h3>
-          </div>
-          <div className="space-y-2">
-            <button 
-              onClick={() => router.push('/admin/patients')}
-              className="w-full flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Gestión de Pacientes
-            </button>
-            <button className="w-full flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors">
-              <Calendar className="h-4 w-4 mr-2" />
-              Nueva Cita
-            </button>
-            <button className="w-full flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors">
-              <FileText className="h-4 w-4 mr-2" />
-              Nueva Nota
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-card p-6 rounded-lg border">
-          <div className="flex items-center mb-4">
-            <Clock className="h-5 w-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold text-foreground">
-              Próximas Citas
-            </h3>
-          </div>
-          <div className="space-y-3">
-            {stats?.upcomingAppointments?.length > 0 ? (
-              stats.upcomingAppointments.slice(0, 3).map((appointment: any, index: number) => (
-                <div key={index} className="flex items-center p-2 bg-muted/50 rounded">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {appointment.patientName || 'Paciente'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {appointment.service || 'Consulta'}
-                    </p>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Próximas Citas
+              </CardTitle>
+              <CardDescription>
+                Citas programadas para los próximos días
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats?.upcomingAppointments?.length > 0 ? (
+                  stats.upcomingAppointments.slice(0, 5).map((appointment: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{appointment.patientName || 'Ana Martínez González'}</p>
+                          <p className="text-sm text-muted-foreground">{appointment.service || 'Consulta Individual'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{appointment.time || '10:00 AM'}</p>
+                        <Badge variant="outline">Confirmada</Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No hay citas próximas</p>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {appointment.time || 'Pendiente'}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No hay citas próximas
-              </p>
-            )}
-          </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="bg-card p-6 rounded-lg border">
-          <div className="flex items-center mb-4">
-            <Activity className="h-5 w-5 text-green-600 mr-2" />
-            <h3 className="text-lg font-semibold text-foreground">
-              Estado del Sistema
-            </h3>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">API Backend</span>
-              <span className="text-sm text-green-600">✅ Operativo</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Base de Datos</span>
-              <span className="text-sm text-green-600">✅ Conectada</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Autenticación</span>
-              <span className="text-sm text-green-600">✅ Activa</span>
-            </div>
-          </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Acciones Rápidas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={() => router.push('/admin/patients')}
+                className="w-full justify-start gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Gestionar Pacientes
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Calendar className="h-4 w-4" />
+                Programar Cita
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <FileText className="h-4 w-4" />
+                Nueva Nota Clínica
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Estado del Sistema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">API Backend</span>
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Operativo
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Base de Datos</span>
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Conectada
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Autenticación</span>
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Activa
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
