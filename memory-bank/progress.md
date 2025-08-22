@@ -1,6 +1,6 @@
 # Progress Log - apsicologia Platform
 
-**Última actualización:** 15 de agosto, 2025 - 11:18 AM
+**Última actualización:** 22 de agosto, 2025 - 07:50 AM
 
 ## 🎯 Estado Actual: SISTEMA COMPLETO FRONTEND + BACKEND OPERATIVO
 
@@ -157,6 +157,29 @@
 - ✅ Responsive design en mobile/desktop
 
 #### **5. Frontend Next.js (✅ COMPLETADO - 100% Operativo)**
+
+#### **6. Página de Detalles de Pacientes (🔄 EN PROGRESO - 90% Completado)**
+
+**Trabajo Realizado (21-22 Agosto 2025):**
+- ✅ Formulario completo con 8 pestañas (Personal, Contacto, Emergencia, Clínica, Seguros, Preferencias, GDPR, Referencias)
+- ✅ Integración completa con React Hook Form + Zod validation
+- ✅ Esquema patientSchema completo matching con modelo backend
+- ✅ Modo dual: visualización y edición con toggle dinámico
+- ✅ useEffect para cargar datos del paciente con conversión de fechas
+- ✅ Mutaciones create/update con TanStack Query
+- ✅ Interfaz con tabs usando shadcn/ui
+- ✅ Iconos contextuales con lucide-react
+- ✅ Estados de carga y error con spinners y alerts
+- ✅ Toast notifications para feedback de acciones
+- ✅ Campos condicionales según modo (edición/vista)
+- ✅ Validación robusta de todos los campos requeridos
+- ⚠️ Errores de sintaxis JSX parcialmente corregidos (90% resuelto)
+
+**Pendiente:**
+- 🔧 Corregir últimos errores de sintaxis JSX (líneas 1525-1588)
+- 🔧 Eliminar código duplicado del modo visualización
+- 🧪 Testing completo del formulario en modo crear/editar
+- 🔗 Integración completa con lista de pacientes
 
 **Configuración Base:**
 - ✅ Next.js 14 con App Router configurado
