@@ -4,120 +4,192 @@
 
 @layer base {
   :root {
-    /* apsicologia Custom Color Palette - Medical/Psychology Theme */
-    /* Primary Colors - Rosa Coral Profesional (#DE9397) */
-    --primary-50: 355 70% 95%;
-    --primary-100: 355 65% 90%;
-    --primary-200: 355 60% 85%;
-    --primary-300: 355 55% 80%;
-    --primary-400: 355 50% 75%;
-    --primary-500: 355 47% 73%;  /* Base #DE9397 */
+    /* ========================================
+       APSICOLOGIA DESIGN SYSTEM
+       Professional Psychology Platform Colors
+       ======================================== */
+    
+    /* Primary Palette - Warm Professional */
+    --primary: 355 47% 73%;                /* Main primary color */
+    --primary-50: 355 70% 97%;             /* Lightest tint */
+    --primary-100: 355 65% 94%;     
+    --primary-200: 355 60% 88%;     
+    --primary-300: 355 55% 82%;     
+    --primary-400: 355 50% 76%;     
+    --primary-500: 355 47% 73%;            /* Base primary */
+    --primary-600: 355 45% 65%;     
+    --primary-700: 355 40% 55%;     
+    --primary-800: 355 35% 45%;     
+    --primary-900: 355 30% 35%;     
+    --primary-950: 355 25% 25%;
+
+    /* Secondary Palette - Neutral Complementary */
+    --secondary: 15 20% 58%;               /* Main secondary color */
+    --secondary-50: 15 30% 97%;            /* Lightest tint */
+    --secondary-100: 15 25% 94%;   
+    --secondary-200: 15 22% 88%;   
+    --secondary-300: 15 20% 78%;   
+    --secondary-400: 15 20% 68%;   
+    --secondary-500: 15 20% 58%;           /* Base secondary */
+    --secondary-600: 15 22% 50%;   
+    --secondary-700: 15 25% 42%;   
+    --secondary-800: 15 28% 34%;   
+    --secondary-900: 15 30% 26%;   
+    --secondary-950: 15 32% 18%;
+
+    /* Accent Colors - Friendly Blue/Teal */
+    --accent: 210 60% 70%;                 /* Accent - Friendly blue/teal */
+    --accent-50: 210 40% 97%;
+    --accent-100: 210 45% 94%;
+    --accent-200: 210 50% 88%;
+    --accent-300: 210 55% 80%;
+    --accent-400: 210 58% 75%;
+    --accent-500: 210 60% 70%;
+    --accent-600: 210 60% 62%;
+    --accent-700: 210 58% 54%;
+    --accent-800: 210 55% 46%;
+    --accent-900: 210 50% 38%;
+
+    /* Semantic Colors - Healthcare Optimized */
+    --success: 140 48% 68%;        /* Calming green */
+    --success-foreground: 140 80% 98%;
+    --warning: 45 70% 78%;
+    --warning-foreground: 45 85% 20%;
+    --danger: 0 65% 55%;
+    --danger-foreground: 0 0% 98%;
+    --info: 200 55% 65%;
+    --info-foreground: 200 80% 98%;
+
+    /* UI Foundation Colors */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    
+    /* Surface Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Component Colors */
+    --primary-foreground: 0 0% 98%;
+    --secondary-foreground: 0 0% 98%;
+    --accent-foreground: 240 5.9% 10%;
+    
+    /* Muted Colors */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    /* Destructive/Error */
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Borders & Inputs */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 355 47% 73%;
+    
+    /* Border Radius */
+    --radius: 0.5rem;
+    
+    /* Chart Colors */
+    --chart-1: 355 47% 73%;
+    --chart-2: 210 60% 70%;
+    --chart-3: 45 70% 78%;
+    --chart-4: 200 55% 65%;
+    --chart-5: 15 20% 58%;
+  }
+
+  .dark {
+    /* ========================================
+       DARK THEME - Optimized for Eye Comfort
+       ======================================== */
+    
+    /* Primary Palette - Dark Mode */
+    --primary: 355 47% 78%;       /* Primary - Professional coral */
+    --primary-50: 355 70% 97%;
+    --primary-100: 355 65% 94%;
+    --primary-200: 355 60% 88%;
+    --primary-300: 355 55% 82%;
+    --primary-400: 355 50% 76%;
+    --primary-500: 355 47% 73%;
     --primary-600: 355 45% 65%;
     --primary-700: 355 40% 55%;
     --primary-800: 355 35% 45%;
     --primary-900: 355 30% 35%;
+    --primary-950: 355 25% 20%;
 
-    /* Secondary Colors - Marrón Rosado (#A57978) */
-    --secondary-50: 15 30% 92%;
-    --secondary-100: 15 25% 85%;
-    --secondary-200: 15 22% 78%;
-    --secondary-300: 15 20% 70%;
-    --secondary-400: 15 20% 63%;
-    --secondary-500: 15 20% 56%;  /* Base #A57978 */
-    --secondary-600: 15 22% 48%;
-    --secondary-700: 15 25% 40%;
-    --secondary-800: 15 28% 32%;
-    --secondary-900: 15 30% 24%;
+    /* Secondary Palette - Dark Mode */
+    --secondary: 15 20% 62%;       /* Secondary - Neutral complementary */
+    --secondary-50: 15 30% 97%;
+    --secondary-100: 15 25% 94%;
+    --secondary-200: 15 22% 88%;
+    --secondary-300: 15 20% 78%;
+    --secondary-400: 15 20% 68%;
+    --secondary-500: 15 20% 58%;
+    --secondary-600: 15 22% 50%;
+    --secondary-700: 15 25% 42%;
+    --secondary-800: 15 28% 34%;
+    --secondary-900: 15 30% 26%;
+    --secondary-950: 15 20% 18%;
 
-    /* Semantic State Colors */
-    --success: 140 40% 60%;      /* Verde suave profesional */
-    --success-foreground: 140 100% 15%;
-    --warning: 45 70% 65%;       /* Amarillo cálido */
-    --warning-foreground: 45 100% 20%;
-    --danger: 0 60% 65%;         /* Rojo coral suave */
-    --danger-foreground: 0 100% 15%;
-    --info: 200 30% 60%;         /* Azul grisáceo */
-    --info-foreground: 200 100% 15%;
+    /* Accent Colors - Dark Mode */
+    --accent: 210 60% 65%;         /* Accent - Friendly blue */
+    --accent-50: 210 40% 97%;
+    --accent-100: 210 45% 94%;
+    --accent-200: 210 50% 88%;
+    --accent-300: 210 55% 80%;
+    --accent-400: 210 58% 75%;
+    --accent-500: 210 60% 70%;
+    --accent-600: 210 60% 62%;
+    --accent-700: 210 58% 54%;
+    --accent-800: 210 55% 46%;
+    --accent-900: 210 50% 38%;
+    --accent-950: 210 45% 30%;
 
-    /* shadcn/ui Core Variables */
-    --background: 0 0% 100%;
-    --foreground: 15 30% 15%;    /* Marrón muy oscuro para texto */
-    --card: 355 20% 98%;
-    --card-foreground: 15 30% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 15 30% 15%;
-    --primary: var(--primary-500);
-    --primary-foreground: 0 0% 100%;
-    --secondary: var(--secondary-100);
-    --secondary-foreground: var(--secondary-800);
-    --muted: 355 15% 96%;
-    --muted-foreground: 15 15% 45%;
-    --accent: var(--primary-100);
-    --accent-foreground: var(--primary-800);
-    --destructive: var(--danger);
-    --destructive-foreground: var(--danger-foreground);
-    --border: 355 20% 90%;
-    --input: 355 15% 94%;
-    --ring: var(--primary-500);
-    --radius: 0.5rem;
-  }
+    /* Semantic Colors - Dark Mode */
+    --success: 140 48% 68%;        /* Brighter green */
+    --success-foreground: 140 80% 15%;
+    --warning: 45 65% 68%;
+    --warning-foreground: 45 85% 15%;
+    --danger: 0 60% 58%;
+    --danger-foreground: 0 0% 98%;
+    --info: 200 50% 60%;
+    --info-foreground: 200 80% 98%;
 
-  .dark {
-    /* Dark Theme - apsicologia Palette */
-    /* Primary Colors Adjusted for Dark Mode */
-    --primary-50: 355 30% 15%;
-    --primary-100: 355 35% 20%;
-    --primary-200: 355 40% 25%;
-    --primary-300: 355 45% 35%;
-    --primary-400: 355 50% 45%;
-    --primary-500: 355 47% 55%;  /* Adjusted base for dark */
-    --primary-600: 355 45% 65%;
-    --primary-700: 355 40% 75%;
-    --primary-800: 355 35% 85%;
-    --primary-900: 355 30% 90%;
-
-    /* Secondary Colors Adjusted for Dark Mode */
-    --secondary-50: 15 30% 12%;
-    --secondary-100: 15 25% 18%;
-    --secondary-200: 15 22% 25%;
-    --secondary-300: 15 20% 35%;
-    --secondary-400: 15 20% 45%;
-    --secondary-500: 15 20% 55%;  /* Adjusted base for dark */
-    --secondary-600: 15 22% 65%;
-    --secondary-700: 15 25% 75%;
-    --secondary-800: 15 28% 85%;
-    --secondary-900: 15 30% 90%;
-
-    /* Dark Theme Semantic Colors */
-    --success: 140 35% 45%;
-    --success-foreground: 140 60% 85%;
-    --warning: 45 60% 55%;
-    --warning-foreground: 45 80% 85%;
-    --danger: 0 55% 55%;
-    --danger-foreground: 0 80% 85%;
-    --info: 200 25% 50%;
-    --info-foreground: 200 60% 85%;
-
-    /* Dark Theme Core Variables */
-    --background: 15 30% 8%;
-    --foreground: 355 20% 90%;
-    --card: 15 25% 10%;
-    --card-foreground: 355 15% 85%;
-    --popover: 15 30% 8%;
-    --popover-foreground: 355 20% 90%;
-    --primary: var(--primary-500);
-    --primary-foreground: 15 30% 8%;
-    --secondary: var(--secondary-200);
-    --secondary-foreground: var(--secondary-800);
-    --muted: 15 20% 15%;
-    --muted-foreground: 15 10% 60%;
-    --accent: var(--primary-200);
-    --accent-foreground: var(--primary-800);
-    --destructive: var(--danger);
-    --destructive-foreground: var(--danger-foreground);
-    --border: 15 20% 18%;
-    --input: 15 15% 12%;
-    --ring: var(--primary-500);
+    /* UI Foundation Colors - Dark Mode */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;     /* Light text */
+    
+    /* Surface Colors - Dark Mode */
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Component Colors - Dark Mode */
+    --primary-foreground: 355 5% 10%;
+    --secondary-foreground: 15 10% 10%;
+    --accent-foreground: 210 10% 10%;
+    
+    /* Success - Healthcare green */
+    --success: 140 48% 68%;
+    --success-foreground: 140 80% 15%;
+    
+    /* Destructive/Error */
+    --destructive: 0 60% 58%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Borders and inputs */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 355 47% 78%;
+    
+    /* Chart Colors - Dark Mode */
+    --chart-1: 355 47% 78%;
+    --chart-2: 210 60% 65%;
+    --chart-3: 45 65% 68%;
+    --chart-4: 200 50% 60%;
+    --chart-5: 15 20% 62%;
   }
 }
 

@@ -1,34 +1,417 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle, CheckCircle, Info, XCircle, Calendar, User, Mail, Phone, MapPin, Clock, TrendingUp, BarChart3, PieChart, Activity } from "lucide-react"
-import { useState } from "react"
+import React, { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle, Info, CheckCircle, XCircle, Copy, Check, ArrowRight, Calendar, User, Mail, Phone, MapPin, Briefcase, Award, Heart, Shield, Clock, Activity, Brain, Users, BookOpen, Target, TrendingUp, Star, Zap, Sparkles, Rocket, Moon, Sun, Palette, Layout, Type, Table as TableIcon, Filter, Download, Eye, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { AdvancedDataTable, type ColumnDef, createSortableHeader } from '@/components/ui/advanced-data-table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Separator } from '@/components/ui/separator';
+import { ToastAction } from '@/components/ui/toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { AlertTriangle, BarChart3 } from 'lucide-react';
 
-export default function StyleGuide() {
-  const [sliderValue, setSliderValue] = useState([50])
-  const [progressValue] = useState(65)
-  const [switchChecked, setSwitchChecked] = useState(false)
+// Mock Data Types
+interface Patient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  age: number;
+  gender: string;
+  status: 'active' | 'inactive' | 'pending';
+  lastVisit: Date;
+  nextAppointment: Date | null;
+  professional: string;
+  diagnosis: string;
+  tags: string[];
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  status: 'available' | 'out_of_stock' | 'discontinued';
+  rating: number;
+  sales: number;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  position: string;
+  department: string;
+  email: string;
+  startDate: Date;
+  salary: number;
+  performance: 'excellent' | 'good' | 'average' | 'needs_improvement';
+}
+
+export default function TestStylesPage() {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [sliderValue, setSliderValue] = useState([50]);
+  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>({});
+  const [switchState, setSwitchState] = useState(false);
+  const [switchChecked, setSwitchChecked] = useState(false);
+  const [selectedRadio, setSelectedRadio] = useState('option1');
+  const [inputValue, setInputValue] = useState('');
+  const [textareaValue, setTextareaValue] = useState('');
+  const [selectValue, setSelectValue] = useState('');
+  const [progressValue] = useState(60);
+  const { toast } = useToast();
+
+  // Generate mock patient data
+  const patients: Patient[] = useMemo(() => [
+    {
+      id: 'PAT001',
+      name: 'María García López',
+      email: 'maria.garcia@example.com',
+      phone: '+34 612 345 678',
+      age: 32,
+      gender: 'Femenino',
+      status: 'active',
+      lastVisit: new Date('2024-03-15'),
+      nextAppointment: new Date('2024-04-01'),
+      professional: 'Dr. Carlos Rodríguez',
+      diagnosis: 'Ansiedad generalizada',
+      tags: ['Prioritario', 'Seguimiento']
+    },
+    {
+      id: 'PAT002',
+      name: 'Juan Martínez Pérez',
+      email: 'juan.martinez@example.com',
+      phone: '+34 623 456 789',
+      age: 45,
+      gender: 'Masculino',
+      status: 'inactive',
+      lastVisit: new Date('2024-02-20'),
+      nextAppointment: null,
+      professional: 'Dra. Ana Sánchez',
+      diagnosis: 'Depresión moderada',
+      tags: ['Revisión']
+    },
+    {
+      id: 'PAT003',
+      name: 'Carmen Ruiz Fernández',
+      email: 'carmen.ruiz@example.com',
+      phone: '+34 634 567 890',
+      age: 28,
+      gender: 'Femenino',
+      status: 'active',
+      lastVisit: new Date('2024-03-20'),
+      nextAppointment: new Date('2024-03-28'),
+      professional: 'Dr. Carlos Rodríguez',
+      diagnosis: 'Trastorno adaptativo',
+      tags: ['Nueva', 'Online']
+    },
+    {
+      id: 'PAT004',
+      name: 'Antonio López García',
+      email: 'antonio.lopez@example.com',
+      phone: '+34 645 678 901',
+      age: 55,
+      gender: 'Masculino',
+      status: 'pending',
+      lastVisit: new Date('2024-03-10'),
+      nextAppointment: new Date('2024-04-05'),
+      professional: 'Dra. Laura Gómez',
+      diagnosis: 'Estrés laboral',
+      tags: ['Empresa']
+    },
+    {
+      id: 'PAT005',
+      name: 'Isabel Moreno Díaz',
+      email: 'isabel.moreno@example.com',
+      phone: '+34 656 789 012',
+      age: 38,
+      gender: 'Femenino',
+      status: 'active',
+      lastVisit: new Date('2024-03-18'),
+      nextAppointment: new Date('2024-03-25'),
+      professional: 'Dr. Carlos Rodríguez',
+      diagnosis: 'Trastorno del sueño',
+      tags: ['Seguimiento', 'Medicación']
+    }
+  ], []);
+
+  // Generate mock product data
+  const products: Product[] = useMemo(() => [
+    {
+      id: 'PRD001',
+      name: 'Sesión Individual Psicoterapia',
+      category: 'Terapia',
+      price: 60,
+      stock: 100,
+      status: 'available',
+      rating: 4.8,
+      sales: 245
+    },
+    {
+      id: 'PRD002',
+      name: 'Evaluación Psicológica Completa',
+      category: 'Evaluación',
+      price: 150,
+      stock: 50,
+      status: 'available',
+      rating: 4.9,
+      sales: 89
+    },
+    {
+      id: 'PRD003',
+      name: 'Terapia de Pareja',
+      category: 'Terapia',
+      price: 80,
+      stock: 0,
+      status: 'out_of_stock',
+      rating: 4.7,
+      sales: 156
+    },
+    {
+      id: 'PRD004',
+      name: 'Mindfulness - Sesión Grupal',
+      category: 'Grupos',
+      price: 25,
+      stock: 20,
+      status: 'available',
+      rating: 4.6,
+      sales: 412
+    },
+    {
+      id: 'PRD005',
+      name: 'Taller Gestión del Estrés',
+      category: 'Talleres',
+      price: 35,
+      stock: 5,
+      status: 'discontinued',
+      rating: 4.5,
+      sales: 178
+    }
+  ], []);
+
+  // Column definitions for Patient table
+  const patientColumns: ColumnDef<Patient>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Seleccionar todos"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Seleccionar fila"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => (
+        <div className="font-mono text-xs">{row.getValue('id')}</div>
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: createSortableHeader('Paciente'),
+      cell: ({ row }) => {
+        const name = row.getValue('name') as string;
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">
+                {name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">{name}</div>
+              <div className="text-xs text-muted-foreground">{row.original.email}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'age',
+      header: createSortableHeader('Edad'),
+      cell: ({ row }) => `${row.getValue('age')} años`,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Estado',
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        const variants = {
+          active: 'default',
+          inactive: 'secondary',
+          pending: 'outline'
+        };
+        const labels = {
+          active: 'Activo',
+          inactive: 'Inactivo',
+          pending: 'Pendiente'
+        };
+        return (
+          <Badge variant={variants[status as keyof typeof variants] as any}>
+            {labels[status as keyof typeof labels]}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'professional',
+      header: createSortableHeader('Profesional'),
+    },
+    {
+      accessorKey: 'lastVisit',
+      header: createSortableHeader('Última Visita'),
+      cell: ({ row }) => format(row.getValue('lastVisit'), 'dd/MM/yyyy', { locale: es }),
+    },
+    {
+      accessorKey: 'tags',
+      header: 'Etiquetas',
+      cell: ({ row }) => {
+        const tags = row.getValue('tags') as string[];
+        return (
+          <div className="flex gap-1 flex-wrap">
+            {tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const patient = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => console.log('Ver', patient)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Ver detalles
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => console.log('Editar', patient)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => console.log('Eliminar', patient)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ], []);
+
+  // Column definitions for Product table
+  const productColumns: ColumnDef<Product>[] = useMemo(() => [
+    {
+      accessorKey: 'name',
+      header: createSortableHeader('Producto'),
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue('name')}</div>
+      ),
+    },
+    {
+      accessorKey: 'category',
+      header: 'Categoría',
+      cell: ({ row }) => (
+        <Badge variant="secondary">{row.getValue('category')}</Badge>
+      ),
+    },
+    {
+      accessorKey: 'price',
+      header: createSortableHeader('Precio'),
+      cell: ({ row }) => {
+        const price = parseFloat(row.getValue('price'));
+        return new Intl.NumberFormat('es-ES', {
+          style: 'currency',
+          currency: 'EUR',
+        }).format(price);
+      },
+    },
+    {
+      accessorKey: 'stock',
+      header: createSortableHeader('Stock'),
+      cell: ({ row }) => {
+        const stock = row.getValue('stock') as number;
+        return (
+          <div className="flex items-center gap-2">
+            <span className={stock === 0 ? 'text-destructive' : ''}>
+              {stock}
+            </span>
+            {stock < 10 && stock > 0 && (
+              <Badge variant="outline" className="text-xs">Bajo</Badge>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'rating',
+      header: 'Valoración',
+      cell: ({ row }) => {
+        const rating = row.getValue('rating') as number;
+        return (
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm">{rating}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'sales',
+      header: createSortableHeader('Ventas'),
+      cell: ({ row }) => (
+        <div className="text-sm font-medium">{row.getValue('sales')}</div>
+      ),
+    },
+  ], []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -199,6 +582,138 @@ export default function StyleGuide() {
                   <div className="text-xs text-muted-foreground">{space}px</div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <Separator className="my-12" />
+
+        {/* Color Palette */}
+        <section className="mb-12">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Paleta de Colores OKLCH</h2>
+            <p className="text-sm text-muted-foreground">Sistema de diseño profesional con colores accesibles</p>
+          </div>
+          
+          <div className="grid gap-6">
+            {/* Primary Colors */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Colores Primarios - Warm Professional</h3>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                {[
+                  { shade: '50', color: 'oklch(98% 0.02 15)' },
+                  { shade: '100', color: 'oklch(95% 0.04 15)' },
+                  { shade: '200', color: 'oklch(90% 0.06 15)' },
+                  { shade: '300', color: 'oklch(85% 0.08 15)' },
+                  { shade: '400', color: 'oklch(80% 0.10 15)' },
+                  { shade: '500', color: 'oklch(76.8% 0.12 15.2)' },
+                  { shade: '600', color: 'oklch(70% 0.12 15)' },
+                  { shade: '700', color: 'oklch(60% 0.12 15)' },
+                  { shade: '800', color: 'oklch(50% 0.12 15)' },
+                  { shade: '900', color: 'oklch(40% 0.12 15)' },
+                ].map(({ shade, color }) => (
+                  <div key={shade} className="text-center">
+                    <div 
+                      className="w-full h-16 rounded border" 
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs mt-1">{shade}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Semantic Colors */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Colores Semánticos - Healthcare Optimized</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div 
+                    className="w-full h-20 rounded border" 
+                    style={{ backgroundColor: 'oklch(72% 0.12 150)' }}
+                  />
+                  <span className="text-sm mt-2 block font-medium">Success</span>
+                  <span className="text-xs text-muted-foreground">oklch(72% 0.12 150)</span>
+                </div>
+                <div className="text-center">
+                  <div 
+                    className="w-full h-20 rounded border" 
+                    style={{ backgroundColor: 'oklch(83% 0.14 80)' }}
+                  />
+                  <span className="text-sm mt-2 block font-medium">Warning</span>
+                  <span className="text-xs text-muted-foreground">oklch(83% 0.14 80)</span>
+                </div>
+                <div className="text-center">
+                  <div 
+                    className="w-full h-20 rounded border" 
+                    style={{ backgroundColor: 'oklch(62% 0.18 25)' }}
+                  />
+                  <span className="text-sm mt-2 block font-medium">Danger</span>
+                  <span className="text-xs text-muted-foreground">oklch(62% 0.18 25)</span>
+                </div>
+                <div className="text-center">
+                  <div 
+                    className="w-full h-20 rounded border" 
+                    style={{ backgroundColor: 'oklch(65% 0.10 210)' }}
+                  />
+                  <span className="text-sm mt-2 block font-medium">Info</span>
+                  <span className="text-xs text-muted-foreground">oklch(65% 0.10 210)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Colors */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Colores Secundarios - Neutral Complementary</h3>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                {[
+                  { shade: '50', color: 'oklch(97% 0.01 25)' },
+                  { shade: '100', color: 'oklch(94% 0.02 25)' },
+                  { shade: '200', color: 'oklch(88% 0.04 25)' },
+                  { shade: '300', color: 'oklch(78% 0.05 25)' },
+                  { shade: '400', color: 'oklch(68% 0.06 25)' },
+                  { shade: '500', color: 'oklch(58.5% 0.08 25)' },
+                  { shade: '600', color: 'oklch(50% 0.08 25)' },
+                  { shade: '700', color: 'oklch(42% 0.08 25)' },
+                  { shade: '800', color: 'oklch(34% 0.08 25)' },
+                  { shade: '900', color: 'oklch(26% 0.08 25)' },
+                ].map(({ shade, color }) => (
+                  <div key={shade} className="text-center">
+                    <div 
+                      className="w-full h-16 rounded border" 
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs mt-1">{shade}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Accent Colors */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Colores de Acento - Friendly Blue/Teal</h3>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                {[
+                  { shade: '50', color: 'oklch(97% 0.02 220)' },
+                  { shade: '100', color: 'oklch(94% 0.04 220)' },
+                  { shade: '200', color: 'oklch(88% 0.06 220)' },
+                  { shade: '300', color: 'oklch(80% 0.08 220)' },
+                  { shade: '400', color: 'oklch(75% 0.10 220)' },
+                  { shade: '500', color: 'oklch(70% 0.12 220)' },
+                  { shade: '600', color: 'oklch(62% 0.12 220)' },
+                  { shade: '700', color: 'oklch(54% 0.12 220)' },
+                  { shade: '800', color: 'oklch(46% 0.12 220)' },
+                  { shade: '900', color: 'oklch(38% 0.12 220)' },
+                ].map(({ shade, color }) => (
+                  <div key={shade} className="text-center">
+                    <div 
+                      className="w-full h-16 rounded border" 
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs mt-1">{shade}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -447,6 +962,73 @@ export default function StyleGuide() {
                   </div>
                 </DialogContent>
               </Dialog>
+            </div>
+
+            {/* Toast Notifications */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Notificaciones Toast</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    toast({
+                      title: "Información",
+                      description: "Esta es una notificación informativa estándar.",
+                    })
+                  }}
+                >
+                  Default Toast
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "✅ Cita Confirmada",
+                      description: "La cita ha sido programada exitosamente para el 15 de enero.",
+                      variant: "default",
+                    })
+                  }}
+                >
+                  Success Toast
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "⚠️ Advertencia",
+                      description: "El paciente tiene citas pendientes de pago.",
+                      variant: "default",
+                    })
+                  }}
+                >
+                  Warning Toast
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "Error al Guardar",
+                      description: "No se pudo actualizar la información del paciente.",
+                      variant: "destructive",
+                    })
+                  }}
+                >
+                  Error Toast
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "Sesión Iniciada",
+                      description: "Has iniciado sesión como profesional.",
+                      action: (
+                        <ToastAction altText="Ver perfil">Ver Perfil</ToastAction>
+                      ),
+                    })
+                  }}
+                >
+                  Toast con Acción
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -1068,5 +1650,5 @@ export default function StyleGuide() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
