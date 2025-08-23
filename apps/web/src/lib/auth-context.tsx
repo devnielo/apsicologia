@@ -13,6 +13,7 @@ interface User {
   role: 'admin' | 'professional' | 'reception' | 'patient';
   professionalId?: string;
   isActive: boolean;
+  profileImage?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,8 +48,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const response = await api.auth.me();
-        return response.data.data;
+        const userData = response.data.data.user;
+        
+        console.log('🔍 [Auth Context] API Response received:', {
+          hasUserData: !!userData,
+          userName: userData?.name,
+          userRole: userData?.role,
+          hasProfileImage: !!userData?.profileImage,
+          profileImageLength: userData?.profileImage?.length || 0
+        });
+        
+        return userData;
       } catch (error: any) {
+        // If token is invalid, clear it
         if (error.response?.status === 401) {
           Cookies.remove('auth-token');
           Cookies.remove('refresh-token');
@@ -56,8 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
     },
-    enabled: false, // Don't auto-fetch, we'll control this
+    enabled: !!Cookies.get('auth-token'), // Auto-fetch when token exists
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Login mutation
@@ -107,22 +120,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Initialize auth on mount
-  useEffect(() => {
-    const token = Cookies.get('auth-token');
-    if (token && !isInitialized) {
-      refetch();
-    }
-    setIsInitialized(true);
-  }, [refetch, isInitialized]);
-
   // Auth context value
   const contextValue: AuthContextType = {
     user: user || null,
-    isLoading: !isInitialized || isLoading,
+    isLoading: isLoading,
     isAuthenticated: !!user,
     login: async (email: string, password: string) => {
       await loginMutation.mutateAsync({ email, password });
+      // Trigger refetch to get updated user data immediately after login
+      await refetch();
     },
     logout: () => {
       logoutMutation.mutate();

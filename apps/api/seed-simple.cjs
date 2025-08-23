@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
+const path = require('path');
+
+// Read the full base64 image from file
+const profileImagePath = path.join(__dirname, '../../profile-avatar-base64.txt');
+const profileImageBase64 = fs.readFileSync(profileImagePath, 'utf8').trim();
 
 // Simple connection
 const MONGODB_URI = 'mongodb://admin:password123@localhost:27017/apsicologia?authSource=admin';
@@ -25,17 +31,27 @@ async function seedData() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
-    // Clear existing data
+    // First check and update admin user before clearing data
+    let adminUser = await User.findOne({ email: 'admin@arribapsicologia.com' });
+    if (adminUser) {
+      console.log('🔄 Updating existing admin user with profile image...');
+      adminUser.profileImage = profileImageBase64;
+      adminUser.updatedAt = new Date();
+      await adminUser.save();
+      console.log('✅ Updated admin user with profile image: Administrador Principal');
+    }
+
+    // Clear existing data (except admin user)
     await Appointment.deleteMany({});
     await Professional.deleteMany({});
     await Patient.deleteMany({});
     await Service.deleteMany({});
     await Room.deleteMany({});
-    await User.deleteMany({});
-    console.log('🗑️ Cleared existing seed data');
+    await User.deleteMany({ email: { $ne: 'admin@arribapsicologia.com' } }); // Don't delete admin
+    console.log('🗑️ Cleared existing seed data (preserved admin user)');
 
-    // Create admin user first
-    let adminUser = await User.findOne({ email: 'admin@arribapsicologia.com' });
+    // Create admin user if it doesn't exist
+    adminUser = await User.findOne({ email: 'admin@arribapsicologia.com' });
     if (!adminUser) {
       const hashedAdminPassword = await bcrypt.hash('SecureAdmin2024!', 12);
       adminUser = new User({
@@ -44,14 +60,13 @@ async function seedData() {
         name: 'Administrador Principal',
         phone: '+34600000000',
         role: 'admin',
+        profileImage: profileImageBase64,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       });
       await adminUser.save();
       console.log('✅ Created admin user: Administrador Principal');
-    } else {
-      console.log('ℹ️ Admin user already exists: Administrador Principal');
     }
     
     // Drop indexes that might cause conflicts
@@ -72,6 +87,7 @@ async function seedData() {
         name: 'Dr. María García López',
         phone: '+34 666 111 222',
         role: 'professional',
+        profileImage: profileImageBase64,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -137,6 +153,7 @@ async function seedData() {
         name: 'Dr. Carlos Rodríguez Martín',
         phone: '+34 666 333 444',
         role: 'professional',
+        profileImage: profileImageBase64,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -192,7 +209,46 @@ async function seedData() {
      user2.professionalId = professional2._id;
      await user2.save();
 
+    // Create patient users
+    let patientUser1 = await User.findOne({ email: 'ana.martinez@email.com' });
+    if (!patientUser1) {
+      const hashedPatientPassword1 = await bcrypt.hash('Patient2024!', 12);
+      patientUser1 = new User({
+        email: 'ana.martinez@email.com',
+        passwordHash: hashedPatientPassword1,
+        name: 'Ana Martínez García',
+        phone: '+34 666 555 777',
+        role: 'patient',
+        profileImage: profileImageBase64,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await patientUser1.save();
+      console.log('✅ Created patient user: Ana Martínez García');
+    } else {
+      console.log('ℹ️ Patient user already exists: Ana Martínez García');
+    }
 
+    let patientUser2 = await User.findOne({ email: 'miguel.fernandez@email.com' });
+    if (!patientUser2) {
+      const hashedPatientPassword2 = await bcrypt.hash('Patient2024!', 12);
+      patientUser2 = new User({
+        email: 'miguel.fernandez@email.com',
+        passwordHash: hashedPatientPassword2,
+        name: 'Miguel Fernández López',
+        phone: '+34 666 888 999',
+        role: 'patient',
+        profileImage: profileImageBase64,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await patientUser2.save();
+      console.log('✅ Created patient user: Miguel Fernández López');
+    } else {
+      console.log('ℹ️ Patient user already exists: Miguel Fernández López');
+    }
 
     // Create services
     const services = [
@@ -322,7 +378,8 @@ async function seedData() {
           idNumber: `${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
           idType: 'dni',
           maritalStatus: ['single', 'married', 'divorced'][Math.floor(Math.random() * 3)],
-          occupation: occupation
+          occupation: occupation,
+          profilePicture: profileImageBase64  // Usar la misma imagen base64 para todos por ahora
         },
         contactInfo: {
           email: email,

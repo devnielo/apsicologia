@@ -40,11 +40,16 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Patient } from '../types';
+import { base64ToImageUrl, generateInitials } from '@/lib/utils';
+import { Patient, PaginationMeta } from '../types';
+import { PaginationControls } from './PaginationControls';
 
 interface PatientsTableProps {
   patients: Patient[];
+  paginationMeta?: PaginationMeta;
   onDeletePatient: (patient: Patient) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   isLoading?: boolean;
 }
 
@@ -93,7 +98,10 @@ const contactMethodConfig = {
 
 export function PatientsTable({ 
   patients, 
+  paginationMeta,
   onDeletePatient,
+  onPageChange,
+  onPageSizeChange,
   isLoading = false 
 }: PatientsTableProps) {
   const router = useRouter();
@@ -216,13 +224,13 @@ export function PatientsTable({
                 onClick={() => router.push(`/admin/patients/new?id=${patient.id}`)}
               >
                 <TableCell>
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-8 w-8 ring-2 ring-slate-200">
                     <AvatarImage 
-                      src={personalInfo.profilePicture} 
+                      src={personalInfo.profilePicture ? base64ToImageUrl(personalInfo.profilePicture) : ""} 
                       alt={personalInfo.fullName || 'Paciente'} 
                     />
-                    <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-primary/10">
-                      {getInitials(personalInfo.firstName || '', personalInfo.lastName || '')}
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-xs">
+                      {generateInitials(personalInfo.fullName || `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`)}
                     </AvatarFallback>
                   </Avatar>
                 </TableCell>
@@ -340,6 +348,16 @@ export function PatientsTable({
         </TableBody>
           </Table>
         </div>
+
+        {/* Pagination Controls */}
+        {paginationMeta && onPageChange && onPageSizeChange && (
+          <PaginationControls
+            meta={paginationMeta}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            isLoading={isLoading}
+          />
+        )}
       </div>
     </div>
   );

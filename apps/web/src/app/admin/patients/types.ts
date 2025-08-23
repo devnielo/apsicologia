@@ -137,6 +137,10 @@ export interface PatientFilters {
   dateFrom?: Date;
   dateTo?: Date;
   tags?: string[];
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PatientFormData {
@@ -203,18 +207,27 @@ export interface PatientFormData {
   createUserAccount?: boolean;
 }
 
+export interface PaginationMeta {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export interface PatientsApiResponse {
   success: boolean;
   message: string;
   data: {
     patients: Patient[];
     pagination: {
-      total: number;
-      page: number;
-      limit: number;
+      currentPage: number;
       totalPages: number;
-      hasNext: boolean;
-      hasPrev: boolean;
+      totalItems: number;
+      itemsPerPage: number;
+      hasNextPage: boolean;
+      hasPrevPage: boolean;
     };
   };
 }

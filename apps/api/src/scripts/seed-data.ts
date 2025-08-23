@@ -10,6 +10,9 @@ import { FormSchema } from '../models/FormSchema.js';
 import env from '../config/env.js';
 import logger from '../config/logger.js';
 
+// Profile image base64 data - Avatar de prueba (círculo azul con "A")
+const profileImageBase64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAyADIDASIAAhEBAxEB/8QAGwAAAQUBAQAAAAAAAAAAAAAABgABAgQFAwf/xAA0EAABAwMBBQYEBgMAAAAAAAABAgMEABEFEiEGEzFBURQiYXGBkQcyobEjwdHh8BZSU//EABkBAAMBAQEAAAAAAAAAAAAAAAIDBAEABf/EACERAAICAgICAwEAAAAAAAAAAAABAhEDIRIxE0FRYXGh/9oADAMBAAIRAxEAPwDYuaEdalKAMlOUZIHvRb2hwo1qsJ9Kx24y8GlSfmO8nvVGWH9HEX6wpjdPU5lpQCVDhTJJUoAcqlUp1N5HsEJBkrGjbLLdBYdOLZ0MOg7o9T/K/wD15v8AFXZDsmfJjibFLfbVuR2j8VKgE55jppI38DyOOdesbBYBjsy7Ao6g7tppvp5VTzMGjj5VI6GGbPHFy6ZwOPcU5WyJhZt2vqyVrQUnkQf0qxoVb7SR+7SUKBpJI1cXGFiWs8VJCrEn/wBVA7MWTS8HM1hX3lNqGtCfmSf0qj8YsTkPZHIWVIFw4I7YQjTzHL6kH79aSdoJWPa7P2nFyxoDalJeUmyJ5H1Pp6VstMc6pHoJYoyjs2sTsD8OsezJyOysbY1FRFg8tzvD2BSMg+hOmuR2faXHbSTpNsja4J5lNuBI9xz9q8L+HWPWZ2Q7W8y0OyJwuKhQJFiF2GT5kW+VejW9ilOGXkexg4wJxfktQ8fIhylvw5K48lJLb6FKQFjxQrip7/V3aQAyBrB+bJFvbU6qEz8m0H4jpluSRf7lETD7H2C3ES3EEzBdCfHvKJvcvhOJaT2/G3FOxjXJOhpsFYWnkeOHjWkrKxWGOzSSRwICm/wCItWhLRl6IY7MX+7qAcjSUaCSDbLPlaXGFZ2TQrlgU73hvHi2yt68VDb6upJNjo8OOHjWkrKxWGOzSSRwICm/wCj5OzjVStP+Y2r2er/2Q==';
+
 // Sample data
 const professionalData: any[] = [
   {
@@ -533,6 +536,28 @@ async function seedDatabase() {
     await mongoose.connect(env.MONGODB_URI!);
     logger.info('Connected to MongoDB for seeding');
 
+    // Create or update admin user first
+    let adminUser = await User.findOne({ email: 'admin@arribapsicologia.com' });
+    if (!adminUser) {
+      const hashedAdminPassword = await bcrypt.hash('SecureAdmin2024!', env.BCRYPT_ROUNDS);
+      adminUser = new User({
+        email: 'admin@arribapsicologia.com',
+        passwordHash: hashedAdminPassword,
+        name: 'Administrador Principal',
+        phone: '+34600000000',
+        role: 'admin',
+        profileImage: profileImageBase64,
+        isActive: true,
+      });
+      await adminUser.save();
+      logger.info('✅ Created admin user: Administrador Principal');
+    } else {
+      // Update existing admin user with profile image
+      adminUser.profileImage = profileImageBase64;
+      await adminUser.save();
+      logger.info('✅ Updated admin user with profile image: Administrador Principal');
+    }
+
     // Clear existing data (except admin user)
     await Professional.deleteMany({});
     await Patient.deleteMany({});
@@ -540,8 +565,9 @@ async function seedDatabase() {
     await Room.deleteMany({});
     await Appointment.deleteMany({});
     await FormSchema.deleteMany({});
+    await User.deleteMany({ email: { $ne: 'admin@arribapsicologia.com' } }); // Don't delete admin
     
-    logger.info('Cleared existing data');
+    logger.info('Cleared existing data (preserved admin user)');
 
     // Create professionals and their users
     const createdProfessionals = [];

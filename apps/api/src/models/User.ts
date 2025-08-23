@@ -265,6 +265,7 @@ UserSchema.methods.toAuthJSON = function(): any {
     name: this.name,
     role: this.role,
     phone: this.phone,
+    profileImage: this.profileImage,
     professionalId: this.professionalId?.toString(),
     patientId: this.patientId?.toString(),
     isEmailVerified: this.isEmailVerified,

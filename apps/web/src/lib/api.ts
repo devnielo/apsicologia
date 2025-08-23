@@ -104,6 +104,9 @@ export const api = {
         accessToken: string;
         refreshToken: string;
       }>>('/auth/refresh', { refreshToken }),
+
+    updateProfile: (data: { name?: string; phone?: string; profileImage?: string; preferences?: any }) =>
+      apiClient.put<ApiResponse<any>>('/auth/profile', data),
   },
 
   // Users

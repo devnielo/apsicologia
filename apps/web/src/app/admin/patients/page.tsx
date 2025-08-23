@@ -11,13 +11,15 @@ import {
   PatientsTable,
   DeletePatientDialog
 } from './components';
-import { Patient, PatientFilters } from './types';
+import { Patient, PatientFilters, PatientsApiResponse } from './types';
 
 // API functions
-const fetchPatients = async (filters: PatientFilters = {}): Promise<Patient[]> => {
+const fetchPatients = async (filters: PatientFilters = {}): Promise<PatientsApiResponse> => {
   const params: any = {
-    page: 1,
-    limit: 50,
+    page: filters.page || 1,
+    limit: filters.limit || 20,
+    sortBy: filters.sortBy || 'createdAt',
+    sortOrder: filters.sortOrder || 'desc',
   };
 
   if (filters.search) params.search = filters.search;
@@ -26,28 +28,44 @@ const fetchPatients = async (filters: PatientFilters = {}): Promise<Patient[]> =
   if (filters.professionalId) params.professionalId = filters.professionalId;
   if (filters.dateFrom) params.dateFrom = filters.dateFrom.toISOString();
   if (filters.dateTo) params.dateTo = filters.dateTo.toISOString();
+  if (filters.tags?.length) params.tags = filters.tags.join(',');
 
   const response = await api.patients.list(params);
   
-  // Debug: Log the response structure
-  console.log('API Response:', response);
-  console.log('Response data:', response.data);
-  
-  // Extract patients array from response
-  const patients = Array.isArray(response.data.data?.patients) 
-    ? response.data.data.patients 
-    : Array.isArray(response.data.data) 
-    ? response.data.data 
-    : Array.isArray(response.data) 
-    ? response.data 
+  // Transform backend response to match our interface
+  const backendData = response.data.data;
+  const patients = Array.isArray(backendData?.patients) 
+    ? backendData.patients 
+    : Array.isArray(backendData) 
+    ? backendData 
     : [];
+
+  // Handle different backend pagination response formats
+  const backendPagination = backendData?.pagination || {};
   
-  console.log('Extracted patients:', patients);
-  if (patients.length > 0) {
-    console.log('First patient:', patients[0]);
-  }
-  
-  return patients;
+  // Extract values with fallbacks for different backend response formats
+  const currentPage = (backendPagination as any).currentPage || (backendPagination as any).page || 1;
+  const total = (backendPagination as any).totalItems || (backendPagination as any).total || patients.length;
+  const limit = (backendPagination as any).itemsPerPage || (backendPagination as any).limit || params.limit;
+  const totalPages = (backendPagination as any).totalPages || Math.ceil(total / limit);
+  const hasNext = (backendPagination as any).hasNextPage ?? (backendPagination as any).hasNext ?? (currentPage < totalPages);
+  const hasPrev = (backendPagination as any).hasPrevPage ?? (backendPagination as any).hasPrev ?? (currentPage > 1);
+
+  return {
+    success: true,
+    message: 'Patients fetched successfully',
+    data: {
+      patients,
+      pagination: {
+        currentPage,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit,
+        hasNextPage: hasNext,
+        hasPrevPage: hasPrev
+      }
+    }
+  };
 };
 
 const deletePatient = async (id: string): Promise<void> => {
@@ -68,21 +86,18 @@ export default function PatientsPage() {
   const [filters, setFilters] = useState<PatientFilters>({
     search: '',
     status: 'all',
-    gender: 'all'
+    gender: 'all',
+    page: 1,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
   });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  
-  const [filtersAdvanced, setFiltersAdvanced] = useState<PatientFilters>({
-    search: '',
-    status: 'all',
-    gender: 'all',
-    professionalId: undefined
-  });
 
-  // Query para obtener pacientes
+  // Query para obtener pacientes con paginación
   const {
-    data: patients,
+    data: patientsResponse,
     isLoading: patientsLoading,
     error: patientsError,
     refetch: refetchPatients
@@ -127,21 +142,16 @@ export default function PatientsPage() {
     },
   });
 
-  // Filtrado local optimizado
-  const validPatients = Array.isArray(patients) ? patients : [];
-  const filteredPatients = useMemo(() => {
-    return validPatients.filter((p: Patient) => {
-      if (!p || !p.personalInfo) return false;
-      
-      const search = filtersAdvanced.search?.toLowerCase() || '';
-      const matchesSearch = !search || 
-        p.personalInfo.fullName?.toLowerCase().includes(search) ||
-        p.contactInfo?.email?.toLowerCase().includes(search) ||
-        p.contactInfo?.phone?.includes(search);
-      
-      return matchesSearch;
-    });
-  }, [validPatients, filtersAdvanced]);
+  // Extract data from server response
+  const patients = patientsResponse?.data.patients || [];
+  const paginationMeta = patientsResponse?.data.pagination || {
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 20,
+    hasNextPage: false,
+    hasPrevPage: false
+  };
 
   // Handlers
   const handleCreatePatient = () => {
@@ -157,6 +167,19 @@ export default function PatientsPage() {
     if (selectedPatient) {
       deleteMutation.mutate(selectedPatient.id);
     }
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({ ...prev, page }));
+  };
+
+  const handlePageSizeChange = (limit: number) => {
+    setFilters(prev => ({ ...prev, limit, page: 1 })); // Reset to first page when changing page size
+  };
+
+  const handleFiltersChange = (newFilters: Partial<PatientFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters, page: 1 })); // Reset to first page when filters change
   };
 
   if (!user) {
@@ -183,17 +206,20 @@ export default function PatientsPage() {
   return (
     <div className="flex-1 space-y-6 p-6 h-full w-full">
       <PatientsHeader
-        totalPatients={validPatients.length}
+        totalPatients={paginationMeta.totalItems}
         onCreatePatient={handleCreatePatient}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={handleFiltersChange}
         onExport={async () => exportMutation.mutate(filters)}
         isExporting={exportMutation.isPending}
       />
 
       <PatientsTable
-        patients={filteredPatients}
+        patients={patients}
+        paginationMeta={paginationMeta}
         onDeletePatient={handleDeletePatient}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
         isLoading={patientsLoading}
       />
 

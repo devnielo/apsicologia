@@ -739,6 +739,7 @@ export class AuthController {
         role: user.role,
         isActive: user.isActive,
         professionalId: user.professionalId,
+        profileImage: user.profileImage,
         preferences: user.preferences,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
@@ -762,7 +763,7 @@ export class AuthController {
   static async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const authUser = (req as AuthRequest).user!;
-      const { name, phone, preferences } = req.body;
+      const { name, phone, preferences, profileImage } = req.body;
 
       const user = await User.findById(authUser._id);
       if (!user) {
@@ -776,6 +777,7 @@ export class AuthController {
       if (name) user.name = name;
       if (phone) user.phone = phone;
       if (preferences) user.preferences = { ...user.preferences, ...preferences };
+      if (profileImage !== undefined) user.profileImage = profileImage;
 
       await user.save();
 
