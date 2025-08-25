@@ -17,13 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Info, CheckCircle, XCircle, Copy, Check, ArrowRight, Calendar, User, Mail, Phone, MapPin, Briefcase, Award, Heart, Shield, Clock, Activity, Brain, Users, BookOpen, Target, TrendingUp, Star, Zap, Sparkles, Rocket, Moon, Sun, Palette, Layout, Type, Table as TableIcon, Filter, Download, Eye, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { AdvancedDataTable, type ColumnDef, createSortableHeader } from '@/components/ui/advanced-data-table';
+import { Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '@/components/ui/toast';
+import { AdvancedDataTable, ColumnDef, createSortableHeader, ColumnFilterConfig, FilterType } from '@/components/ui/advanced-data-table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Separator } from '@/components/ui/separator';
-import { ToastAction } from '@/components/ui/toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1633,22 +1633,493 @@ export default function TestStylesPage() {
             </Card>
           </div>
         </section>
-      </div>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/50">
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Sistema de Diseño APsicología • Basado en principios Oberhäuser × Wheeler
+        <Separator className="my-12" />
+
+        {/* Advanced DataTable Section */}
+        <section className="mb-12">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">Tablas de Datos Avanzadas</h2>
+            <p className="text-sm text-muted-foreground">
+              Componente AdvancedDataTable con filtros específicos, exportación, vista móvil y todas las funcionalidades
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            {/* Tabla de Pacientes */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Ejemplo: Gestión de Pacientes</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lista de Pacientes</CardTitle>
+                  <CardDescription>
+                    Tabla completa con filtros específicos por columna, selección múltiple, 
+                    exportación en múltiples formatos y vista responsiva
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AdvancedDataTable
+                    columns={patientColumns}
+                    data={patients}
+                    columnFilterConfigs={{
+                      name: {
+                        type: 'text',
+                        placeholder: 'Buscar por nombre...'
+                      },
+                      age: {
+                        type: 'number'
+                      },
+                      gender: {
+                        type: 'select',
+                        options: [
+                          { label: 'Femenino', value: 'Femenino' },
+                          { label: 'Masculino', value: 'Masculino' }
+                        ]
+                      },
+                      status: {
+                        type: 'select',
+                        options: [
+                          { label: 'Activo', value: 'active' },
+                          { label: 'Inactivo', value: 'inactive' },
+                          { label: 'Pendiente', value: 'pending' }
+                        ]
+                      },
+                      professional: {
+                        type: 'select',
+                        placeholder: 'Filtrar por profesional...'
+                      },
+                      tags: {
+                        type: 'multiselect',
+                        placeholder: 'Filtrar por etiquetas...'
+                      },
+                      lastVisit: {
+                        type: 'date'
+                      },
+                      nextAppointment: {
+                        type: 'date'
+                      }
+                    }}
+                    searchPlaceholder="Buscar pacientes..."
+                    enableRowSelection={true}
+                    enableMobileView={true}
+                    enableFiltering={true}
+                    enableSorting={true}
+                    enablePagination={true}
+                    defaultPageSize={5}
+                    pageSizeOptions={[5, 10, 25, 50]}
+                    onRowClick={(row) => {
+                      toast({
+                        title: "Paciente Seleccionado",
+                        description: `Ver detalles de ${row.original.name}`,
+                      });
+                    }}
+                    onExport={(data) => {
+                      toast({
+                        title: "Datos Exportados",
+                        description: `Se exportaron ${data.length} pacientes exitosamente.`,
+                      });
+                    }}
+                    onImport={(data) => {
+                      toast({
+                        title: "Datos Importados",
+                        description: `Se importaron ${data.length} registros exitosamente.`,
+                      });
+                    }}
+                    toolbarActions={
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => {
+                          toast({
+                            title: "Nuevo Paciente",
+                            description: "Redirigiendo al formulario de creación...",
+                          });
+                        }}
+                      >
+                        <User className="mr-2 h-4 w-4" />
+                        Nuevo Paciente
+                      </Button>
+                    }
+                  />
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>Última actualización: Enero 2024</span>
-              <Badge variant="outline">v1.0.0</Badge>
+
+            {/* Tabla de Productos/Servicios */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Ejemplo: Servicios y Productos</h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Catálogo de Servicios</CardTitle>
+                  <CardDescription>
+                    Demostración con datos de productos, filtros numéricos y de estado,
+                    vista compacta y acciones personalizadas
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AdvancedDataTable
+                    columns={productColumns}
+                    data={products}
+                    columnFilterConfigs={{
+                      name: {
+                        type: 'text',
+                        placeholder: 'Buscar servicio...'
+                      },
+                      category: {
+                        type: 'multiselect',
+                        placeholder: 'Filtrar categorías...'
+                      },
+                      price: {
+                        type: 'number'
+                      },
+                      stock: {
+                        type: 'number'
+                      },
+                      status: {
+                        type: 'select',
+                        options: [
+                          { label: 'Disponible', value: 'available' },
+                          { label: 'Sin Stock', value: 'out_of_stock' },
+                          { label: 'Descontinuado', value: 'discontinued' }
+                        ]
+                      },
+                      rating: {
+                        type: 'number'
+                      }
+                    }}
+                    searchPlaceholder="Buscar servicios..."
+                    compactMode={true}
+                    enableMobileView={true}
+                    defaultPageSize={3}
+                    pageSizeOptions={[3, 5, 10]}
+                    onExport={(data) => {
+                      toast({
+                        title: "Catálogo Exportado",
+                        description: `Se exportaron ${data.length} servicios.`,
+                      });
+                    }}
+                    toolbarActions={
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm">
+                          <Briefcase className="mr-2 h-4 w-4" />
+                          Nuevo Servicio
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Award className="mr-2 h-4 w-4" />
+                          Gestionar Stock
+                        </Button>
+                      </div>
+                    }
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabla de Estado de Carga */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Estados y Funcionalidades</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Estado de Carga</CardTitle>
+                    <CardDescription>Indicadores visuales durante la carga de datos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AdvancedDataTable
+                      columns={patientColumns.slice(0, 3)}
+                      data={[]}
+                      isLoading={true}
+                      defaultPageSize={3}
+                      showToolbar={false}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Estado Vacío</CardTitle>
+                    <CardDescription>Cuando no hay datos disponibles</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AdvancedDataTable
+                      columns={patientColumns.slice(0, 3)}
+                      data={[]}
+                      emptyMessage="No se encontraron registros"
+                      emptyIcon={<Users className="h-8 w-8 text-muted-foreground" />}
+                      defaultPageSize={3}
+                      showToolbar={false}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Características Destacadas */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Características Destacadas</h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Filtros Avanzados</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      7 tipos de filtros: texto, número, selección única/múltiple, booleanos, 
+                      fechas y rangos de fechas con UI específica para cada tipo.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Download className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Exportación Múltiple</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Exporta datos filtrados en CSV, JSON o Excel. Importa desde archivos
+                      con validación automática y manejo de errores.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Layout className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Vista Responsiva</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Se adapta automáticamente a móviles mostrando datos en tarjetas.
+                      Breakpoint personalizable y modo compacto opcional.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* Toast Examples Section */}
+        <section>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <AlertCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Notificaciones Toast</h2>
+                <p className="text-muted-foreground">Sistema de notificaciones con iconos automáticos, posicionamiento superior derecho y estilos mejorados</p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Toast Examples */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ejemplos de Toast</CardTitle>
+                  <CardDescription>7 variantes con iconos automáticos de Lucide React y posicionamiento superior derecho</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3">
+                    <Button 
+                      onClick={() => toast({ title: "Información", description: "Esta es una notificación por defecto" })}
+                      variant="outline"
+                    >
+                      Toast por Defecto
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "¡Éxito!", 
+                        description: "Operación completada correctamente",
+                        variant: "success"
+                      })}
+                      variant="outline"
+                    >
+                      Toast de Éxito
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "Advertencia", 
+                        description: "Revisa los datos antes de continuar",
+                        variant: "warning"
+                      })}
+                      variant="outline"
+                    >
+                      Toast de Advertencia
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "Error", 
+                        description: "Ha ocurrido un problema inesperado",
+                        variant: "destructive"
+                      })}
+                      variant="outline"
+                    >
+                      Toast de Error
+                    </Button>
+
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "Información", 
+                        description: "Datos actualizados en tiempo real",
+                        variant: "info"
+                      })}
+                      variant="outline"
+                    >
+                      Toast de Información
+                    </Button>
+
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "Acción Principal", 
+                        description: "Notificación con color primario",
+                        variant: "primary"
+                      })}
+                      variant="outline"
+                    >
+                      Toast Primario
+                    </Button>
+
+                    <Button 
+                      onClick={() => toast({ 
+                        title: "Notificación Secundaria", 
+                        description: "Mensaje con estilo secundario",
+                        variant: "secondary"
+                      })}
+                      variant="outline"
+                    >
+                      Toast Secundario
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Toast with Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Toast con Acciones</CardTitle>
+                  <CardDescription>Notificaciones interactivas con botones de acción</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    onClick={() => toast({
+                      title: "Archivo guardado",
+                      description: "¿Quieres abrirlo ahora?",
+                      action: (
+                        <ToastAction altText="Abrir archivo">
+                          Abrir
+                        </ToastAction>
+                      ),
+                    })}
+                    variant="outline"
+                  >
+                    Toast con Acción
+                  </Button>
+
+                  <Button 
+                    onClick={() => toast({
+                      title: "Cambios pendientes",
+                      description: "Tienes cambios sin guardar",
+                      variant: "warning",
+                      action: (
+                        <ToastAction altText="Guardar cambios">
+                          Guardar
+                        </ToastAction>
+                      ),
+                    })}
+                    variant="outline"
+                  >
+                    Toast con Acción de Advertencia
+                  </Button>
+
+                  <Button 
+                    onClick={() => toast({
+                      title: "Error de conexión",
+                      description: "No se pudo conectar al servidor",
+                      variant: "destructive",
+                      action: (
+                        <ToastAction altText="Reintentar">
+                          Reintentar
+                        </ToastAction>
+                      ),
+                    })}
+                    variant="outline"
+                  >
+                    Toast de Error con Acción
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Toast Features */}
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-4">Características del Sistema Toast</h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Palette className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Diseño Limpio</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Iconos automáticos de Lucide React, fondos con mejor contraste, 
+                      posicionamiento superior derecho y animaciones suaves.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Layout className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Múltiples Variantes</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      7 variantes con iconos específicos: Bell (default), User (primary), 
+                      Bell (secondary), CheckCircle (success), AlertTriangle (warning), 
+                      XCircle (destructive), Info (info).
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Interactividad</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Botones de acción personalizables, cierre automático, 
+                      posicionamiento superior derecho y animaciones desde arriba.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+      
+      <ToastProvider>
+        <ToastViewport />
+      </ToastProvider>
     </div>
   );
 }
