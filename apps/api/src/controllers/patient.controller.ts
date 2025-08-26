@@ -766,15 +766,20 @@ export class PatientController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            name: patient.personalInfo.fullName,
-            email: patient.contactInfo.email,
-            phone: patient.contactInfo.phone,
-            gdprConsent: patient.gdprConsent.dataProcessing.consented,
-            userAccountCreated: !!userAccount,
+        changes: [
+          {
+            field: 'patient_record',
+            changeType: 'create',
+            newValue: {
+              name: patient.personalInfo.fullName,
+              email: patient.contactInfo.email,
+              phone: patient.contactInfo.phone,
+              gdprConsent: patient.gdprConsent.dataProcessing.consented,
+              userAccountCreated: !!userAccount,
+            },
           },
-        },
+        ],
+        afterState: patient.toObject(),
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -790,8 +795,28 @@ export class PatientController {
           dataClassification: 'confidential',
         },
         metadata: {
-          source: 'patient_controller',
+          customFields: {},
+          tags: ['patient_creation'],
           priority: 'medium',
+          source: 'patient_controller',
+        },
+        alerting: {
+          triggeredRules: [],
+          notificationStatus: {
+            email: false,
+            sms: false,
+            slack: false,
+            webhook: false,
+            dashboard: false,
+          },
+        },
+        retention: {
+          category: 'patient_records',
+          retentionPeriod: 84,
+        },
+        related: {
+          childLogIds: [],
+          correlatedLogs: [],
         },
         timestamp: new Date(),
       });
@@ -873,6 +898,14 @@ export class PatientController {
       await patient.save();
 
       // Log patient update
+      const patientObj = patient.toObject();
+      const changesArray = Object.keys(updateData).map(field => ({
+        field,
+        changeType: 'update' as const,
+        oldValue: (originalData as any)[field],
+        newValue: (patientObj as any)[field],
+      }));
+
       await AuditLog.create({
         action: 'patient_updated',
         entityType: 'patient',
@@ -883,11 +916,9 @@ export class PatientController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: patient.toObject(),
-          fieldsChanged: Object.keys(updateData),
-        },
+        changes: changesArray,
+        beforeState: originalData,
+        afterState: patient.toObject(),
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -903,8 +934,28 @@ export class PatientController {
           dataClassification: 'confidential',
         },
         metadata: {
-          source: 'patient_controller',
+          customFields: {},
+          tags: ['patient_update'],
           priority: 'medium',
+          source: 'patient_controller',
+        },
+        alerting: {
+          triggeredRules: [],
+          notificationStatus: {
+            email: false,
+            sms: false,
+            slack: false,
+            webhook: false,
+            dashboard: false,
+          },
+        },
+        retention: {
+          category: 'patient_records',
+          retentionPeriod: 84,
+        },
+        related: {
+          childLogIds: [],
+          correlatedLogs: [],
         },
         timestamp: new Date(),
       });

@@ -197,13 +197,7 @@ export const ROOM_TYPES = {
   VIRTUAL: 'virtual',
 } as const;
 
-// Gender options
-export const GENDER_OPTIONS = [
-  'male',
-  'female',
-  'other',
-  'prefer_not_to_say',
-] as const;
+// Note: Gender options moved to form-options.ts
 
 // Languages
 export const LANGUAGES = [
@@ -222,3 +216,6 @@ export const SYSTEM_STATUS = {
   UNHEALTHY: 'unhealthy',
   DEGRADED: 'degraded',
 } as const;
+
+// Form options (countries, provinces, gender, etc.)
+export * from './form-options';

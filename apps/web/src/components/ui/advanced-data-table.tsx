@@ -648,7 +648,7 @@ export function AdvancedDataTable<TData, TValue>({
     <div className={cn('w-full space-y-4', className)}>
       {/* Toolbar */}
       {showToolbar && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 mt-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {/* Global Search */}

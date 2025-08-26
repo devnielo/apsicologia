@@ -1649,7 +1649,7 @@ export default function TestStylesPage() {
                     onExport={(data) => {
                       toast({
                         title: "Datos Exportados",
-                        description: `Se exportaron ${data.length} pacientes exitosamente.`,
+                        description: `Se exportaron ${data?.length || 0} pacientes exitosamente.`,
                       });
                     }}
                     onImport={(data) => {
@@ -1728,7 +1728,7 @@ export default function TestStylesPage() {
                     onExport={(data) => {
                       toast({
                         title: "Catálogo Exportado",
-                        description: `Se exportaron ${data.length} servicios.`,
+                        description: `Se exportaron ${data?.length || 0} servicios.`,
                       });
                     }}
                     toolbarActions={
