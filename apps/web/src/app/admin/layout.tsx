@@ -419,7 +419,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Limpio y Funcional */}
           <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between h-16 px-6">
+            <div className="flex items-center justify-between h-16 px-4">
               {/* Lado izquierdo: Menú móvil + Breadcrumb */}
               <div className="flex items-center space-x-4">
                 <Button
@@ -432,7 +432,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Button>
                 
                 {/* Breadcrumb Navigation */}
-                <nav className="flex items-center space-x-2 text-sm">
+                <nav className="flex items-center text-sm">
                   <Link 
                     href="/admin/dashboard" 
                     className="text-slate-500 hover:text-slate-700 font-medium transition-colors"
@@ -571,7 +571,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Contenido */}
           <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 to-slate-100/30">
-            <div className="p-6 space-y-6 mx-auto h-full w-full">
+            <div className="p-4 space-y-4 mx-auto h-full w-full">
               {children}
             </div>
           </main>

@@ -1,6 +1,27 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import Cookies from 'js-cookie';
 
+interface PatientsFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string | string[];
+  professionalId?: string;
+  tags?: string | string[];
+  ageMin?: number;
+  ageMax?: number;
+  gender?: string | string[];
+  contact?: string;
+  language?: string;
+  hasInsurance?: boolean;
+  paymentMethod?: string | string[];
+  dateFrom?: string;
+  dateTo?: string;
+  dateField?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Create axios instance
@@ -129,16 +150,7 @@ export const api = {
 
   // Patients
   patients: {
-    list: (params?: { 
-      page?: number; 
-      limit?: number; 
-      search?: string; 
-      status?: string;
-      gender?: string;
-      dateFrom?: string;
-      dateTo?: string;
-      professionalId?: string;
-    }) =>
+    list: (params?: PatientsFilters) =>
       apiClient.get<ApiResponse<{
         patients: any[];
         pagination: {

@@ -164,17 +164,19 @@ interface PatientQuery {
   page?: string;
   limit?: string;
   search?: string;
-  status?: string;
+  status?: string | string[];
   professionalId?: string;
-  tags?: string;
-  age?: string;
-  ageRange?: string;
-  gender?: string;
+  tags?: string | string[];
+  ageMin?: string | number;
+  ageMax?: string | number;
+  gender?: string | string[];
+  contact?: string; // For searching in phone and email
   language?: string;
-  hasInsurance?: string;
-  paymentMethod?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  hasInsurance?: string; // "true" or "false"
+  paymentMethod?: string | string[];
+  dateFrom?: string; // ISO date
+  dateTo?: string; // ISO date
+  dateField?: string; // 'createdAt' | 'updatedAt'
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   include?: string; // For populating related data
@@ -194,14 +196,16 @@ export class PatientController {
         status,
         professionalId,
         tags,
-        age,
-        ageRange,
+        ageMin,
+        ageMax,
         gender,
+        contact,
         language,
         hasInsurance,
         paymentMethod,
         dateFrom,
         dateTo,
+        dateField,
         sortBy = 'createdAt',
         sortOrder = 'desc',
         include,
@@ -243,7 +247,16 @@ export class PatientController {
       }
 
       // Apply query filters
-      if (status) filter.status = status;
+      if (status) {
+        // Handle both single status and array of statuses
+        if (Array.isArray(status)) {
+          filter.status = { $in: status };
+        } else if (typeof status === 'string' && status.includes(',')) {
+          filter.status = { $in: status.split(',') };
+        } else {
+          filter.status = status;
+        }
+      }
       
       if (professionalId && authUser.role !== 'professional') {
         filter.$or = [
@@ -253,35 +266,106 @@ export class PatientController {
       }
       
       if (tags) {
-        const tagArray = tags.split(',');
-        filter['tags.name'] = { $in: tagArray };
+        let tagArray: string[];
+        if (Array.isArray(tags)) {
+          tagArray = tags;
+        } else {
+          tagArray = tags.split(',');
+        }
+        filter.tags = { $in: tagArray };
       }
       
-      if (age) {
-        filter['personalInfo.age'] = parseInt(age, 10);
-      } else if (ageRange) {
-        const [minAge, maxAge] = ageRange.split('-').map(Number);
-        filter['personalInfo.age'] = { $gte: minAge, $lte: maxAge };
+      // Age range filtering
+      if (ageMin || ageMax) {
+        const ageFilter: any = {};
+        
+        if (ageMin) {
+          const minAge = parseInt(String(ageMin), 10);
+          if (!isNaN(minAge)) {
+            ageFilter.$gte = minAge;
+          }
+        }
+        
+        if (ageMax) {
+          const maxAge = parseInt(String(ageMax), 10);
+          if (!isNaN(maxAge)) {
+            ageFilter.$lte = maxAge;
+          }
+        }
+        
+        if (Object.keys(ageFilter).length > 0) {
+          filter['personalInfo.age'] = ageFilter;
+        }
       }
       
-      if (gender) filter['personalInfo.gender'] = gender;
+      if (gender) {
+        // Handle both single gender and array of genders
+        if (Array.isArray(gender)) {
+          filter['personalInfo.gender'] = { $in: gender };
+        } else if (typeof gender === 'string' && gender.includes(',')) {
+          filter['personalInfo.gender'] = { $in: gender.split(',') };
+        } else {
+          filter['personalInfo.gender'] = gender;
+        }
+      }
+      
+      if (contact) {
+        // Search in phone and email fields
+        const contactFilters = [
+          { 'contactInfo.phone': { $regex: contact, $options: 'i' } },
+          { 'contactInfo.email': { $regex: contact, $options: 'i' } }
+        ];
+        
+        if (filter.$or) {
+          filter.$and = [
+            { $or: filter.$or },
+            { $or: contactFilters }
+          ];
+          delete filter.$or;
+        } else {
+          filter.$or = contactFilters;
+        }
+      }
+      
       if (language) filter['preferences.language'] = language;
       
       if (hasInsurance) {
         filter['insurance.hasInsurance'] = hasInsurance === 'true';
       }
       
-      if (paymentMethod) filter['insurance.paymentMethod'] = paymentMethod;
+      if (paymentMethod) {
+        if (Array.isArray(paymentMethod)) {
+          filter['insurance.paymentMethod'] = { $in: paymentMethod };
+        } else if (typeof paymentMethod === 'string' && paymentMethod.includes(',')) {
+          filter['insurance.paymentMethod'] = { $in: paymentMethod.split(',') };
+        } else {
+          filter['insurance.paymentMethod'] = paymentMethod;
+        }
+      }
       
+      // Support both createdAt and updatedAt date filtering
       if (dateFrom || dateTo) {
-        filter.createdAt = {};
-        if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
-        if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+        const dateField = sortBy === 'updatedAt' || req.query.dateField === 'updatedAt' ? 'updatedAt' : 'createdAt';
+        filter[dateField] = {};
+        if (dateFrom) {
+          const fromDate = new Date(dateFrom);
+          if (!isNaN(fromDate.getTime())) {
+            filter[dateField].$gte = fromDate;
+          }
+        }
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          if (!isNaN(toDate.getTime())) {
+            // Add end of day to include the entire date
+            toDate.setHours(23, 59, 59, 999);
+            filter[dateField].$lte = toDate;
+          }
+        }
       }
 
       // Text search across multiple fields
       if (search) {
-        filter.$or = [
+        const searchFilters = [
           { 'personalInfo.fullName': { $regex: search, $options: 'i' } },
           { 'personalInfo.firstName': { $regex: search, $options: 'i' } },
           { 'personalInfo.lastName': { $regex: search, $options: 'i' } },
@@ -289,6 +373,18 @@ export class PatientController {
           { 'contactInfo.phone': { $regex: search, $options: 'i' } },
           { 'personalInfo.idNumber': { $regex: search, $options: 'i' } },
         ];
+        
+        if (filter.$or) {
+          filter.$and = [
+            { $or: filter.$or },
+            { $or: searchFilters }
+          ];
+          delete filter.$or;
+        } else if (filter.$and) {
+          filter.$and.push({ $or: searchFilters });
+        } else {
+          filter.$or = searchFilters;
+        }
       }
 
       // Build sort
@@ -328,9 +424,10 @@ export class PatientController {
         data: {
           patients,
           pagination: {
-            currentPage: pageNum,
+            total,
+            page: pageNum,
+            limit: limitNum,
             totalPages,
-            totalPatients: total,
             hasNext: pageNum < totalPages,
             hasPrev: pageNum > 1,
           },

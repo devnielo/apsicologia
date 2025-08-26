@@ -62,10 +62,29 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import type { DateRange } from 'react-day-picker'
+import { DateRangePicker } from './date-picker'
 import { CalendarIcon, FileText, FileSpreadsheet } from 'lucide-react';
-import type { DateRange } from 'react-day-picker';
+
+// Column label translations
+const getColumnLabel = (columnId: string): string => {
+  const translations: Record<string, string> = {
+    'id': 'ID',
+    'select': 'Selección',
+    'patient': 'Paciente', 
+    'age': 'Edad',
+    'gender': 'Género',
+    'contact': 'Contacto',
+    'status': 'Estado',
+    'professional': 'Profesional',
+    'updatedAt': 'Última actualización',
+    'actions': 'Acciones'
+  };
+  
+  return translations[columnId] || columnId;
+};
 
 // Enhanced Pagination Component
 interface PaginationInfo {
@@ -248,7 +267,7 @@ function ColumnFilter({ column, table, config }: ColumnFilterProps) {
               old?.[1],
             ])
           }
-          placeholder="Min"
+          placeholder="Mín"
           className="w-20 h-8"
         />
         <Input
@@ -260,7 +279,7 @@ function ColumnFilter({ column, table, config }: ColumnFilterProps) {
               e.target.value,
             ])
           }
-          placeholder="Max"
+          placeholder="Máx"
           className="w-20 h-8"
         />
       </div>
@@ -406,43 +425,15 @@ function ColumnFilter({ column, table, config }: ColumnFilterProps) {
 
   // Date range filter
   if (filterType === 'daterange') {
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
-      columnFilterValue ? columnFilterValue as DateRange : undefined
-    );
-
     return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="h-8 w-[200px] justify-start text-left font-normal"
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
-                `${format(dateRange.from, 'P', { locale: es })} - ${format(dateRange.to, 'P', { locale: es })}`
-              ) : (
-                format(dateRange.from, 'P', { locale: es })
-              )
-            ) : (
-              'Rango de fechas'
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="range"
-            selected={dateRange}
-            onSelect={(range) => {
-              setDateRange(range);
-              column.setFilterValue(range);
-            }}
-            locale={es}
-            numberOfMonths={2}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+      <DateRangePicker
+        dateRange={columnFilterValue as DateRange | undefined}
+        onDateRangeChange={(range) => {
+          column.setFilterValue(range);
+        }}
+        placeholder="Rango de fechas"
+        className="h-8 w-[200px]"
+      />
     );
   }
 
@@ -456,45 +447,50 @@ function ColumnFilter({ column, table, config }: ColumnFilterProps) {
     />
   );
 }
-
-// Main Advanced DataTable Component
 export interface AdvancedDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  // Search
-  searchKey?: string;
+  searchKey?: keyof TData;
   searchPlaceholder?: string;
-  // Features
   enableSorting?: boolean;
   enableFiltering?: boolean;
   enableColumnVisibility?: boolean;
   enableRowSelection?: boolean;
   enablePagination?: boolean;
   enableGlobalFilter?: boolean;
-  // Column Filter Configurations
   columnFilterConfigs?: Record<string, ColumnFilterConfig>;
-  // Responsive
   enableMobileView?: boolean;
   mobileBreakpoint?: number;
   compactMode?: boolean;
-  // Pagination
   pageSizeOptions?: number[];
   defaultPageSize?: number;
-  // Styling
   className?: string;
   tableClassName?: string;
-  // Callbacks
   onRowClick?: (row: Row<TData>) => void;
   onSelectionChange?: (selectedRows: Row<TData>[]) => void;
-  onExport?: (data: TData[]) => void;
+  onExport?: (selectedRows?: TData[]) => void;
   onImport?: (data: TData[]) => void;
-  // Loading & Empty states
   isLoading?: boolean;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
-  // Toolbar
   showToolbar?: boolean;
   toolbarActions?: React.ReactNode;
+  
+  // Server-side props
+  manualPagination?: boolean;
+  manualFiltering?: boolean;
+  manualSorting?: boolean;
+  pageCount?: number;
+  onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
+  onColumnFiltersChange?: (filters: Record<string, any>) => void;
+  onGlobalFilterChange?: (globalFilter: string) => void;
+  onSortingChange?: (sorting: { field: string; order: 'asc' | 'desc' }[]) => void;
+  state?: {
+    pagination?: { pageIndex: number; pageSize: number };
+    columnFilters?: { id: string; value: any }[];
+    globalFilter?: string;
+    sorting?: { id: string; desc: boolean }[];
+  };
 }
 
 export function AdvancedDataTable<TData, TValue>({
@@ -525,12 +521,29 @@ export function AdvancedDataTable<TData, TValue>({
   emptyIcon,
   showToolbar = true,
   toolbarActions,
+  
+  // Server-side props
+  manualPagination = false,
+  manualFiltering = false,
+  manualSorting = false,
+  pageCount,
+  onPaginationChange,
+  onColumnFiltersChange,
+  onGlobalFilterChange,
+  onSortingChange,
+  state,
 }: AdvancedDataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [globalFilter, setGlobalFilter] = React.useState('');
+  // Local state (used when not in manual mode)
+  const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
+  const [localColumnFilters, setLocalColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [localColumnVisibility, setLocalColumnVisibility] = React.useState<VisibilityState>({});
+  const [localRowSelection, setLocalRowSelection] = React.useState({});
+  const [localGlobalFilter, setLocalGlobalFilter] = React.useState('');
+  const [localPagination, setLocalPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: defaultPageSize,
+  });
+  
   const [showColumnFilters, setShowColumnFilters] = React.useState(false);
   const [isMobileView, setIsMobileView] = React.useState(false);
 
@@ -547,6 +560,59 @@ export function AdvancedDataTable<TData, TValue>({
     return () => window.removeEventListener('resize', checkIsMobile);
   }, [enableMobileView, mobileBreakpoint]);
 
+  // Use either controlled state or local state
+  const sorting = state?.sorting ? state.sorting.map(s => ({ id: s.id, desc: s.desc })) : localSorting;
+  const columnFilters = state?.columnFilters || localColumnFilters;
+  const globalFilter = state?.globalFilter ?? localGlobalFilter;
+  const pagination = state?.pagination || localPagination;
+  const columnVisibility = localColumnVisibility;
+  const rowSelection = localRowSelection;
+
+  // Handle state changes
+  const handleSortingChange = React.useCallback((updater: any) => {
+    if (manualSorting && onSortingChange) {
+      const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+      const sortingForCallback = newSorting.map((s: any) => ({ 
+        field: s.id, 
+        order: s.desc ? 'desc' as const : 'asc' as const 
+      }));
+      onSortingChange(sortingForCallback);
+    } else {
+      setLocalSorting(updater);
+    }
+  }, [manualSorting, onSortingChange, sorting]);
+
+  const handleColumnFiltersChange = React.useCallback((updater: any) => {
+    if (manualFiltering && onColumnFiltersChange) {
+      const newFilters = typeof updater === 'function' ? updater(columnFilters) : updater;
+      const filtersObject = newFilters.reduce((acc: Record<string, any>, filter: any) => {
+        acc[filter.id] = filter.value;
+        return acc;
+      }, {});
+      onColumnFiltersChange(filtersObject);
+    } else {
+      setLocalColumnFilters(updater);
+    }
+  }, [manualFiltering, onColumnFiltersChange, columnFilters]);
+
+  const handleGlobalFilterChange = React.useCallback((updater: any) => {
+    const newGlobalFilter = typeof updater === 'function' ? updater(globalFilter) : updater;
+    if (manualFiltering && onGlobalFilterChange) {
+      onGlobalFilterChange(newGlobalFilter);
+    } else {
+      setLocalGlobalFilter(newGlobalFilter);
+    }
+  }, [manualFiltering, onGlobalFilterChange, globalFilter]);
+
+  const handlePaginationChange = React.useCallback((updater: any) => {
+    if (manualPagination && onPaginationChange) {
+      const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
+      onPaginationChange(newPagination);
+    } else {
+      setLocalPagination(updater);
+    }
+  }, [manualPagination, onPaginationChange, pagination]);
+
   const table = useReactTable({
     data,
     columns,
@@ -556,28 +622,23 @@ export function AdvancedDataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       globalFilter,
-      pagination: {
-        pageIndex: 0,
-        pageSize: defaultPageSize,
-      },
+      pagination,
     },
+    pageCount: pageCount || Math.ceil(data.length / pagination.pageSize),
     enableRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: (updater) => {
-      setRowSelection(updater);
-      if (onSelectionChange) {
-        const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-        const selectedRows = table.getFilteredSelectedRowModel().rows;
-        onSelectionChange(selectedRows);
-      }
-    },
-    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: handleSortingChange,
+    onColumnFiltersChange: handleColumnFiltersChange,
+    onColumnVisibilityChange: setLocalColumnVisibility,
+    onRowSelectionChange: setLocalRowSelection,
+    onGlobalFilterChange: handleGlobalFilterChange,
+    onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
-    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
-    getFilteredRowModel: enableFiltering ? getFilteredRowModel() : undefined,
+    getSortedRowModel: enableSorting && !manualSorting ? getSortedRowModel() : undefined,
+    getFilteredRowModel: enableFiltering && !manualFiltering ? getFilteredRowModel() : undefined,
+    manualPagination,
+    manualSorting,
+    manualFiltering,
   });
 
   const selectedRowsCount = table.getFilteredSelectedRowModel().rows.length;
@@ -596,20 +657,10 @@ export function AdvancedDataTable<TData, TValue>({
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={searchPlaceholder}
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="pl-8 h-9 w-[250px]"
+                    value={globalFilter ?? ''}
+                    onChange={(e) => handleGlobalFilterChange(e.target.value)}
+                    className="pl-8 h-9"
                   />
-                  {globalFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-9 px-2"
-                      onClick={() => setGlobalFilter('')}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               )}
 
@@ -758,7 +809,7 @@ export function AdvancedDataTable<TData, TValue>({
                             checked={column.getIsVisible()}
                             onCheckedChange={(value) => column.toggleVisibility(!!value)}
                           >
-                            {column.id}
+                            {getColumnLabel(column.id)}
                           </DropdownMenuCheckboxItem>
                         );
                       })}
@@ -776,8 +827,8 @@ export function AdvancedDataTable<TData, TValue>({
                 
                 return (
                   <div key={column.id} className="flex flex-col gap-1">
-                    <label className="text-xs font-medium capitalize">
-                      {column.id}
+                    <label className="text-xs font-medium">
+                      {getColumnLabel(column.id)}
                     </label>
                     <ColumnFilter 
                       column={column} 
@@ -789,10 +840,10 @@ export function AdvancedDataTable<TData, TValue>({
               })}
               {columnFilters.length > 0 && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => setColumnFilters([])}
-                  className="h-8 self-end"
+                  onClick={() => handleColumnFiltersChange([])}
+                  className="h-8 self-end bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 hover:text-primary font-medium"
                 >
                   Limpiar filtros
                 </Button>

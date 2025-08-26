@@ -339,25 +339,103 @@ async function seedData() {
       console.log(`🏢 Created room: ${room.name}`);
     }
 
-    // Crear 30 pacientes adicionales
-    const additionalPatients = [];
-    const firstNames = ['Carlos', 'María', 'José', 'Carmen', 'Antonio', 'Isabel', 'Manuel', 'Pilar', 'Francisco', 'Dolores', 'David', 'Teresa', 'Jesús', 'Ana', 'Javier', 'Cristina', 'Daniel', 'Marta', 'Rafael', 'Laura', 'Fernando', 'Silvia', 'Sergio', 'Patricia', 'Alejandro', 'Beatriz', 'Pablo', 'Rocío', 'Adrián', 'Natalia'];
-    const lastNames = ['García', 'Rodríguez', 'González', 'Fernández', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'Martín', 'Jiménez', 'Ruiz', 'Hernández', 'Díaz', 'Moreno', 'Muñoz', 'Álvarez', 'Romero', 'Alonso', 'Gutiérrez', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Ramírez', 'Serrano', 'Blanco', 'Suárez'];
-    const cities = ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao'];
-    const conditions = ['Ansiedad', 'Depresión', 'Estrés', 'Insomnio', 'Fobias', 'TOC', 'TDAH', 'Trastorno bipolar'];
-    const occupations = ['Ingeniero', 'Profesor', 'Médico', 'Abogado', 'Comercial', 'Administrativo', 'Enfermero', 'Psicólogo', 'Contador', 'Diseñador'];
+    // Crear 3 profesionales adicionales primero
+    const professionalNames = [
+      { firstName: 'Elena', lastName: 'Navarro Ruiz', title: 'Dra.', specialties: ['Terapia de Pareja', 'Sexología', 'Mediación Familiar'], experience: 15 },
+      { firstName: 'Roberto', lastName: 'Morales Vega', title: 'Dr.', specialties: ['Neuropsicología', 'Rehabilitación Cognitiva', 'Demencias'], experience: 10 },
+      { firstName: 'Carmen', lastName: 'Jiménez Soto', title: 'Dra.', specialties: ['Psicología Forense', 'Evaluación Pericial', 'Victimología'], experience: 18 },
+    ];
 
-    for (let i = 0; i < 30; i++) {
-      const firstName = firstNames[i];
-      const lastName = lastNames[i];
+    const additionalProfessionals = [];
+    for (let i = 0; i < professionalNames.length; i++) {
+      const prof = professionalNames[i];
+      const email = `${prof.firstName.toLowerCase()}.${prof.lastName.split(' ')[0].toLowerCase()}@arribapsicologia.com`;
+      const hashedPassword = await bcrypt.hash('Professional2024!', 12);
+      
+      const profUser = new User({
+        email: email,
+        passwordHash: hashedPassword,
+        name: `${prof.title} ${prof.firstName} ${prof.lastName}`,
+        phone: `+34 6${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
+        role: 'professional',
+        profileImage: profileImageBase64,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await profUser.save();
+      console.log(`✅ Created user: ${prof.title} ${prof.firstName} ${prof.lastName}`);
+
+      const professional = new Professional({
+        userId: profUser._id,
+        name: `${prof.title} ${prof.firstName} ${prof.lastName}`,
+        email: email,
+        phone: profUser.phone,
+        licenseNumber: `PSI-${2020 + i}-00${i + 3}`,
+        specialties: prof.specialties,
+        bio: `${prof.title} en Psicología con ${prof.experience} años de experiencia`,
+        title: prof.title,
+        yearsOfExperience: prof.experience,
+        services: [],
+        defaultServiceDuration: 60,
+        weeklyAvailability: [
+          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 5, startTime: '09:00', endTime: '16:00', isAvailable: true }
+        ],
+        bufferMinutes: Math.floor(Math.random() * 10) + 10,
+        timezone: 'Europe/Madrid',
+        assignedRooms: [],
+        vacations: [],
+        settings: {
+          allowOnlineBooking: Math.random() > 0.5,
+          requireApproval: Math.random() > 0.5,
+          notificationPreferences: {
+            email: true,
+            sms: Math.random() > 0.5,
+            push: true
+          }
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await professional.save();
+      console.log(`✅ Created professional: ${prof.title} ${prof.firstName} ${prof.lastName}`);
+      
+      profUser.professionalId = professional._id;
+      await profUser.save();
+      additionalProfessionals.push(professional);
+    }
+
+    // Crear 50 pacientes adicionales con datos más variados
+    const additionalPatients = [];
+    const firstNames = ['Carlos', 'María', 'José', 'Carmen', 'Antonio', 'Isabel', 'Manuel', 'Pilar', 'Francisco', 'Dolores', 'David', 'Teresa', 'Jesús', 'Ana', 'Javier', 'Cristina', 'Daniel', 'Marta', 'Rafael', 'Laura', 'Fernando', 'Silvia', 'Sergio', 'Patricia', 'Alejandro', 'Beatriz', 'Pablo', 'Rocío', 'Adrián', 'Natalia', 'Diego', 'Lucía', 'Ángel', 'Rosa', 'Juan', 'Inés', 'Miguel', 'Sofía', 'Rubén', 'Alba', 'Álvaro', 'Nerea', 'Marcos', 'Irene', 'Gonzalo', 'Claudia', 'Víctor', 'Paula', 'Iván', 'Elena'];
+    const lastNames = ['García', 'Rodríguez', 'González', 'Fernández', 'López', 'Martínez', 'Sánchez', 'Pérez', 'Gómez', 'Martín', 'Jiménez', 'Ruiz', 'Hernández', 'Díaz', 'Moreno', 'Muñoz', 'Álvarez', 'Romero', 'Alonso', 'Gutiérrez', 'Navarro', 'Torres', 'Domínguez', 'Vázquez', 'Ramos', 'Gil', 'Ramírez', 'Serrano', 'Blanco', 'Suárez', 'Castillo', 'Ortega', 'Delgado', 'Castro', 'Vargas', 'Ortiz', 'Rubio', 'Medina', 'Soto', 'Contreras', 'Aguilar', 'Herrera', 'Mendoza', 'Guerrero', 'Rojas', 'Medina', 'Cruz', 'Flores', 'Espinoza', 'Rivera'];
+    const cities = ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 'Gijón', 'Hospitalet', 'Granada', 'Elche', 'Oviedo', 'Badalona'];
+    const conditions = ['Ansiedad', 'Depresión', 'Estrés', 'Insomnio', 'Fobias', 'TOC', 'TDAH', 'Trastorno bipolar', 'Duelo', 'Trauma', 'Adicciones', 'Trastornos alimentarios', 'Autoestima', 'Habilidades sociales', 'Control de ira'];
+    const occupations = ['Ingeniero', 'Profesor', 'Médico', 'Abogado', 'Comercial', 'Administrativo', 'Enfermero', 'Psicólogo', 'Contador', 'Diseñador', 'Arquitecto', 'Periodista', 'Chef', 'Artista', 'Mecánico', 'Policía', 'Bombero', 'Veterinario', 'Farmacéutico', 'Electricista', 'Plomero', 'Traductor', 'Programador', 'Consultor', 'Vendedor'];
+    const genders = ['male', 'female', 'non-binary', 'other'];
+    const statuses = ['active', 'inactive', 'discharged', 'transferred'];
+    const maritalStatuses = ['single', 'married', 'divorced', 'widowed', 'separated', 'domestic_partnership'];
+    
+    // Combinar todos los profesionales (originales + nuevos)
+    const allProfessionals = [professional1, professional2, ...additionalProfessionals];
+
+    for (let i = 0; i < 50; i++) {
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
       const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i + 3}@email.com`;
       const phone = `+34 6${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`;
-      const city = cities[i % cities.length];
-      const condition = conditions[i % conditions.length];
-      const occupation = occupations[i % occupations.length];
-      const birthYear = 1970 + Math.floor(Math.random() * 35);
-      const gender = i % 2 === 0 ? 'male' : 'female';
-      const professionalId = i % 2 === 0 ? professional1._id : professional2._id;
+      const city = cities[Math.floor(Math.random() * cities.length)];
+      const condition = conditions[Math.floor(Math.random() * conditions.length)];
+      const occupation = occupations[Math.floor(Math.random() * occupations.length)];
+      const birthYear = 1950 + Math.floor(Math.random() * 55); // Edades 18-74 años
+      const gender = genders[Math.floor(Math.random() * genders.length)];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const maritalStatus = maritalStatuses[Math.floor(Math.random() * maritalStatuses.length)];
+      const professionalId = allProfessionals[Math.floor(Math.random() * allProfessionals.length)]._id;
       
       // Calcular edad basada en fecha de nacimiento
       const dateOfBirth = new Date(birthYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
@@ -377,9 +455,9 @@ async function seedData() {
           nationality: 'Española',
           idNumber: `${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
           idType: 'dni',
-          maritalStatus: ['single', 'married', 'divorced'][Math.floor(Math.random() * 3)],
+          maritalStatus: maritalStatus,
           occupation: occupation,
-          profilePicture: profileImageBase64  // Usar la misma imagen base64 para todos por ahora
+          profilePicture: Math.random() > 0.4 ? profileImageBase64 : null  // 60% tienen foto, 40% no
         },
         contactInfo: {
           email: email,
@@ -455,7 +533,7 @@ async function seedData() {
           consentVersion: '1.0'
         },
         tags: [condition.toLowerCase()],
-        status: 'active',
+        status: status,
         notes: [],
         relationships: [],
         referrals: [],
@@ -502,10 +580,12 @@ async function seedData() {
     // Crear citas para aproximadamente 60% de los pacientes
     const patientsWithHistory = allPatients.slice(0, Math.floor(allPatients.length * 0.6));
     
+    // Actualizar referencias de profesionales (usar allProfessionals ya definido)
+    
     for (const patient of patientsWithHistory) {
       const numAppointments = Math.floor(Math.random() * 8) + 1; // 1-8 citas por paciente
       const assignedProfessional = patient.clinicalInfo.assignedProfessionals[0];
-      const professional = professionals.find(p => p._id.equals(assignedProfessional));
+      const professional = allProfessionals.find(p => p._id.equals(assignedProfessional));
       
       if (!professional) continue;
 
@@ -670,7 +750,7 @@ async function seedData() {
     }
 
     console.log('\n🎉 SEED DATA CREATED SUCCESSFULLY!');
-    console.log('👥 Professionals: 2');
+    console.log(`👥 Professionals: ${2 + additionalProfessionals.length}`);
     console.log(`🏥 Patients: ${2 + additionalPatients.length}`);
     console.log('💼 Services: 3');
     console.log('🏢 Rooms: 3');
