@@ -65,7 +65,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head />
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>
             {children}

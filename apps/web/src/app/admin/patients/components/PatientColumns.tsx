@@ -54,6 +54,11 @@ const statusConfig = {
     label: 'Fallecido', 
     variant: 'destructive' as const,
     className: 'bg-red-100 text-red-800 border-red-200'
+  },
+  deleted: { 
+    label: 'Eliminado', 
+    variant: 'destructive' as const,
+    className: 'bg-red-100 text-red-800 border-red-200'
   }
 };
 
@@ -275,13 +280,13 @@ export function usePatientColumns({ onDeletePatient }: UsePatientColumnsProps) {
         const handleViewPatient = (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
-          router.push(`/admin/patients/new?id=${patient.id}`);
+          router.push(`/admin/patients/${patient.id}`);
         };
 
         const handleEditPatient = (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
-          router.push(`/admin/patients/new?id=${patient.id}`);
+          router.push(`/admin/patients/${patient.id}/edit`);
         };
 
         const handleDeletePatient = (e: React.MouseEvent) => {
@@ -369,7 +374,8 @@ export function usePatientColumns({ onDeletePatient }: UsePatientColumnsProps) {
         { label: 'Inactivo', value: 'inactive' },
         { label: 'Alta', value: 'discharged' },
         { label: 'Transferido', value: 'transferred' },
-        { label: 'Fallecido', value: 'deceased' }
+        { label: 'Fallecido', value: 'deceased' },
+        { label: 'Eliminado', value: 'deleted' }
       ]
     },
   }), []);

@@ -21,6 +21,7 @@ export interface IPatientDocument extends Document {
     maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed' | 'separated' | 'domestic-partner';
     occupation?: string;
     employer?: string;
+    profilePicture?: string; // Base64 encoded image
   };
   
   // Contact Information
@@ -271,7 +272,7 @@ export interface IPatientDocument extends Document {
   }[];
   
   // Status and lifecycle
-  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased';
+  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased' | 'deleted';
   
   // Relationship tracking
   relationships: {
@@ -443,6 +444,11 @@ const PersonalInfoSchema = new Schema({
     type: String,
     trim: true,
     maxlength: [100, 'Employer cannot exceed 100 characters'],
+  },
+  profilePicture: {
+    type: String,
+    trim: true,
+    maxlength: [5000000, 'Profile picture cannot exceed 5MB when base64 encoded'], // ~5MB limit
   },
 }, { _id: false });
 
@@ -1061,7 +1067,7 @@ const PatientSchema = new Schema<IPatientDocument>(
     // Status
     status: {
       type: String,
-      enum: ['active', 'inactive', 'discharged', 'transferred', 'deceased'],
+      enum: ['active', 'inactive', 'discharged', 'transferred', 'deceased', 'deleted'],
       default: 'active',
       index: true,
     },

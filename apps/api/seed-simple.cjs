@@ -418,7 +418,7 @@ async function seedData() {
     const occupations = ['Ingeniero', 'Profesor', 'Médico', 'Abogado', 'Comercial', 'Administrativo', 'Enfermero', 'Psicólogo', 'Contador', 'Diseñador', 'Arquitecto', 'Periodista', 'Chef', 'Artista', 'Mecánico', 'Policía', 'Bombero', 'Veterinario', 'Farmacéutico', 'Electricista', 'Plomero', 'Traductor', 'Programador', 'Consultor', 'Vendedor'];
     const genders = ['male', 'female', 'non-binary', 'other'];
     const statuses = ['active', 'inactive', 'discharged', 'transferred'];
-    const maritalStatuses = ['single', 'married', 'divorced', 'widowed', 'separated', 'domestic_partnership'];
+    const maritalStatuses = ['single', 'married', 'divorced', 'widowed', 'separated', 'domestic-partner'];
     
     // Combinar todos los profesionales (originales + nuevos)
     const allProfessionals = [professional1, professional2, ...additionalProfessionals];
@@ -489,9 +489,11 @@ async function seedData() {
               active: true
             }] : [],
             allergies: Math.random() > 0.7 ? [{
-              name: ['Polen', 'Ácaros', 'Penicilina'][Math.floor(Math.random() * 3)],
+              type: ['medication', 'food', 'environmental'][Math.floor(Math.random() * 3)],
+              allergen: ['Polen', 'Ácaros', 'Penicilina'][Math.floor(Math.random() * 3)],
               severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
-              reaction: 'Reacción alérgica'
+              reaction: 'Reacción alérgica',
+              notes: 'Paciente informado sobre precauciones'
             }] : [],
             surgeries: [],
             hospitalizations: []
@@ -515,7 +517,22 @@ async function seedData() {
         episodes: [],
         insurance: {
           hasInsurance: Math.random() > 0.3,
-          paymentMethod: Math.random() > 0.5 ? 'insurance' : 'private'
+          primaryInsurance: Math.random() > 0.3 ? {
+            provider: ['Sanitas', 'Adeslas', 'DKV', 'Mapfre'][Math.floor(Math.random() * 4)],
+            policyNumber: `POL-${Math.floor(Math.random() * 1000000)}`,
+            policyHolder: `${firstName} ${lastName}`,
+            relationshipToPolicyHolder: 'self',
+            effectiveDate: new Date(2024, 0, 1),
+            mentalHealthBenefit: true,
+            sessionLimit: Math.floor(Math.random() * 20) + 10,
+            sessionsUsed: Math.floor(Math.random() * 5),
+            authorizationRequired: Math.random() > 0.5
+          } : undefined,
+          paymentMethod: ['insurance', 'self-pay', 'sliding-scale'][Math.floor(Math.random() * 3)],
+          financialAssistance: {
+            approved: false,
+            discountPercentage: 0
+          }
         },
         preferences: {
           language: 'es',
@@ -525,26 +542,71 @@ async function seedData() {
             reminderTiming: [24, 2],
             newsletters: Math.random() > 0.5,
             marketingCommunications: Math.random() > 0.7
+          },
+          appointmentPreferences: {
+            preferredTimes: [],
+            preferredProfessionals: [professionalId],
+            sessionFormat: 'in-person',
+            sessionDuration: 50,
+            notes: ''
+          },
+          portalAccess: {
+            enabled: false,
+            twoFactorEnabled: false,
+            loginNotifications: true
           }
         },
         gdprConsent: {
-          hasConsented: true,
-          consentDate: new Date(),
-          consentVersion: '1.0'
+          dataProcessing: {
+            consented: true,
+            consentDate: new Date(),
+            consentMethod: 'digital',
+            consentVersion: '1.0'
+          },
+          marketingCommunications: {
+            consented: Math.random() > 0.7,
+            consentDate: new Date(),
+            method: 'digital'
+          },
+          dataSharing: {
+            healthcareProfessionals: true,
+            insuranceProviders: Math.random() > 0.5,
+            emergencyContacts: true,
+            researchPurposes: false,
+            consentDate: new Date()
+          },
+          rightToErasure: {
+            requested: false
+          },
+          dataPortability: {}
         },
-        tags: [condition.toLowerCase()],
+        tags: [{
+          name: condition.toLowerCase(),
+          category: 'clinical',
+          color: '#e74c3c',
+          addedBy: professionalId,
+          addedDate: new Date()
+        }],
         status: status,
-        notes: [],
         relationships: [],
-        referrals: [],
+        referral: {
+          source: ['self', 'physician', 'family', 'friend', 'online'][Math.floor(Math.random() * 5)],
+          referralDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
+          referralReason: `Necesidad de tratamiento para ${condition.toLowerCase()}`
+        },
+        administrativeNotes: [],
         statistics: {
           totalAppointments: Math.floor(Math.random() * 10),
           completedAppointments: Math.floor(Math.random() * 8),
           cancelledAppointments: Math.floor(Math.random() * 2),
           noShowAppointments: Math.floor(Math.random() * 2),
-          totalPayments: Math.floor(Math.random() * 1000),
-          outstandingBalance: Math.floor(Math.random() * 200)
+          firstAppointmentDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
+          lastAppointmentDate: new Date(),
+          totalInvoiceAmount: Math.floor(Math.random() * 1000),
+          totalPaidAmount: Math.floor(Math.random() * 800),
+          averageSessionRating: Math.round((Math.random() * 2 + 3) * 10) / 10 // 3.0-5.0
         },
+        createdBy: adminUser._id,
         createdAt: new Date(),
         updatedAt: new Date()
       });

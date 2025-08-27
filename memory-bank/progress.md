@@ -318,10 +318,44 @@ interface Patient {
 - ✅ **Estilos mejorados** para botón "Limpiar filtros"
 - ✅ **TypeScript strict** en todas las nuevas implementaciones
 
+#### **8. Mejora de Campos Clínicos con TagInput (✅ COMPLETADO - Agosto 27, 2025)**
+
+**🎯 Objetivo Completado:** Reemplazar textareas por componente TagInput interactivo para mejor UX en datos clínicos
+
+**🔧 Componente TagInput Creado:**
+- ✅ **Archivo:** `/apps/web/src/components/ui/tag-input.tsx` (130 líneas)
+- ✅ **Funcionalidades:** Añadir/eliminar tags, sugerencias dropdown, contadores, validación
+- ✅ **Integración:** React Hook Form compatible con array fields
+- ✅ **UI/UX:** Badges interactivos, placeholders dinámicos, límites configurables
+- ✅ **Accesibilidad:** Soporte teclado (Enter, Escape), ARIA labels correctos
+- ✅ **Componentes base:** Badge, Input, Button, Popover, Command de shadcn/ui
+
+**📊 Constantes Clínicas Agregadas:**
+- ✅ **Archivo:** `/packages/shared/src/constants/form-options.ts` (líneas 140-224)
+- ✅ **COMMON_CONCERNS:** 32 preocupaciones clínicas (ansiedad, depresión, estrés, etc.)
+- ✅ **COMMON_MEDICATIONS:** 28 medicamentos comunes (sertralina, lorazepam, etc.)
+- ✅ **COMMON_ALLERGIES:** 42 alérgenos frecuentes (polen, ácaros, medicamentos)
+- ✅ **Organización:** Arrays exportados para uso en sugerencias TagInput
+
+**🏥 Integración en Formulario de Pacientes:**
+- ✅ **Archivo:** `/apps/web/src/components/admin/patient-compact-form.tsx`
+- ✅ **Campos mejorados:** primaryConcerns, currentMedications, allergies
+- ✅ **Sugerencias contextuales:** Cada campo con su array de opciones predefinidas
+- ✅ **Límites configurados:** 8 concerns, 10 medications, 12 allergies máximo
+- ✅ **Imports corregidos:** Rutas relativas para evitar errores de resolución
+
+**🧪 Testing Completo Realizado:**
+- ✅ **Funcionalidad básica:** Añadir/eliminar tags funcionando correctamente
+- ✅ **Sugerencias:** Dropdown con filtrado por texto de búsqueda
+- ✅ **Contadores:** Actualización en tiempo real (ej: "2 / 8 elementos")
+- ✅ **Persistencia:** Formulario guarda correctamente a base de datos
+- ✅ **Visualización:** Datos clínicos se muestran correctamente en página detalles
+- ✅ **Validación:** Form submission exitosa con datos estructurados
+
 **⏳ Tareas Pendientes Menores en Módulo Pacientes:**
-- ⏳ Implementar modales para crear/editar/ver pacientes (75% completado)
-- ⏳ Completar formularios con nueva estructura de datos
-- ⏳ Testing completo del CRUD de pacientes
+- ⏳ Extender TagInput a formulario de creación de pacientes 
+- ⏳ Añadir validación avanzada (duplicados, longitud mínima)
+- ⏳ Considerar agrupación de tags por categorías
 
 ### ⏭️ PRÓXIMOS PASOS
 

@@ -122,6 +122,28 @@ export const EMERGENCY_CONTACT_RELATIONSHIP_OPTIONS = [
   { value: 'other', label: 'Otro' },
 ] as const;
 
+export const PAYMENT_METHOD_OPTIONS = [
+  { value: 'insurance', label: 'Seguro' },
+  { value: 'self-pay', label: 'Pago particular' },
+  { value: 'sliding-scale', label: 'Tarifa reducida' },
+  { value: 'pro-bono', label: 'Pro bono' },
+] as const;
+
+export const PATIENT_STATUS_OPTIONS = [
+  { value: 'active', label: 'Activo' },
+  { value: 'inactive', label: 'Inactivo' },
+  { value: 'discharged', label: 'Dado de alta' },
+  { value: 'transferred', label: 'Transferido' },
+  { value: 'any', label: 'Cualquiera' },
+] as const;
+
+export const SESSION_FORMAT_OPTIONS = [
+  { value: 'in-person', label: 'Presencial' },
+  { value: 'video', label: 'Video' },
+  { value: 'phone', label: 'Teléfono' },
+  { value: 'any', label: 'Cualquiera' },
+] as const;
+
 // Type helpers
 export type CountryCode = typeof COUNTRIES[number]['value'];
 export type ProvinceCode = typeof SPAIN_PROVINCES[number]['value'];
@@ -129,3 +151,73 @@ export type GenderOption = typeof GENDER_OPTIONS[number]['value'];
 export type OccupationOption = typeof OCCUPATION_OPTIONS[number]['value'];
 export type MaritalStatusOption = typeof MARITAL_STATUS_OPTIONS[number]['value'];
 export type EmergencyContactRelationship = typeof EMERGENCY_CONTACT_RELATIONSHIP_OPTIONS[number]['value'];
+export type PaymentMethodOption = typeof PAYMENT_METHOD_OPTIONS[number]['value'];
+export type PatientStatusOption = typeof PATIENT_STATUS_OPTIONS[number]['value'];
+export type SessionFormatOption = typeof SESSION_FORMAT_OPTIONS[number]['value'];
+
+// Clinical data suggestions
+export const COMMON_CONCERNS = [
+  'Ansiedad',
+  'Depresión',
+  'Estrés',
+  'Insomnio',
+  'Ataques de pánico',
+  'Fobias',
+  'Trastornos alimentarios',
+  'Problemas de autoestima',
+  'Duelo',
+  'Problemas de pareja',
+  'Problemas familiares',
+  'Adicciones',
+  'Trastorno bipolar',
+  'TOC (Trastorno Obsesivo Compulsivo)',
+  'TEPT (Trastorno de Estrés Postraumático)',
+  'TDAH',
+  'Problemas de conducta',
+  'Burnout',
+  'Trastornos de personalidad'
+] as const;
+
+export const COMMON_MEDICATIONS = [
+  'Sertralina',
+  'Paroxetina',
+  'Fluoxetina',
+  'Escitalopram',
+  'Venlafaxina',
+  'Duloxetina',
+  'Mirtazapina',
+  'Bupropión',
+  'Alprazolam',
+  'Lorazepam',
+  'Diazepam',
+  'Clonazepam',
+  'Quetiapina',
+  'Risperidona',
+  'Aripiprazol',
+  'Lamotrigina',
+  'Valproato',
+  'Litio',
+  'Metilfenidato',
+  'Atomoxetina'
+] as const;
+
+export const COMMON_ALLERGIES = [
+  'Penicilina',
+  'Aspirina',
+  'Ibuprofeno',
+  'Frutos secos',
+  'Mariscos',
+  'Huevos',
+  'Leche',
+  'Gluten',
+  'Soja',
+  'Látex',
+  'Polen',
+  'Ácaros del polvo',
+  'Pelo de animales',
+  'Sulfamidas',
+  'Contraste radiológico',
+  'Anestésicos locales',
+  'Codeína',
+  'Morfina'
+] as const;

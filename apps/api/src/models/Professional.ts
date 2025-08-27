@@ -14,6 +14,7 @@ export interface IProfessionalDocument extends Document {
   bio?: string;
   title: string;
   yearsOfExperience?: number;
+  profilePicture?: string; // Base64 encoded image
   
   // Services and pricing
   services: mongoose.Types.ObjectId[];
@@ -216,6 +217,11 @@ const ProfessionalSchema = new Schema<IProfessionalDocument>(
       type: Number,
       min: [0, 'Years of experience cannot be negative'],
       max: [50, 'Years of experience seems too high'],
+    },
+    profilePicture: {
+      type: String,
+      trim: true,
+      maxlength: [5000000, 'Profile picture cannot exceed 5MB when base64 encoded'], // ~5MB limit
     },
     
     // Services and pricing

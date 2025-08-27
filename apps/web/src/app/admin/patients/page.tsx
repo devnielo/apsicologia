@@ -189,9 +189,12 @@ export default function PatientsPage() {
     onDeletePatient: handleDeletePatient,
   });
 
-  // Mutations
+  // Mutations - Soft delete mutation (change status to 'deleted')
   const deleteMutation = useMutation({
-    mutationFn: (patientId: string) => api.patients.delete(patientId),
+    mutationFn: (patientId: string) => api.patients.update(patientId, { 
+      status: 'deleted',
+      lastModifiedBy: 'current-user-id' // TODO: Get actual user ID from auth context
+    }),
     onSuccess: () => {
       toast.success('Paciente eliminado correctamente');
       queryClient.invalidateQueries({ queryKey: ['patients'] });
@@ -237,7 +240,7 @@ export default function PatientsPage() {
 
   // Navigation handlers
   const handleCreatePatient = useCallback(() => {
-    router.push('/admin/patients/new');
+    router.push('/admin/patients/create');
   }, [router]);
 
   return (
