@@ -140,11 +140,16 @@ export function usePatientColumns({ onDeletePatient }: UsePatientColumnsProps) {
     {
       accessorKey: 'id',
       header: 'ID',
-      cell: ({ row }) => (
-        <div className="font-mono text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded min-w-[80px]">
-          {row.getValue('id') ? (row.getValue('id') as string).slice(-8) : 'N/A'}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const fullId = row.getValue('id') as string;
+        if (!fullId) return <div className="font-mono text-xs text-muted-foreground">N/A</div>;
+        
+        return (
+          <div className="font-mono text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded min-w-[80px]" title={fullId}>
+            {fullId.slice(-8)}
+          </div>
+        );
+      },
       size: 100,
     },
     {

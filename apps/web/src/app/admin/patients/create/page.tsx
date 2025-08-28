@@ -83,17 +83,8 @@ export default function CreatePatientPage() {
             treatmentPlan: 'Plan inicial en desarrollo'
           }
         },
-        insurance: {
-          ...patientData.insurance,
-          primaryInsurance: patientData.insurance.hasInsurance ? {
-            provider: patientData.insurance.primaryProvider || '',
-            policyNumber: patientData.insurance.policyNumber || '',
-            policyHolder: `${patientData.personalInfo.firstName} ${patientData.personalInfo.lastName}`,
-            relationshipToPolicyHolder: 'self',
-            effectiveDate: new Date(),
-            mentalHealthBenefit: true,
-            authorizationRequired: false,
-          } : undefined,
+        billing: {
+          ...patientData.billing
         },
         preferences: {
           language: patientData.preferences.language,
@@ -131,7 +122,7 @@ export default function CreatePatientPage() {
           },
           dataSharing: {
             healthcareProfessionals: true,
-            insuranceProviders: patientData.insurance.hasInsurance,
+            insuranceProviders: false,
             emergencyContacts: true,
             consentDate: patientData.gdprConsent.consentDate,
           },

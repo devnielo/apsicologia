@@ -103,7 +103,7 @@ export default function EditPatientPage({ params }: EditPatientPageProps) {
             treatmentPlan: 'Plan en desarrollo'
           }
         },
-        insurance: patientData.insurance,
+        billing: patientData.billing,
         preferences: {
           language: patientData.preferences?.language || 'es',
           communicationPreferences: {
@@ -381,11 +381,11 @@ export default function EditPatientPage({ params }: EditPatientPageProps) {
                 medicalHistory: patientData?.clinicalInfo?.medicalHistory || '',
                 mentalHealthHistory: patientData?.clinicalInfo?.mentalHealthHistory || '',
               },
-              insurance: {
-                hasInsurance: patientData?.insurance?.hasInsurance || false,
-                primaryProvider: patientData?.insurance?.primaryInsurance?.provider || '',
-                policyNumber: patientData?.insurance?.primaryInsurance?.policyNumber || '',
-                paymentMethod: patientData?.insurance?.paymentMethod || 'card',
+              billing: {
+                paymentMethod: patientData?.billing?.paymentMethod || 'stripe',
+                preferredPaymentMethod: patientData?.billing?.preferredPaymentMethod || 'card',
+                stripeCustomerId: patientData?.billing?.stripeCustomerId || '',
+                billingNotes: patientData?.billing?.billingNotes || '',
               },
               gdprConsent: {
                 dataProcessingConsented: patientData?.gdprConsent?.dataProcessing?.consented || false,

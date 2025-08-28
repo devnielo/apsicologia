@@ -145,47 +145,12 @@ export interface IPatientDocument extends Document {
     appointmentIds: mongoose.Types.ObjectId[];
   }[];
   
-  // Insurance and billing
-  insurance: {
-    hasInsurance: boolean;
-    primaryInsurance?: {
-      provider: string;
-      policyNumber: string;
-      groupNumber?: string;
-      policyHolder: string;
-      relationshipToPolicyHolder: 'self' | 'spouse' | 'child' | 'other';
-      effectiveDate: Date;
-      expirationDate?: Date;
-      copayAmount?: number;
-      deductibleAmount?: number;
-      coveragePercentage?: number;
-      mentalHealthBenefit: boolean;
-      sessionLimit?: number;
-      sessionsUsed?: number;
-      authorizationRequired: boolean;
-      authorizationNumber?: string;
-      notes?: string;
-    };
-    secondaryInsurance?: {
-      provider: string;
-      policyNumber: string;
-      groupNumber?: string;
-      policyHolder: string;
-      relationshipToPolicyHolder: 'self' | 'spouse' | 'child' | 'other';
-      effectiveDate: Date;
-      expirationDate?: Date;
-      copayAmount?: number;
-      deductibleAmount?: number;
-      coveragePercentage?: number;
-    };
-    paymentMethod: 'insurance' | 'self-pay' | 'sliding-scale' | 'pro-bono';
-    financialAssistance?: {
-      approved: boolean;
-      discountPercentage?: number;
-      reason?: string;
-      validUntil?: Date;
-      approvedBy?: mongoose.Types.ObjectId;
-    };
+  // Payment and billing configuration
+  billing: {
+    paymentMethod: 'stripe' | 'cash';
+    stripeCustomerId?: string;
+    preferredPaymentMethod?: 'card' | 'cash';
+    billingNotes?: string;
   };
   
   // Preferences and configuration
@@ -836,72 +801,20 @@ const PatientSchema = new Schema<IPatientDocument>(
     // Episodes
     episodes: [EpisodeSchema],
     
-    // Insurance and billing
-    insurance: {
-      hasInsurance: {
-        type: Boolean,
-        default: false,
-      },
-      primaryInsurance: {
-        provider: String,
-        policyNumber: String,
-        groupNumber: String,
-        policyHolder: String,
-        relationshipToPolicyHolder: {
-          type: String,
-          enum: ['self', 'spouse', 'child', 'other'],
-        },
-        effectiveDate: Date,
-        expirationDate: Date,
-        copayAmount: Number,
-        deductibleAmount: Number,
-        coveragePercentage: Number,
-        mentalHealthBenefit: Boolean,
-        sessionLimit: Number,
-        sessionsUsed: {
-          type: Number,
-          default: 0,
-        },
-        authorizationRequired: {
-          type: Boolean,
-          default: false,
-        },
-        authorizationNumber: String,
-        notes: String,
-      },
-      secondaryInsurance: {
-        provider: String,
-        policyNumber: String,
-        groupNumber: String,
-        policyHolder: String,
-        relationshipToPolicyHolder: {
-          type: String,
-          enum: ['self', 'spouse', 'child', 'other'],
-        },
-        effectiveDate: Date,
-        expirationDate: Date,
-        copayAmount: Number,
-        deductibleAmount: Number,
-        coveragePercentage: Number,
-      },
+    // Payment and billing configuration
+    billing: {
       paymentMethod: {
         type: String,
-        enum: ['insurance', 'self-pay', 'sliding-scale', 'pro-bono'],
-        default: 'self-pay',
+        enum: ['stripe', 'cash'],
+        default: 'stripe',
       },
-      financialAssistance: {
-        approved: {
-          type: Boolean,
-          default: false,
-        },
-        discountPercentage: Number,
-        reason: String,
-        validUntil: Date,
-        approvedBy: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
+      stripeCustomerId: String,
+      preferredPaymentMethod: {
+        type: String,
+        enum: ['card', 'cash'],
+        default: 'card',
       },
+      billingNotes: String,
     },
     
     // Preferences

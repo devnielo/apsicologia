@@ -13,14 +13,11 @@ export interface EmergencyContact {
   email?: string;
 }
 
-export interface Insurance {
-  providerName?: string;
-  policyNumber?: string;
-  groupNumber?: string;
-  paymentMethod: 'insurance' | 'self-pay' | 'mixed';
-  copay?: number;
-  deductible?: number;
-  coverageDetails?: string;
+export interface Billing {
+  paymentMethod: 'stripe' | 'cash';
+  preferredPaymentMethod: 'card' | 'cash';
+  stripeCustomerId?: string;
+  billingNotes?: string;
 }
 
 export interface MedicalHistory {
@@ -76,7 +73,7 @@ export interface Patient {
     previousTreatments: any[];
     episodeOfCare: any[];
   };
-  insurance: Insurance;
+  billing: Billing;
   preferences: {
     language: string;
     communicationPreferences: {
@@ -194,10 +191,11 @@ export interface PatientFormData {
       sessionDuration?: number;
     };
   };
-  insurance?: {
+  billing?: {
     paymentMethod: string;
-    providerName?: string;
-    policyNumber?: string;
+    preferredPaymentMethod?: string;
+    stripeCustomerId?: string;
+    billingNotes?: string;
   };
   gdprConsents: {
     processingConsent: boolean;

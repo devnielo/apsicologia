@@ -89,12 +89,12 @@ const compactPatientSchema = z.object({
     hasAllergies: z.boolean().default(false),
   }),
 
-  // Insurance simplified
-  insurance: z.object({
-    hasInsurance: z.boolean().default(false),
-    paymentMethod: z.enum(['insurance', 'self-pay', 'sliding-scale', 'pro-bono']).default('self-pay'),
-    primaryProvider: z.string().optional(),
-    policyNumber: z.string().optional(),
+  // Billing and payment
+  billing: z.object({
+    paymentMethod: z.enum(['stripe', 'cash']).default('stripe'),
+    preferredPaymentMethod: z.enum(['card', 'cash']).default('card'),
+    stripeCustomerId: z.string().optional(),
+    billingNotes: z.string().optional(),
   }),
 
   // Basic preferences
@@ -168,11 +168,11 @@ export function PatientCompactForm({
         allergies: patient.clinicalInfo?.allergies || [],
         hasAllergies: patient.clinicalInfo?.hasAllergies || false,
       },
-      insurance: {
-        hasInsurance: patient.insurance?.hasInsurance || false,
-        paymentMethod: patient.insurance?.paymentMethod || 'self-pay',
-        primaryProvider: patient.insurance?.primaryInsurance?.provider,
-        policyNumber: patient.insurance?.primaryInsurance?.policyNumber,
+      billing: {
+        paymentMethod: patient.billing?.paymentMethod || 'stripe',
+        preferredPaymentMethod: patient.billing?.preferredPaymentMethod || 'card',
+        stripeCustomerId: patient.billing?.stripeCustomerId,
+        billingNotes: patient.billing?.billingNotes,
       },
       preferences: {
         language: patient.preferences?.language || 'es',
@@ -216,9 +216,9 @@ export function PatientCompactForm({
         allergies: [],
         hasAllergies: false,
       },
-      insurance: {
-        hasInsurance: false,
-        paymentMethod: 'self-pay',
+      billing: {
+        paymentMethod: 'stripe',
+        preferredPaymentMethod: 'card',
       },
       preferences: {
         language: 'es',
@@ -269,7 +269,7 @@ export function PatientCompactForm({
         'contactInfo': 'contact', 
         'emergencyContact': 'emergency',
         'clinicalInfo': 'clinical',
-        'insurance': 'billing',
+        'billing': 'billing',
         'preferences': 'settings',
         'gdprConsent': 'settings'
       };
@@ -661,22 +661,10 @@ export function PatientCompactForm({
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="insurance.hasInsurance"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel>¿Tiene seguro médico?</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="insurance.paymentMethod"
+                    name="billing.paymentMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Método de Pago</FormLabel>
+                        <FormLabel>Método de Pago Principal</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -684,47 +672,63 @@ export function PatientCompactForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {PAYMENT_METHOD_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="stripe">Tarjeta de Crédito (Stripe)</SelectItem>
+                            <SelectItem value="cash">Pago en Efectivo</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {form.watch('insurance.hasInsurance') && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="insurance.primaryProvider"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Proveedor</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="insurance.policyNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número de Póliza</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                  <FormField
+                    control={form.control}
+                    name="billing.preferredPaymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Método Preferido</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="card">Tarjeta</SelectItem>
+                            <SelectItem value="cash">Efectivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch('billing.paymentMethod') === 'stripe' && (
+                    <FormField
+                      control={form.control}
+                      name="billing.stripeCustomerId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ID Cliente Stripe (Opcional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="cus_..." />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
+                  <FormField
+                    control={form.control}
+                    name="billing.billingNotes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notas de Facturación (Opcional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Notas adicionales sobre facturación..." />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </CardContent>
             </Card>

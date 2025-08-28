@@ -480,59 +480,106 @@ async function seedData() {
           primaryProfessional: professionalId,
           assignedProfessionals: [professionalId],
           medicalHistory: {
-            conditions: [condition],
-            medications: Math.random() > 0.5 ? [{
-              name: ['Sertralina', 'Escitalopram', 'Lorazepam', 'Diazepam'][Math.floor(Math.random() * 4)],
-              dosage: ['25mg', '50mg', '100mg'][Math.floor(Math.random() * 3)],
-              frequency: 'Diaria',
-              startDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              active: true
+            conditions: [condition, ...(Math.random() > 0.6 ? [['Hipertensión', 'Diabetes tipo 2', 'Migraña', 'Asma'][Math.floor(Math.random() * 4)]] : [])],
+            medications: Math.random() > 0.4 ? [
+              {
+                name: ['Sertralina', 'Escitalopram', 'Lorazepam', 'Diazepam', 'Alprazolam'][Math.floor(Math.random() * 5)],
+                dosage: ['25mg', '50mg', '100mg', '0.5mg', '1mg'][Math.floor(Math.random() * 5)],
+                frequency: ['Diaria', 'Dos veces al día', 'Según necesidad', 'Cada 12 horas'][Math.floor(Math.random() * 4)],
+                prescribedBy: ['Dr. García', 'Dra. Martínez', 'Dr. López', 'Dra. Rodríguez'][Math.floor(Math.random() * 4)],
+                startDate: new Date(2024, Math.floor(Math.random() * 8), Math.floor(Math.random() * 28) + 1),
+                endDate: Math.random() > 0.7 ? new Date(2024, Math.floor(Math.random() * 12) + 6, Math.floor(Math.random() * 28) + 1) : undefined,
+                active: Math.random() > 0.2,
+                notes: Math.random() > 0.5 ? ['Tomar con alimentos', 'Evitar alcohol', 'Reducir dosis gradualmente si es necesario'][Math.floor(Math.random() * 3)] : undefined
+              },
+              ...(Math.random() > 0.7 ? [{
+                name: ['Ibuprofeno', 'Paracetamol', 'Omeprazol'][Math.floor(Math.random() * 3)],
+                dosage: ['400mg', '500mg', '20mg'][Math.floor(Math.random() * 3)],
+                frequency: 'Según necesidad',
+                prescribedBy: 'Médico de familia',
+                startDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
+                active: true
+              }] : [])
+            ] : [],
+            allergies: Math.random() > 0.6 ? [
+              {
+                type: ['medication', 'food', 'environmental'][Math.floor(Math.random() * 3)],
+                allergen: ['Penicilina', 'Frutos secos', 'Polen', 'Ácaros', 'Mariscos', 'Aspirina'][Math.floor(Math.random() * 6)],
+                severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
+                reaction: ['Erupciones cutáneas', 'Dificultad respiratoria', 'Hinchazón', 'Picor', 'Urticaria'][Math.floor(Math.random() * 5)],
+                notes: Math.random() > 0.5 ? 'Paciente lleva pulsera de alerta médica' : undefined
+              },
+              ...(Math.random() > 0.8 ? [{
+                type: 'environmental',
+                allergen: 'Polvo doméstico',
+                severity: 'mild',
+                reaction: 'Estornudos y congestión nasal'
+              }] : [])
+            ] : [],
+            surgeries: Math.random() > 0.8 ? [{
+              procedure: ['Apendicectomía', 'Colecistectomía', 'Cirugía de rodilla', 'Cesárea'][Math.floor(Math.random() * 4)],
+              date: new Date(2018 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+              hospital: ['Hospital Universitario', 'Clínica San Carlos', 'Hospital Gregorio Marañón'][Math.floor(Math.random() * 3)],
+              surgeon: ['Dr. Fernández', 'Dra. Sánchez', 'Dr. Moreno'][Math.floor(Math.random() * 3)],
+              notes: 'Cirugía sin complicaciones, recuperación normal'
             }] : [],
-            allergies: Math.random() > 0.7 ? [{
-              type: ['medication', 'food', 'environmental'][Math.floor(Math.random() * 3)],
-              allergen: ['Polen', 'Ácaros', 'Penicilina'][Math.floor(Math.random() * 3)],
-              severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
-              reaction: 'Reacción alérgica',
-              notes: 'Paciente informado sobre precauciones'
-            }] : [],
-            surgeries: [],
-            hospitalizations: []
+            hospitalizations: Math.random() > 0.9 ? [{
+              reason: ['Neumonía', 'Crisis de ansiedad severa', 'Síncope', 'Dolor torácico'][Math.floor(Math.random() * 4)],
+              admissionDate: new Date(2022 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+              dischargeDate: new Date(2022 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 3),
+              hospital: ['Hospital La Paz', 'Hospital Clínico San Carlos', 'Hospital 12 de Octubre'][Math.floor(Math.random() * 3)],
+              notes: 'Evolución favorable, seguimiento ambulatorio'
+            }] : []
           },
           mentalHealthHistory: {
-            previousTreatments: Math.random() > 0.6 ? [{
-              type: 'therapy',
-              startDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              endDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              reason: condition,
-              outcome: ['Mejoría', 'Mejoría parcial', 'Sin cambios'][Math.floor(Math.random() * 3)]
+            previousTreatments: Math.random() > 0.5 ? [
+              {
+                type: ['therapy', 'medication', 'hospitalization'][Math.floor(Math.random() * 3)],
+                provider: Math.random() > 0.5 ? ['Centro de Salud Mental', 'Psicólogo privado', 'Hospital Psiquiátrico'][Math.floor(Math.random() * 3)] : undefined,
+                startDate: new Date(2020 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+                endDate: Math.random() > 0.3 ? new Date(2021 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) : undefined,
+                reason: condition,
+                outcome: Math.random() > 0.5 ? ['Mejoría significativa', 'Mejoría parcial', 'Sin cambios'][Math.floor(Math.random() * 3)] : undefined,
+                notes: Math.random() > 0.5 ? 'Tratamiento previo documentado' : undefined
+              }
+            ] : [],
+            diagnoses: condition ? [{
+              condition: condition,
+              diagnosedBy: 'Dr. García López',
+              diagnosisDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+              icdCode: `F${Math.floor(Math.random() * 99).toString().padStart(2, '0')}.${Math.floor(Math.random() * 9)}`,
+              status: ['active', 'resolved', 'in-remission', 'chronic'][Math.floor(Math.random() * 4)],
+              severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
+              notes: 'Diagnóstico confirmado tras evaluación clínica'
             }] : [],
-            diagnoses: [],
-            riskFactors: []
+            riskFactors: Math.random() > 0.7 ? [{
+              factor: ['Estrés laboral', 'Problemas familiares', 'Duelo', 'Cambios vitales'][Math.floor(Math.random() * 4)],
+              level: ['low', 'moderate', 'high'][Math.floor(Math.random() * 3)],
+              notes: 'Evaluado durante entrevista inicial',
+              assessedDate: new Date(),
+              assessedBy: professionalId
+            }] : []
           },
           currentTreatment: {
-            goals: [`Reducir síntomas de ${condition.toLowerCase()}`, 'Mejorar calidad de vida'],
-            startDate: new Date()
+            treatmentPlan: `Plan de tratamiento cognitivo-conductual para ${condition.toLowerCase()}`,
+            goals: [
+              `Reducir síntomas de ${condition.toLowerCase()}`,
+              'Mejorar calidad de vida',
+              'Desarrollar estrategias de afrontamiento',
+              ...(Math.random() > 0.5 ? ['Mejorar relaciones interpersonales', 'Incrementar autoestima'] : [])
+            ],
+            startDate: new Date(2024, Math.floor(Math.random() * 8), Math.floor(Math.random() * 28) + 1),
+            expectedDuration: ['3 meses', '6 meses', '1 año', 'Indefinido'][Math.floor(Math.random() * 4)],
+            frequency: ['Semanal', 'Quincenal', 'Mensual'][Math.floor(Math.random() * 3)],
+            notes: Math.random() > 0.5 ? 'Paciente muestra motivación para el cambio' : undefined
           }
         },
         episodes: [],
-        insurance: {
-          hasInsurance: Math.random() > 0.3,
-          primaryInsurance: Math.random() > 0.3 ? {
-            provider: ['Sanitas', 'Adeslas', 'DKV', 'Mapfre'][Math.floor(Math.random() * 4)],
-            policyNumber: `POL-${Math.floor(Math.random() * 1000000)}`,
-            policyHolder: `${firstName} ${lastName}`,
-            relationshipToPolicyHolder: 'self',
-            effectiveDate: new Date(2024, 0, 1),
-            mentalHealthBenefit: true,
-            sessionLimit: Math.floor(Math.random() * 20) + 10,
-            sessionsUsed: Math.floor(Math.random() * 5),
-            authorizationRequired: Math.random() > 0.5
-          } : undefined,
-          paymentMethod: ['insurance', 'self-pay', 'sliding-scale'][Math.floor(Math.random() * 3)],
-          financialAssistance: {
-            approved: false,
-            discountPercentage: 0
-          }
+        billing: {
+          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'cash',
+          preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
+          stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
+          billingNotes: ''
         },
         preferences: {
           language: 'es',
@@ -544,49 +591,58 @@ async function seedData() {
             marketingCommunications: Math.random() > 0.7
           },
           appointmentPreferences: {
-            preferredTimes: [],
+            preferredTimes: [{
+              dayOfWeek: Math.floor(Math.random() * 5) + 1, // Lunes a Viernes
+              startTime: '09:00',
+              endTime: '17:00'
+            }],
             preferredProfessionals: [professionalId],
-            sessionFormat: 'in-person',
-            sessionDuration: 50,
-            notes: ''
+            sessionFormat: ['in-person', 'video', 'any'][Math.floor(Math.random() * 3)],
+            sessionDuration: [45, 50, 60][Math.floor(Math.random() * 3)],
+            bufferBetweenSessions: Math.random() > 0.5 ? 15 : undefined,
+            notes: Math.random() > 0.5 ? 'Preferencias de horario flexibles' : undefined
           },
           portalAccess: {
-            enabled: false,
-            twoFactorEnabled: false,
+            enabled: Math.random() > 0.3,
+            lastLogin: Math.random() > 0.5 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
+            passwordLastChanged: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
+            twoFactorEnabled: Math.random() > 0.8,
             loginNotifications: true
           }
         },
         gdprConsent: {
           dataProcessing: {
             consented: true,
-            consentDate: new Date(),
+            consentDate: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000),
             consentMethod: 'digital',
-            consentVersion: '1.0'
+            consentVersion: '1.0',
+            witnessedBy: professionalId,
+            notes: 'Consentimiento registrado durante el proceso de registro'
           },
           marketingCommunications: {
-            consented: Math.random() > 0.7,
-            consentDate: new Date(),
+            consented: Math.random() > 0.4,
+            consentDate: Math.random() > 0.4 ? new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000) : undefined,
             method: 'digital'
           },
           dataSharing: {
             healthcareProfessionals: true,
-            insuranceProviders: Math.random() > 0.5,
+            insuranceProviders: false,
             emergencyContacts: true,
-            researchPurposes: false,
-            consentDate: new Date()
+            researchPurposes: Math.random() > 0.7,
+            consentDate: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000)
           },
           rightToErasure: {
             requested: false
           },
           dataPortability: {}
         },
-        tags: [{
-          name: condition.toLowerCase(),
-          category: 'clinical',
-          color: '#e74c3c',
+        tags: Math.random() > 0.3 ? [{
+          name: ['VIP', 'Seguimiento especial', 'Primera consulta', 'Urgente', 'Derivado'][Math.floor(Math.random() * 5)],
+          category: ['clinical', 'administrative', 'billing'][Math.floor(Math.random() * 3)],
+          color: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'][Math.floor(Math.random() * 6)],
           addedBy: professionalId,
           addedDate: new Date()
-        }],
+        }] : [],
         status: status,
         relationships: [],
         referral: {
@@ -596,15 +652,15 @@ async function seedData() {
         },
         administrativeNotes: [],
         statistics: {
-          totalAppointments: Math.floor(Math.random() * 10),
-          completedAppointments: Math.floor(Math.random() * 8),
-          cancelledAppointments: Math.floor(Math.random() * 2),
-          noShowAppointments: Math.floor(Math.random() * 2),
-          firstAppointmentDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
-          lastAppointmentDate: new Date(),
-          totalInvoiceAmount: Math.floor(Math.random() * 1000),
-          totalPaidAmount: Math.floor(Math.random() * 800),
-          averageSessionRating: Math.round((Math.random() * 2 + 3) * 10) / 10 // 3.0-5.0
+          totalAppointments: 0,
+          completedAppointments: 0,
+          cancelledAppointments: 0,
+          noShowAppointments: 0,
+          firstAppointmentDate: null,
+          lastAppointmentDate: null,
+          totalInvoiceAmount: 0,
+          totalPaidAmount: 0,
+          averageSessionRating: 0
         },
         createdBy: adminUser._id,
         createdAt: new Date(),
@@ -639,8 +695,8 @@ async function seedData() {
 
     const createdAppointments = [];
     
-    // Crear citas para aproximadamente 60% de los pacientes
-    const patientsWithHistory = allPatients.slice(0, Math.floor(allPatients.length * 0.6));
+    // Crear citas para todos los pacientes
+    const patientsWithHistory = allPatients;
     
     // Actualizar referencias de profesionales (usar allProfessionals ya definido)
     
@@ -667,10 +723,7 @@ async function seedData() {
         endTime.setMinutes(appointmentDate.getMinutes() + service.duration);
         
         const basePrice = service.price;
-        const hasInsurance = patient.insurance?.hasInsurance;
-        const insuranceAmount = hasInsurance ? basePrice * 0.7 : 0;
-        const copayAmount = hasInsurance ? basePrice * 0.3 : 0;
-        const totalAmount = hasInsurance ? copayAmount : basePrice;
+        const totalAmount = basePrice;
 
         const appointment = new Appointment({
           patientId: patient._id,
@@ -689,9 +742,6 @@ async function seedData() {
           pricing: {
             basePrice: basePrice,
             discountAmount: 0,
-            insuranceAmount: insuranceAmount,
-            insuranceProvider: hasInsurance ? 'Sanitas' : undefined,
-            copayAmount: copayAmount,
             totalAmount: totalAmount,
             currency: 'EUR'
           },
@@ -760,7 +810,7 @@ async function seedData() {
             hipaaCompliant: true,
             documentationComplete: status === 'completed',
             billingCoded: status === 'completed',
-            insuranceClaimed: status === 'completed' && hasInsurance
+            insuranceClaimed: false
           },
           
           metadata: {
@@ -795,17 +845,23 @@ async function seedData() {
     for (const patient of patientsWithHistory) {
       const patientAppointments = createdAppointments.filter(apt => apt.patientId.equals(patient._id));
       
+      const sortedAppointments = patientAppointments.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+      
       const stats = {
         totalAppointments: patientAppointments.length,
         completedAppointments: patientAppointments.filter(apt => apt.status === 'completed').length,
         cancelledAppointments: patientAppointments.filter(apt => apt.status === 'cancelled').length,
         noShowAppointments: patientAppointments.filter(apt => apt.status === 'no_show').length,
-        totalPayments: patientAppointments
+        firstAppointmentDate: sortedAppointments.length > 0 ? sortedAppointments[0].startTime : null,
+        lastAppointmentDate: sortedAppointments.length > 0 ? sortedAppointments[sortedAppointments.length - 1].startTime : null,
+        totalInvoiceAmount: patientAppointments
+          .reduce((sum, apt) => sum + apt.pricing.totalAmount, 0),
+        totalPaidAmount: patientAppointments
           .filter(apt => apt.paymentStatus === 'paid')
           .reduce((sum, apt) => sum + apt.pricing.totalAmount, 0),
-        outstandingBalance: patientAppointments
-          .filter(apt => apt.paymentStatus === 'pending')
-          .reduce((sum, apt) => sum + apt.pricing.totalAmount, 0)
+        averageSessionRating: patientAppointments.length > 0 
+          ? Math.round((Math.random() * 2 + 3) * 10) / 10 // 3.0-5.0 
+          : 0
       };
       
       await Patient.findByIdAndUpdate(patient._id, { statistics: stats });

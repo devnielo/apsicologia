@@ -199,19 +199,85 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/auth/login');
   };
 
-  const getCurrentPageTitle = () => {
-    if (!user) return 'Administración';
+  const getBreadcrumbs = () => {
+    if (!user) return [{ title: 'Administración', href: '/admin/dashboard' }];
+    
     const sidebarItems = getAllSidebarItems(user.role);
-    // Tratar /admin como /admin/dashboard para el título
+    const breadcrumbs = [{ title: 'Admin', href: '/admin/dashboard' }];
+    
+    // Tratar /admin como /admin/dashboard
     const currentPath = pathname === '/admin' ? '/admin/dashboard' : pathname;
-    const currentItem = sidebarItems.find(item => item.href === currentPath);
-    return currentItem?.title || 'Administración';
+    
+    // Casos especiales para rutas anidadas
+    if (currentPath.startsWith('/admin/patients/')) {
+      breadcrumbs.push({ title: 'Pacientes', href: '/admin/patients' });
+      
+      if (currentPath.includes('/edit')) {
+        breadcrumbs.push({ title: 'Editar Paciente', href: currentPath });
+      } else if (currentPath === '/admin/patients/new' || currentPath === '/admin/patients/create') {
+        breadcrumbs.push({ title: 'Nuevo Paciente', href: currentPath });
+      } else if (currentPath.match(/^\/admin\/patients\/[^\/]+$/)) {
+        breadcrumbs.push({ title: 'Ver Paciente', href: currentPath });
+      }
+    } else if (currentPath.startsWith('/admin/professionals/')) {
+      breadcrumbs.push({ title: 'Profesionales', href: '/admin/professionals' });
+      
+      if (currentPath.includes('/edit')) {
+        breadcrumbs.push({ title: 'Editar Profesional', href: currentPath });
+      } else if (currentPath === '/admin/professionals/new' || currentPath === '/admin/professionals/create') {
+        breadcrumbs.push({ title: 'Nuevo Profesional', href: currentPath });
+      } else if (currentPath.match(/^\/admin\/professionals\/[^\/]+$/)) {
+        breadcrumbs.push({ title: 'Ver Profesional', href: currentPath });
+      }
+    } else if (currentPath.startsWith('/admin/services/')) {
+      breadcrumbs.push({ title: 'Servicios', href: '/admin/services' });
+      
+      if (currentPath.includes('/edit')) {
+        breadcrumbs.push({ title: 'Editar Servicio', href: currentPath });
+      } else if (currentPath === '/admin/services/new' || currentPath === '/admin/services/create') {
+        breadcrumbs.push({ title: 'Nuevo Servicio', href: currentPath });
+      } else if (currentPath.match(/^\/admin\/services\/[^\/]+$/)) {
+        breadcrumbs.push({ title: 'Ver Servicio', href: currentPath });
+      }
+    } else if (currentPath.startsWith('/admin/rooms/')) {
+      breadcrumbs.push({ title: 'Salas', href: '/admin/rooms' });
+      
+      if (currentPath.includes('/edit')) {
+        breadcrumbs.push({ title: 'Editar Sala', href: currentPath });
+      } else if (currentPath === '/admin/rooms/new' || currentPath === '/admin/rooms/create') {
+        breadcrumbs.push({ title: 'Nueva Sala', href: currentPath });
+      } else if (currentPath.match(/^\/admin\/rooms\/[^\/]+$/)) {
+        breadcrumbs.push({ title: 'Ver Sala', href: currentPath });
+      }
+    } else if (currentPath.startsWith('/admin/appointments/')) {
+      breadcrumbs.push({ title: 'Citas', href: '/admin/calendar' });
+      
+      if (currentPath.includes('/edit')) {
+        breadcrumbs.push({ title: 'Editar Cita', href: currentPath });
+      } else if (currentPath === '/admin/appointments/new' || currentPath === '/admin/appointments/create') {
+        breadcrumbs.push({ title: 'Nueva Cita', href: currentPath });
+      } else if (currentPath.match(/^\/admin\/appointments\/[^\/]+$/)) {
+        breadcrumbs.push({ title: 'Ver Cita', href: currentPath });
+      }
+    } else {
+      // Buscar en los elementos de la sidebar para rutas principales
+      const currentItem = sidebarItems.find(item => item.href === currentPath);
+      if (currentItem && currentItem.href !== '/admin/dashboard') {
+        breadcrumbs.push({ title: currentItem.title, href: currentItem.href });
+      }
+    }
+    
+    return breadcrumbs;
+  };
+
+  const getCurrentPageTitle = () => {
+    const breadcrumbs = getBreadcrumbs();
+    return breadcrumbs[breadcrumbs.length - 1]?.title || 'Administración';
   };
 
   const getCurrentPageDescription = () => {
     if (!user) return 'Panel de administración';
     const sidebarItems = getAllSidebarItems(user.role);
-    // Tratar /admin como /admin/dashboard para la descripción
     const currentPath = pathname === '/admin' ? '/admin/dashboard' : pathname;
     const currentItem = sidebarItems.find(item => item.href === currentPath);
     return currentItem?.description || 'Panel de administración';
@@ -433,16 +499,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 
                 {/* Breadcrumb Navigation */}
                 <nav className="flex items-center text-sm">
-                  <Link 
-                    href="/admin/dashboard" 
-                    className="text-slate-500 hover:text-slate-700 font-medium transition-colors"
-                  >
-                    Admin
-                  </Link>
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-900 font-semibold">
-                    {getCurrentPageTitle()}
-                  </span>
+                  {getBreadcrumbs().map((crumb, index) => (
+                    <div key={crumb.href} className="flex items-center">
+                      {index > 0 && (
+                        <ChevronRight className="h-4 w-4 text-slate-400 mx-2" />
+                      )}
+                      {index === getBreadcrumbs().length - 1 ? (
+                        <span className="text-slate-900 font-semibold truncate max-w-48">
+                          {crumb.title}
+                        </span>
+                      ) : (
+                        <Link
+                          href={crumb.href}
+                          className="text-slate-500 hover:text-slate-700 font-medium transition-colors truncate max-w-32"
+                        >
+                          {crumb.title}
+                        </Link>
+                      )}
+                    </div>
+                  ))}
                 </nav>
               </div>
               
@@ -571,7 +646,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Contenido */}
           <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 to-slate-100/30">
-            <div className="p-4 space-y-4 mx-auto h-full w-full">
+            <div className="space-y-4 mx-auto h-full w-full">
               {children}
             </div>
           </main>

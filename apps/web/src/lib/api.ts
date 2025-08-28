@@ -213,6 +213,9 @@ export const api = {
     get: (id: string) =>
       apiClient.get<ApiResponse<any>>(`/appointments/${id}`),
 
+    getByPatient: (patientId: string, params?: { limit?: number; status?: string; includeHistory?: boolean }) =>
+      apiClient.get<ApiResponse<any[]>>(`/appointments`, { params: { patientId, ...params } }),
+
     create: (data: any) =>
       apiClient.post<ApiResponse<any>>('/appointments', data),
 
