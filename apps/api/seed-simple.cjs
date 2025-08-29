@@ -480,26 +480,17 @@ async function seedData() {
           primaryProfessional: professionalId,
           assignedProfessionals: [professionalId],
           medicalHistory: {
-            conditions: [condition, ...(Math.random() > 0.6 ? [['Hipertensión', 'Diabetes tipo 2', 'Migraña', 'Asma'][Math.floor(Math.random() * 4)]] : [])],
+            conditions: [condition],
             medications: Math.random() > 0.4 ? [
               {
-                name: ['Sertralina', 'Escitalopram', 'Lorazepam', 'Diazepam', 'Alprazolam'][Math.floor(Math.random() * 5)],
-                dosage: ['25mg', '50mg', '100mg', '0.5mg', '1mg'][Math.floor(Math.random() * 5)],
-                frequency: ['Diaria', 'Dos veces al día', 'Según necesidad', 'Cada 12 horas'][Math.floor(Math.random() * 4)],
-                prescribedBy: ['Dr. García', 'Dra. Martínez', 'Dr. López', 'Dra. Rodríguez'][Math.floor(Math.random() * 4)],
-                startDate: new Date(2024, Math.floor(Math.random() * 8), Math.floor(Math.random() * 28) + 1),
-                endDate: Math.random() > 0.7 ? new Date(2024, Math.floor(Math.random() * 12) + 6, Math.floor(Math.random() * 28) + 1) : undefined,
-                active: Math.random() > 0.2,
-                notes: Math.random() > 0.5 ? ['Tomar con alimentos', 'Evitar alcohol', 'Reducir dosis gradualmente si es necesario'][Math.floor(Math.random() * 3)] : undefined
-              },
-              ...(Math.random() > 0.7 ? [{
-                name: ['Ibuprofeno', 'Paracetamol', 'Omeprazol'][Math.floor(Math.random() * 3)],
-                dosage: ['400mg', '500mg', '20mg'][Math.floor(Math.random() * 3)],
-                frequency: 'Según necesidad',
-                prescribedBy: 'Médico de familia',
+                name: ['Sertralina', 'Lorazepam', 'Escitalopram', 'Alprazolam'][Math.floor(Math.random() * 4)],
+                dosage: ['25mg', '50mg', '10mg', '0.5mg'][Math.floor(Math.random() * 4)],
+                frequency: ['Una vez al día', 'Dos veces al día', 'Según necesidad'][Math.floor(Math.random() * 3)],
+                prescribedBy: 'Dr. García',
                 startDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
-                active: true
-              }] : [])
+                active: true,
+                notes: 'Medicación bien tolerada por el paciente'
+              }
             ] : [],
             allergies: Math.random() > 0.6 ? [
               {
@@ -561,7 +552,7 @@ async function seedData() {
             }] : []
           },
           currentTreatment: {
-            treatmentPlan: `Plan de tratamiento cognitivo-conductual para ${condition.toLowerCase()}`,
+            treatmentPlan: `<h3>Plan de Tratamiento Individualizado</h3><p><strong>Objetivo principal:</strong> Tratamiento integral para ${condition.toLowerCase()}</p><ul><li>Sesiones semanales de terapia cognitivo-conductual</li><li>Técnicas de mindfulness y relajación</li><li>Reestructuración cognitiva</li><li>Exposición gradual (si aplica)</li></ul><p><em>Plan sujeto a revisión cada 4 semanas</em></p>`,
             goals: [
               `Reducir síntomas de ${condition.toLowerCase()}`,
               'Mejorar calidad de vida',
@@ -571,7 +562,7 @@ async function seedData() {
             startDate: new Date(2024, Math.floor(Math.random() * 8), Math.floor(Math.random() * 28) + 1),
             expectedDuration: ['3 meses', '6 meses', '1 año', 'Indefinido'][Math.floor(Math.random() * 4)],
             frequency: ['Semanal', 'Quincenal', 'Mensual'][Math.floor(Math.random() * 3)],
-            notes: Math.random() > 0.5 ? 'Paciente muestra motivación para el cambio' : undefined
+            notes: '<p><strong>Notas del tratamiento:</strong></p><ul><li>Paciente muestra buena adherencia al tratamiento</li><li>Respuesta positiva a técnicas de TCC</li><li>Requiere seguimiento de medicación</li></ul>'
           }
         },
         episodes: [
@@ -597,35 +588,6 @@ async function seedData() {
           preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
           stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
           billingNotes: ''
-        },
-        preferences: {
-          language: 'es',
-          communicationPreferences: {
-            appointmentReminders: true,
-            reminderMethods: ['email', 'sms'],
-            reminderTiming: [24, 2],
-            newsletters: Math.random() > 0.5,
-            marketingCommunications: Math.random() > 0.7
-          },
-          appointmentPreferences: {
-            preferredTimes: [{
-              dayOfWeek: Math.floor(Math.random() * 5) + 1, // Lunes a Viernes
-              startTime: '09:00',
-              endTime: '17:00'
-            }],
-            preferredProfessionals: [professionalId],
-            sessionFormat: ['in-person', 'video', 'any'][Math.floor(Math.random() * 3)],
-            sessionDuration: [45, 50, 60][Math.floor(Math.random() * 3)],
-            bufferBetweenSessions: Math.random() > 0.5 ? 15 : undefined,
-            notes: Math.random() > 0.5 ? 'Preferencias de horario flexibles' : undefined
-          },
-          portalAccess: {
-            enabled: Math.random() > 0.3,
-            lastLogin: Math.random() > 0.5 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
-            passwordLastChanged: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
-            twoFactorEnabled: Math.random() > 0.8,
-            loginNotifications: true
-          }
         },
         preferences: {
           language: 'es',
@@ -696,7 +658,16 @@ async function seedData() {
           referralDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
           referralReason: `Necesidad de tratamiento para ${condition.toLowerCase()}`
         },
-        administrativeNotes: [],
+        administrativeNotes: Math.random() > 0.5 ? [{
+          noteId: `NOTE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          content: `<h4>Nota Administrativa</h4><p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p><p><strong>Observaciones:</strong></p><ul><li>Paciente puntual en las citas</li><li>Comunicación fluida con el equipo</li><li>Cumple con los protocolos establecidos</li></ul><p><em>Nota registrada por el equipo administrativo</em></p>`,
+          category: 'general',
+          isPrivate: false,
+          addedBy: professionalId,
+          addedDate: new Date(),
+          lastModified: new Date(),
+          lastModifiedBy: professionalId
+        }] : [],
         statistics: {
           totalAppointments: 0,
           completedAppointments: 0,
