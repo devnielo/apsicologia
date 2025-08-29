@@ -391,16 +391,38 @@ export class FileController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            filename: fileRecord.fileName,
-            originalName: fileRecord.originalFileName,
-            size: fileRecord.fileSize,
-            ownerType: fileRecord.ownerType,
-            ownerId: fileRecord.ownerId,
-            checksum: fileRecord.checksum,
+        changes: [
+          {
+            field: 'filename',
+            newValue: fileRecord.fileName,
+            changeType: 'create'
           },
-        },
+          {
+            field: 'originalName',
+            newValue: fileRecord.originalFileName,
+            changeType: 'create'
+          },
+          {
+            field: 'size',
+            newValue: fileRecord.fileSize,
+            changeType: 'create'
+          },
+          {
+            field: 'ownerType',
+            newValue: fileRecord.ownerType,
+            changeType: 'create'
+          },
+          {
+            field: 'ownerId',
+            newValue: fileRecord.ownerId,
+            changeType: 'create'
+          },
+          {
+            field: 'checksum',
+            newValue: fileRecord.checksum,
+            changeType: 'create'
+          }
+        ],
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -780,18 +802,12 @@ export class FileController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: {
-            description: originalData.description,
-            tags: originalData.tags,
-            category: originalData.category,
-          },
-          after: {
-            description: file.description,
-            tags: file.tags,
-            category: file.category,
-          },
-        },
+        changes: Object.keys(updateData).map(field => ({
+          field,
+          oldValue: originalData[field],
+          newValue: file.get(field),
+          changeType: 'update',
+        })),
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -885,14 +901,20 @@ export class FileController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          deleted: {
-            filename: file.originalFileName,
-            size: file.fileSize,
-            ownerType: file.ownerType,
-            permanent: permanent === 'true',
+        changes: [
+          {
+            field: 'filename',
+            oldValue: file.originalFileName,
+            newValue: null,
+            changeType: 'delete',
           },
-        },
+          {
+            field: 'permanent',
+            oldValue: false,
+            newValue: permanent === 'true',
+            changeType: 'update',
+          },
+        ],
         security: {
           riskLevel: permanent === 'true' ? 'critical' : 'medium',
           authMethod: 'jwt',
@@ -1106,12 +1128,23 @@ export class FileController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: results.failed === 0 ? 'success' : 'partial_failure',
-        changes: {
-          deleted: results.deleted,
-          failed: results.failed,
-          fileIds,
-          permanent,
-        },
+        changes: [
+          {
+            field: 'deletedCount',
+            newValue: results.deleted,
+            changeType: 'update',
+          },
+          {
+            field: 'failedCount',
+            newValue: results.failed,
+            changeType: 'update',
+          },
+          {
+            field: 'errors',
+            newValue: results.errors,
+            changeType: 'update',
+          },
+        ],
         security: {
           riskLevel: 'critical',
           authMethod: 'jwt',

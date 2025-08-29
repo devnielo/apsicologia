@@ -250,17 +250,37 @@ export class UserController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            email: user.email,
-            name: user.name,
-            role: user.role,
+        changes: [
+          {
+            field: 'role',
+            newValue: user.role,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'email',
+            newValue: user.email,
+            changeType: 'create',
+          },
+        ],
         metadata: {
           source: 'user_controller',
-          priority: 'medium',
+          customFields: {
+            role: user.role,
+            email: user.email,
+          },
         },
+        alerting: {
+          threshold: 'medium',
+          channels: ['email', 'slack'],
+        },
+        retention: {
+          policy: 'default',
+          duration: '7y',
+        },
+        related: [
+          { type: 'user', id: user._id.toString() },
+          { type: 'user', id: authUser._id.toString() },
+        ],
         timestamp: new Date(),
       });
 
@@ -375,7 +395,12 @@ export class UserController {
           ipAddress: req.ip,
           userAgent: req.get('User-Agent'),
           status: 'success',
-          changes,
+          changes: Object.keys(changes).map(field => ({
+            field,
+            oldValue: changes[field].from,
+            newValue: changes[field].to,
+            changeType: 'update',
+          })),
           metadata: {
             source: 'user_controller',
             priority: 'medium',
@@ -467,26 +492,45 @@ export class UserController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          isActive: { from: true, to: false },
-          ...(permanent === 'true' && {
-            email: { from: user.email.split('_').slice(2).join('_'), to: user.email },
-          }),
-        },
-        security: {
-          riskLevel: 'high',
-          authMethod: 'jwt',
-          compliance: {
-            hipaaRelevant: false,
-            gdprRelevant: true,
-            requiresRetention: true,
+        changes: [
+          {
+            field: 'isActive',
+            oldValue: true,
+            newValue: false,
+            changeType: 'update',
           },
-        },
+          {
+            field: 'deletedAt',
+            oldValue: null,
+            newValue: new Date(),
+            changeType: 'update',
+          },
+          {
+            field: 'permanentDelete',
+            oldValue: false,
+            newValue: isPermanentDelete,
+            changeType: 'update',
+          },
+        ],
         metadata: {
           source: 'user_controller',
-          priority: 'high',
-          permanent: permanent === 'true',
+          customFields: {
+            userId: user._id.toString(),
+            email: user.email,
+          },
         },
+        alerting: {
+          threshold: 'high',
+          channels: ['email', 'slack'],
+        },
+        retention: {
+          policy: 'user_data',
+          duration: '7y',
+        },
+        related: [
+          { type: 'user', id: user._id.toString() },
+          { type: 'user', id: authUser._id.toString() },
+        ],
         timestamp: new Date(),
       });
 
@@ -600,9 +644,14 @@ export class UserController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          isActive: { from: false, to: true },
-        },
+        changes: [
+          {
+            field: 'isActive',
+            oldValue: false,
+            newValue: true,
+            changeType: 'update',
+          },
+        ],
         metadata: {
           source: 'user_controller',
           priority: 'medium',

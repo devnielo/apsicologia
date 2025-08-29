@@ -49,44 +49,6 @@ export function PreferencesSection({
         <CardContent>
           {editingSection === 'communicationPreferences' ? (
             <div className="space-y-4">
-              <div>
-                <Label>Idioma preferido</Label>
-                <Select 
-                  value={editData.preferredLanguage || 'es'} 
-                  onValueChange={(value) => setEditData({...editData, preferredLanguage: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="es">Español</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ca">Català</SelectItem>
-                    <SelectItem value="eu">Euskera</SelectItem>
-                    <SelectItem value="gl">Galego</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="email-notifications"
-                    checked={editData.emailNotifications || false}
-                    onCheckedChange={(checked) => setEditData({...editData, emailNotifications: checked})}
-                  />
-                  <Label htmlFor="email-notifications">Notificaciones por email</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sms-notifications"
-                    checked={editData.smsNotifications || false}
-                    onCheckedChange={(checked) => setEditData({...editData, smsNotifications: checked})}
-                  />
-                  <Label htmlFor="sms-notifications">Notificaciones por SMS</Label>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -98,33 +60,66 @@ export function PreferencesSection({
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="marketing-communications"
-                    checked={editData.marketingCommunications || false}
-                    onCheckedChange={(checked) => setEditData({...editData, marketingCommunications: checked})}
+                    id="newsletters"
+                    checked={editData.newsletters || false}
+                    onCheckedChange={(checked) => setEditData({...editData, newsletters: checked})}
                   />
-                  <Label htmlFor="marketing-communications">Comunicaciones de marketing</Label>
+                  <Label htmlFor="newsletters">Boletines informativos</Label>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="marketing-communications"
+                  checked={editData.marketingCommunications || false}
+                  onCheckedChange={(checked) => setEditData({...editData, marketingCommunications: checked})}
+                />
+                <Label htmlFor="marketing-communications">Comunicaciones de marketing</Label>
+              </div>
+
+              <div>
+                <Label>Métodos de recordatorio</Label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  {['email', 'sms', 'phone', 'push'].map((method) => (
+                    <div key={method} className="flex items-center space-x-2">
+                      <Switch
+                        id={`reminder-${method}`}
+                        checked={editData.reminderMethods?.includes(method) || false}
+                        onCheckedChange={(checked) => {
+                          const methods = editData.reminderMethods || [];
+                          if (checked) {
+                            setEditData({...editData, reminderMethods: [...methods, method]});
+                          } else {
+                            setEditData({...editData, reminderMethods: methods.filter((m: string) => m !== method)});
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`reminder-${method}`} className="capitalize">{method}</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <Label>Horario preferido para contacto</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm">Desde</Label>
-                    <Input
-                      type="time"
-                      value={editData.contactTimeFrom || '09:00'}
-                      onChange={(e) => setEditData({...editData, contactTimeFrom: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Hasta</Label>
-                    <Input
-                      type="time"
-                      value={editData.contactTimeTo || '18:00'}
-                      onChange={(e) => setEditData({...editData, contactTimeTo: e.target.value})}
-                    />
-                  </div>
+                <Label>Tiempo de recordatorio (horas antes)</Label>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {[24, 48, 72].map((hours) => (
+                    <div key={hours} className="flex items-center space-x-2">
+                      <Switch
+                        id={`timing-${hours}`}
+                        checked={editData.reminderTiming?.includes(hours) || false}
+                        onCheckedChange={(checked) => {
+                          const timings = editData.reminderTiming || [];
+                          if (checked) {
+                            setEditData({...editData, reminderTiming: [...timings, hours]});
+                          } else {
+                            setEditData({...editData, reminderTiming: timings.filter((t: number) => t !== hours)});
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`timing-${hours}`}>{hours}h</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -189,10 +184,10 @@ export function PreferencesSection({
           {editingSection === 'appointmentPreferences' ? (
             <div className="space-y-4">
               <div>
-                <Label>Duración preferida</Label>
+                <Label>Duración preferida de citas (minutos)</Label>
                 <Select 
-                  value={editData.preferredDuration?.toString() || '60'} 
-                  onValueChange={(value) => setEditData({...editData, preferredDuration: parseInt(value)})}
+                  value={editData.defaultDuration?.toString() || '60'} 
+                  onValueChange={(value) => setEditData({...editData, defaultDuration: parseInt(value)})}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -202,50 +197,51 @@ export function PreferencesSection({
                     <SelectItem value="45">45 minutos</SelectItem>
                     <SelectItem value="60">60 minutos</SelectItem>
                     <SelectItem value="90">90 minutos</SelectItem>
+                    <SelectItem value="120">120 minutos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label>Días preferidos</Label>
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                  {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map((day, index) => (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
                     <div key={day} className="flex items-center space-x-2">
                       <Switch
-                        id={`day-${index}`}
-                        checked={editData.preferredDays?.includes(index) || false}
+                        id={`day-${day}`}
+                        checked={editData.preferredDays?.includes(day) || false}
                         onCheckedChange={(checked) => {
                           const days = editData.preferredDays || [];
                           if (checked) {
-                            setEditData({...editData, preferredDays: [...days, index]});
+                            setEditData({...editData, preferredDays: [...days, day]});
                           } else {
-                            setEditData({...editData, preferredDays: days.filter((d: number) => d !== index)});
+                            setEditData({...editData, preferredDays: days.filter((d: string) => d !== day)});
                           }
                         }}
                       />
-                      <Label htmlFor={`day-${index}`} className="text-sm">{day.slice(0, 3)}</Label>
+                      <Label htmlFor={`day-${day}`} className="text-sm capitalize">{day}</Label>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <Label>Horario preferido</Label>
-                <div className="grid grid-cols-2 gap-4">
+                <Label>Horarios preferidos</Label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <Label className="text-sm">Desde</Label>
                     <Input
                       type="time"
-                      value={editData.preferredTimeFrom || '09:00'}
-                      onChange={(e) => setEditData({...editData, preferredTimeFrom: e.target.value})}
+                      value={editData.preferredTimeSlots?.start || '09:00'}
+                      onChange={(e) => setEditData({...editData, preferredTimeSlots: {...editData.preferredTimeSlots, start: e.target.value}})}
                     />
                   </div>
                   <div>
                     <Label className="text-sm">Hasta</Label>
                     <Input
                       type="time"
-                      value={editData.preferredTimeTo || '17:00'}
-                      onChange={(e) => setEditData({...editData, preferredTimeTo: e.target.value})}
+                      value={editData.preferredTimeSlots?.end || '17:00'}
+                      onChange={(e) => setEditData({...editData, preferredTimeSlots: {...editData.preferredTimeSlots, end: e.target.value}})}
                     />
                   </div>
                 </div>
@@ -254,11 +250,11 @@ export function PreferencesSection({
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="online-sessions"
-                    checked={editData.allowOnlineSessions || false}
-                    onCheckedChange={(checked) => setEditData({...editData, allowOnlineSessions: checked})}
+                    id="allows-online"
+                    checked={editData.allowsOnlineSessions || false}
+                    onCheckedChange={(checked) => setEditData({...editData, allowsOnlineSessions: checked})}
                   />
-                  <Label htmlFor="online-sessions">Sesiones online</Label>
+                  <Label htmlFor="allows-online">Permite sesiones online</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -266,18 +262,18 @@ export function PreferencesSection({
                     checked={editData.autoConfirmAppointments || false}
                     onCheckedChange={(checked) => setEditData({...editData, autoConfirmAppointments: checked})}
                   />
-                  <Label htmlFor="auto-confirm">Confirmar automáticamente</Label>
+                  <Label htmlFor="auto-confirm">Confirmación automática</Label>
                 </div>
               </div>
 
               <div>
-                <Label>Tiempo de aviso mínimo (horas)</Label>
+                <Label>Tiempo mínimo de aviso (horas)</Label>
                 <Input
                   type="number"
-                  value={editData.minimumNoticeHours || 24}
-                  onChange={(e) => setEditData({...editData, minimumNoticeHours: parseInt(e.target.value)})}
                   min="1"
                   max="168"
+                  value={editData.minimumNoticeHours || 24}
+                  onChange={(e) => setEditData({...editData, minimumNoticeHours: parseInt(e.target.value)})}
                 />
               </div>
 
@@ -297,12 +293,12 @@ export function PreferencesSection({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Duración preferida</label>
-                  <p className="text-gray-900">{patient.preferences?.appointments?.preferredDuration || 60} minutos</p>
+                  <p className="text-gray-900">{patient.preferences?.appointments?.defaultDuration || 60} minutos</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Horario preferido</label>
                   <p className="text-gray-900">
-                    {patient.preferences?.appointments?.preferredTimeFrom || '09:00'} - {patient.preferences?.appointments?.preferredTimeTo || '17:00'}
+                    {patient.preferences?.appointments?.preferredTimeSlots?.start || '09:00'} - {patient.preferences?.appointments?.preferredTimeSlots?.end || '17:00'}
                   </p>
                 </div>
               </div>
@@ -310,7 +306,7 @@ export function PreferencesSection({
                 <label className="text-sm font-medium text-gray-500">Modalidades aceptadas</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Presencial</span>
-                  {patient.preferences?.appointments?.allowOnlineSessions && (
+                  {patient.preferences?.appointments?.allowsOnlineSessions && (
                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Online</span>
                   )}
                 </div>

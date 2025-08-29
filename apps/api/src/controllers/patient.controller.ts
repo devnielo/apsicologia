@@ -855,8 +855,9 @@ export class PatientController {
       const authUser = (req as AuthRequest).user!;
       const updateData = req.body;
 
-      // Find patient
+      // Find the patient to check permissions first
       const patient = await Patient.findById(patientId);
+
       if (!patient) {
         return res.status(404).json({
           success: false,
@@ -882,45 +883,42 @@ export class PatientController {
         });
       }
 
-      // Store original data for audit log
-      const originalData = patient.toObject();
+      // Use findByIdAndUpdate with $set to update only the provided fields
+      // This prevents validation errors for fields not included in the update payload
+      const updatedPatient = await Patient.findByIdAndUpdate(
+        patientId,
+        { $set: updateData },
+        { new: true, runValidators: true, context: 'query' }
+      );
 
-      // Apply updates
-      Object.assign(patient, updateData);
-      patient.lastModifiedBy = authUser._id;
-
-      // Recalculate computed fields if necessary
-      if (updateData.personalInfo?.dateOfBirth || updateData.personalInfo?.firstName || updateData.personalInfo?.lastName) {
-        patient.personalInfo.age = patient.calculateAge();
-        patient.personalInfo.fullName = patient.getFullName();
+      if (!updatedPatient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found after update (should not happen if found initially)',
+        });
       }
 
-      await patient.save();
-
-      // Log patient update
-      const patientObj = patient.toObject();
-      const changesArray = Object.keys(updateData).map(field => ({
-        field,
-        changeType: 'update' as const,
-        oldValue: (originalData as any)[field],
-        newValue: (patientObj as any)[field],
-      }));
-
-      await AuditLog.create({
+      logger.info('AuditLog data before creation:', {
         action: 'patient_updated',
         entityType: 'patient',
-        entityId: patient._id.toString(),
+        entityId: updatedPatient._id.toString(),
         actorId: authUser._id,
         actorType: 'user',
         actorEmail: authUser.email,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: changesArray,
-        beforeState: originalData,
-        afterState: patient.toObject(),
+        changes: [
+          {
+            field: 'patient_record',
+            changeType: 'update',
+            oldValue: patient.toObject(),
+            newValue: updatedPatient.toObject(),
+          },
+        ],
+        afterState: updatedPatient.toObject(),
         security: {
-          riskLevel: 'medium',
+          riskLevel: 'low',
           authMethod: 'jwt',
           compliance: {
             hipaaRelevant: true,
@@ -960,16 +958,71 @@ export class PatientController {
         timestamp: new Date(),
       });
 
-      // Populate and return updated patient
-      await patient.populate([
-        { path: 'clinicalInfo.primaryProfessional', select: 'name specialties' },
-        { path: 'clinicalInfo.assignedProfessionals', select: 'name specialties' }
-      ]);
+      // Log patient update
+      await AuditLog.create({
+        action: 'patient_updated',
+        entityType: 'patient',
+        entityId: updatedPatient._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: [
+          {
+            field: 'patient_record',
+            changeType: 'update',
+            oldValue: patient.toObject(),
+            newValue: updatedPatient.toObject(),
+          },
+        ],
+        afterState: updatedPatient.toObject(),
+        security: {
+          riskLevel: 'low',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: true,
+            gdprRelevant: true,
+            requiresRetention: true,
+          },
+        },
+        business: {
+          clinicalRelevant: true,
+          containsPHI: true,
+          dataClassification: 'confidential',
+        },
+        metadata: {
+          customFields: {},
+          tags: ['patient_update'],
+          priority: 'medium',
+          source: 'patient_controller',
+        },
+        alerting: {
+          triggeredRules: [],
+          notificationStatus: {
+            email: false,
+            sms: false,
+            slack: false,
+            webhook: false,
+            dashboard: false,
+          },
+        },
+        retention: {
+          category: 'patient_records',
+          retentionPeriod: 84,
+        },
+        related: {
+          childLogIds: [],
+          correlatedLogs: [],
+        },
+        timestamp: new Date(),
+      });
 
       res.status(200).json({
         success: true,
         message: 'Patient updated successfully',
-        data: { patient },
+        data: updatedPatient,
       });
     } catch (error) {
       logger.error('Update patient error:', error);
@@ -1279,11 +1332,26 @@ export class PatientController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          deletedAt: { from: null, to: new Date() },
-          name: patient.personalInfo.fullName,
-          email: patient.contactInfo.email,
-        },
+        changes: [
+          {
+            field: 'deletedAt',
+            oldValue: null,
+            newValue: new Date(),
+            changeType: 'update',
+          },
+          {
+            field: 'name',
+            oldValue: patient.personalInfo.fullName,
+            newValue: null,
+            changeType: 'delete',
+          },
+          {
+            field: 'email',
+            oldValue: patient.contactInfo.email,
+            newValue: null,
+            changeType: 'delete',
+          },
+        ],
         security: {
           riskLevel: 'high',
           authMethod: 'jwt',

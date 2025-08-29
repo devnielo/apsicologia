@@ -157,7 +157,28 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
   };
 
   const handleSave = (section: string) => {
-    updatePatientMutation.mutate({ section, data: editData });
+    let dataToSend: any = {};
+    switch (section) {
+      case 'personalInfo':
+        dataToSend = { personalInfo: editData };
+        break;
+      case 'emergencyContact':
+        dataToSend = { emergencyContact: editData };
+        break;
+      case 'clinicalInfo':
+        dataToSend = { clinicalInfo: editData };
+        break;
+      case 'preferences':
+        dataToSend = { preferences: editData };
+        break;
+      case 'administrative':
+        dataToSend = { administrative: editData };
+        break;
+      // Add other sections as needed
+      default:
+        dataToSend = editData; // Fallback, though ideally all sections are handled
+    }
+    updatePatientMutation.mutate({ section, data: dataToSend });
   };
 
   const handleCancel = () => {

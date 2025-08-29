@@ -32,7 +32,13 @@ export function AdministrativeSection({
 }: AdministrativeSectionProps) {
 
   const addTag = () => {
-    const newTag = { name: '', color: '#3b82f6', category: 'general' };
+    const newTag = { 
+      name: '', 
+      color: '#3b82f6', 
+      category: 'general',
+      addedBy: 'current-user-id', // This should be set from current user context
+      addedDate: new Date()
+    };
     setEditData({
       ...editData,
       tags: [...(editData.tags || []), newTag]
@@ -86,7 +92,6 @@ export function AdministrativeSection({
                     <SelectItem value="card">Tarjeta</SelectItem>
                     <SelectItem value="transfer">Transferencia</SelectItem>
                     <SelectItem value="insurance">Seguro</SelectItem>
-                    <SelectItem value="stripe">Stripe</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -97,7 +102,7 @@ export function AdministrativeSection({
                   <Input
                     value={editData.insuranceCompany || ''}
                     onChange={(e) => setEditData({...editData, insuranceCompany: e.target.value})}
-                    placeholder="Nombre de la aseguradora"
+                    placeholder="Nombre de la compañía"
                   />
                 </div>
                 <div>
@@ -115,7 +120,7 @@ export function AdministrativeSection({
                 <Input
                   value={editData.stripeCustomerId || ''}
                   onChange={(e) => setEditData({...editData, stripeCustomerId: e.target.value})}
-                  placeholder="cus_xxxxxxxxxx"
+                  placeholder="cus_..."
                 />
               </div>
 
@@ -124,7 +129,7 @@ export function AdministrativeSection({
                 <RichTextEditor
                   content={editData.billingNotes || ''}
                   onChange={(content) => setEditData({...editData, billingNotes: content})}
-                  placeholder="Notas especiales sobre facturación..."
+                  placeholder="Notas adicionales sobre facturación..."
                 />
               </div>
 
@@ -223,6 +228,9 @@ export function AdministrativeSection({
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="text-xs text-gray-500 min-w-20">
+                      {tag.addedDate && new Date(tag.addedDate).toLocaleDateString()}
+                    </div>
                     <Button
                       onClick={() => removeTag(index)}
                       size="sm"
@@ -273,7 +281,7 @@ export function AdministrativeSection({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {patient.statistics?.totalAppointments || 0}
@@ -293,10 +301,16 @@ export function AdministrativeSection({
               <div className="text-sm text-gray-500">Canceladas</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                €{patient.statistics?.totalRevenue || 0}
+              <div className="text-2xl font-bold text-orange-600">
+                {patient.statistics?.noShowAppointments || 0}
               </div>
-              <div className="text-sm text-gray-500">Ingresos</div>
+              <div className="text-sm text-gray-500">No Presentadas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                €{patient.statistics?.totalPaidAmount || 0}
+              </div>
+              <div className="text-sm text-gray-500">Total Pagado</div>
             </div>
           </div>
           <div className="mt-4 pt-4 border-t">
@@ -324,7 +338,7 @@ export function AdministrativeSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('administrativeNotes', patient.administrativeNotes || '')}
+            onClick={() => onEdit('administrativeNotes', patient.administrativeNotes || [])}
             className="h-8 w-8 p-0"
           >
             <Edit className="h-4 w-4" />
@@ -334,12 +348,75 @@ export function AdministrativeSection({
           {editingSection === 'administrativeNotes' ? (
             <div className="space-y-4">
               <div>
-                <Label>Notas internas</Label>
-                <RichTextEditor
-                  content={editData || ''}
-                  onChange={(content) => setEditData(content)}
-                  placeholder="Escribir notas administrativas internas..."
-                />
+                <Label>Notas administrativas</Label>
+                <div className="space-y-2">
+                  {editData?.map((note: any, index: number) => (
+                    <div key={index} className="p-3 border rounded space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={note.category || 'general'}
+                          onValueChange={(value) => {
+                            const newNotes = [...(editData || [])];
+                            newNotes[index] = { ...note, category: value };
+                            setEditData(newNotes);
+                          }}
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="billing">Facturación</SelectItem>
+                            <SelectItem value="medical">Médico</SelectItem>
+                            <SelectItem value="behavioral">Conductual</SelectItem>
+                            <SelectItem value="administrative">Administrativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-xs text-gray-500 flex-1">
+                          {note.createdAt && new Date(note.createdAt).toLocaleString()}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newNotes = editData?.filter((_: any, i: number) => i !== index) || [];
+                            setEditData(newNotes);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <RichTextEditor
+                        content={note.content || ''}
+                        onChange={(content) => {
+                          const newNotes = [...(editData || [])];
+                          newNotes[index] = { ...note, content };
+                          setEditData(newNotes);
+                        }}
+                        placeholder="Contenido de la nota..."
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const newNote = {
+                        noteId: `note_${Date.now()}`,
+                        content: '',
+                        category: 'general',
+                        createdBy: 'current-user-id',
+                        createdAt: new Date(),
+                        isPrivate: false
+                      };
+                      setEditData([...(editData || []), newNote]);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir nota
+                  </Button>
+                </div>
               </div>
               <div className="flex gap-2 pt-4">
                 <Button onClick={() => onSave('administrativeNotes')} size="sm">
@@ -354,11 +431,23 @@ export function AdministrativeSection({
             </div>
           ) : (
             <div>
-              {patient.administrativeNotes ? (
-                <div 
-                  className="prose prose-sm max-w-none text-gray-900"
-                  dangerouslySetInnerHTML={{ __html: patient.administrativeNotes }}
-                />
+              {patient.administrativeNotes?.length > 0 ? (
+                <div className="space-y-3">
+                  {patient.administrativeNotes.map((note: any, index: number) => (
+                    <div key={index} className="p-3 border rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="outline">{note.category}</Badge>
+                        <span className="text-xs text-gray-500">
+                          {note.createdAt && new Date(note.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div 
+                        className="prose prose-sm max-w-none text-gray-900"
+                        dangerouslySetInnerHTML={{ __html: note.content }}
+                      />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p className="text-gray-500">No hay notas administrativas</p>
               )}

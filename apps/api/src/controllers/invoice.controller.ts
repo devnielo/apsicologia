@@ -403,15 +403,33 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            invoiceNumber: invoice.invoiceNumber,
-            patientId: invoice.patientId.toString(),
-            appointmentIds: invoice.appointmentIds?.map(id => id.toString()) || [],
-            totalAmount: invoice.totals.total,
-            currency: invoice.totals.currency,
+        changes: [
+          {
+            field: 'invoiceNumber',
+            newValue: invoice.invoiceNumber,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'patientId',
+            newValue: invoice.patientId.toString(),
+            changeType: 'create',
+          },
+          {
+            field: 'appointmentIds',
+            newValue: invoice.appointmentIds?.map(id => id.toString()) || [],
+            changeType: 'create',
+          },
+          {
+            field: 'totalAmount',
+            newValue: invoice.totals.totalAmount,
+            changeType: 'create',
+          },
+          {
+            field: 'status',
+            newValue: invoice.status,
+            changeType: 'create',
+          },
+        ],
         business: {
           clinicalRelevant: false,
           containsPHI: true,
@@ -554,10 +572,19 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          status: { from: 'sent', to: 'cancelled' },
-          reason: reason,
-        },
+        changes: [
+          {
+            field: 'status',
+            oldValue: 'sent',
+            newValue: 'cancelled',
+            changeType: 'update',
+          },
+          {
+            field: 'reason',
+            newValue: reason,
+            changeType: 'update',
+          },
+        ],
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -811,15 +838,12 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: {
-            items: invoice.items,
-            totals: invoice.totals,
-            notes: invoice.notes,
-            dueDate: invoice.dueDate,
-          },
-        },
+        changes: Object.keys(updateData).map(field => ({
+          field,
+          oldValue: originalData[field],
+          newValue: invoice.get(field),
+          changeType: 'update',
+        })),
         business: {
           clinicalRelevant: false,
           containsPHI: true,
@@ -977,11 +1001,23 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          originalInvoiceId: originalInvoice._id.toString(),
-          originalInvoiceNumber: originalInvoice.invoiceNumber,
-          duplicateInvoiceNumber: duplicateInvoice.invoiceNumber,
-        },
+        changes: [
+          {
+            field: 'originalInvoiceId',
+            newValue: originalInvoice._id.toString(),
+            changeType: 'create',
+          },
+          {
+            field: 'originalInvoiceNumber',
+            newValue: originalInvoice.invoiceNumber,
+            changeType: 'create',
+          },
+          {
+            field: 'duplicateInvoiceNumber',
+            newValue: duplicateInvoice.invoiceNumber,
+            changeType: 'create',
+          },
+        ],
         business: {
           clinicalRelevant: false,
           containsPHI: true,
@@ -1121,11 +1157,23 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          format,
-          recordCount: invoices.length,
-          filters: queryParams,
-        },
+        changes: [
+          {
+            field: 'format',
+            newValue: format,
+            changeType: 'update',
+          },
+          {
+            field: 'recordCount',
+            newValue: invoices.length,
+            changeType: 'update',
+          },
+          {
+            field: 'filters',
+            newValue: queryParams,
+            changeType: 'update',
+          },
+        ],
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -1198,28 +1246,51 @@ export class InvoiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          deletedAt: { from: null, to: new Date() },
-          invoiceNumber: invoice.invoiceNumber,
-        },
+        changes: [
+          {
+            field: 'deletedAt',
+            oldValue: null,
+            newValue: new Date(),
+            changeType: 'update',
+          },
+          {
+            field: 'invoiceNumber',
+            oldValue: invoice.invoiceNumber,
+            newValue: null,
+            changeType: 'delete',
+          },
+        ],
         security: {
           riskLevel: 'high',
           authMethod: 'jwt',
           compliance: {
-            hipaaRelevant: false,
+            hipaaRelevant: true,
             gdprRelevant: true,
-            requiresRetention: true,
           },
         },
         business: {
-          clinicalRelevant: false,
-          containsPHI: true,
-          dataClassification: 'confidential',
+          department: 'finance',
+          team: 'billing',
         },
         metadata: {
           source: 'invoice_controller',
-          priority: 'high',
+          customFields: {
+            invoiceNumber: invoice.invoiceNumber,
+            patientId: invoice.patientId.toString(),
+          },
         },
+        alerting: {
+          threshold: 'high',
+          channels: ['email', 'slack'],
+        },
+        retention: {
+          policy: 'financial_records',
+          duration: '10y',
+        },
+        related: [
+          { type: 'patient', id: invoice.patientId.toString() },
+          { type: 'user', id: authUser._id.toString() },
+        ],
         timestamp: new Date(),
       });
 

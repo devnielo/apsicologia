@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, Save, X, User, Phone, AlertTriangle } from 'lucide-react';
@@ -75,14 +76,12 @@ export function PersonalInfoSection({
                 </div>
               </div>
               <div>
-                <Label htmlFor="dateOfBirth">Fecha de Nacimiento</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={editData.dateOfBirth ? new Date(editData.dateOfBirth).toISOString().split('T')[0] : ''}
-                  onChange={(e) => setEditData({...editData, dateOfBirth: e.target.value})}
-                />
-              </div>
+                  <Label htmlFor="dateOfBirth">Fecha de Nacimiento</Label>
+                  <DatePicker
+                    date={editData.dateOfBirth ? new Date(editData.dateOfBirth) : undefined}
+                    onDateChange={(date: Date | undefined) => setEditData({...editData, dateOfBirth: date})}
+                  />
+                </div>
               <div>
                 <Label htmlFor="gender">Género</Label>
                 <Select value={editData.gender || ''} onValueChange={(value) => setEditData({...editData, gender: value})}>

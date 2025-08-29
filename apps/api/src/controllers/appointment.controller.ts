@@ -168,18 +168,85 @@ const cancelAppointment = async (
   appointment: IAppointmentDocument,
   cancelledBy: Types.ObjectId,
   reason: string,
-  refundAmount?: number
+  refundAmount?: number,
 ) => {
+  const originalStatus = appointment.status;
   appointment.status = 'cancelled';
   appointment.cancellation = {
     cancelledBy,
     cancelledAt: new Date(),
     reason,
+    refundProcessed: refundAmount ? true : false,
     refundAmount: refundAmount || 0,
-    refundProcessed: false,
-    rescheduleOffered: true,
+    rescheduleOffered: false, // Default, can be updated later
   };
-  return appointment.save();
+  await appointment.save();
+
+  // Log cancellation
+  await AuditLog.create({
+    action: 'appointment_cancelled',
+    entityType: 'appointment',
+    entityId: appointment._id.toString(),
+    actorId: cancelledBy,
+    actorType: 'user',
+    actorEmail: 'system',
+    ipAddress: 'N/A',
+    userAgent: 'N/A',
+    status: 'success',
+    changes: [
+      {
+        field: 'status',
+        oldValue: originalStatus,
+        newValue: 'cancelled',
+        changeType: 'update',
+      },
+      {
+        field: 'reason',
+        oldValue: null,
+        newValue: reason,
+        changeType: 'update',
+      },
+      {
+        field: 'refundAmount',
+        oldValue: null,
+        newValue: refundAmount || 0,
+        changeType: 'update',
+      },
+    ],
+    security: {
+      riskLevel: 'high',
+      authMethod: 'system',
+      compliance: {
+        hipaaRelevant: true,
+        gdprRelevant: true,
+      },
+    },
+    business: {
+      department: 'scheduling',
+      team: 'appointments',
+    },
+    metadata: {
+      source: 'system_cancellation',
+      customFields: {
+        appointmentId: appointment._id.toString(),
+        patientId: appointment.patientId.toString(),
+        professionalId: appointment.professionalId.toString(),
+      },
+    },
+    alerting: {
+      threshold: 'high',
+      channels: ['email', 'slack'],
+    },
+    retention: {
+      policy: 'appointment_records',
+      duration: '7y',
+    },
+    related: [
+      { type: 'patient', id: appointment.patientId.toString() },
+      { type: 'professional', id: appointment.professionalId.toString() },
+    ],
+    timestamp: new Date(),
+  });
 };
 
 const markArrived = async (appointment: IAppointmentDocument) => {
@@ -204,8 +271,63 @@ const endSession = async (appointment: IAppointmentDocument) => {
 };
 
 const softDeleteAppointment = async (appointment: IAppointmentDocument) => {
+  const originalDeletedAt = appointment.deletedAt;
   appointment.deletedAt = new Date();
-  return appointment.save();
+  await appointment.save();
+
+  // Log soft deletion
+  await AuditLog.create({
+    action: 'appointment_deleted',
+    entityType: 'appointment',
+    entityId: appointment._id.toString(),
+    actorId: appointment.cancellation?.cancelledBy || new Types.ObjectId(), // Assuming system or last actor
+    actorType: 'system',
+    actorEmail: 'system',
+    ipAddress: 'N/A',
+    userAgent: 'N/A',
+    status: 'success',
+    changes: [
+      {
+        field: 'deletedAt',
+        oldValue: originalDeletedAt || null,
+        newValue: appointment.deletedAt,
+        changeType: 'update',
+      },
+    ],
+    security: {
+      riskLevel: 'high',
+      authMethod: 'system',
+      compliance: {
+        hipaaRelevant: true,
+        gdprRelevant: true,
+      },
+    },
+    business: {
+      department: 'scheduling',
+      team: 'appointments',
+    },
+    metadata: {
+      source: 'system_deletion',
+      customFields: {
+        appointmentId: appointment._id.toString(),
+        patientId: appointment.patientId.toString(),
+        professionalId: appointment.professionalId.toString(),
+      },
+    },
+    alerting: {
+      threshold: 'high',
+      channels: ['email', 'slack'],
+    },
+    retention: {
+      policy: 'appointment_records',
+      duration: '7y',
+    },
+    related: [
+      { type: 'patient', id: appointment.patientId.toString() },
+      { type: 'professional', id: appointment.professionalId.toString() },
+    ],
+    timestamp: new Date(),
+  });
 };
 
 export class AppointmentController {
@@ -615,35 +737,72 @@ export class AppointmentController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            patientId: appointment.patientId,
-            professionalId: appointment.professionalId,
-            serviceId: appointment.serviceId,
-            startTime: appointment.startTime,
-            endTime: appointment.endTime,
-            totalAmount: appointment.pricing.totalAmount,
+        changes: [
+          {
+            field: 'patientId',
+            newValue: appointment.patientId.toString(),
+            changeType: 'create',
           },
-        },
+          {
+            field: 'professionalId',
+            newValue: appointment.professionalId.toString(),
+            changeType: 'create',
+          },
+          {
+            field: 'serviceId',
+            newValue: appointment.serviceId.toString(),
+            changeType: 'create',
+          },
+          {
+            field: 'startTime',
+            newValue: appointment.startTime,
+            changeType: 'create',
+          },
+          {
+            field: 'endTime',
+            newValue: appointment.endTime,
+            changeType: 'create',
+          },
+          {
+            field: 'status',
+            newValue: appointment.status,
+            changeType: 'create',
+          },
+        ],
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
           compliance: {
             hipaaRelevant: true,
-            gdprRelevant: false,
-            requiresRetention: true,
+            gdprRelevant: true,
           },
         },
         business: {
-          clinicalRelevant: true,
-          containsPHI: true,
-          dataClassification: 'confidential',
+          department: 'scheduling',
+          team: 'appointments',
         },
         metadata: {
           source: 'appointment_controller',
-          priority: 'medium',
-          appointmentSource: appointment.source,
+          customFields: {
+            patientId: appointment.patientId.toString(),
+            professionalId: appointment.professionalId.toString(),
+            serviceId: appointment.serviceId.toString(),
+          },
         },
+        alerting: {
+          threshold: 'low',
+          channels: ['email'],
+        },
+        retention: {
+          policy: 'appointment_records',
+          duration: '7y',
+        },
+        related: [
+          { type: 'patient', id: appointment.patientId.toString() },
+          { type: 'professional', id: appointment.professionalId.toString() },
+          { type: 'service', id: appointment.serviceId.toString() },
+          { type: 'user', id: authUser._id.toString() },
+        ],
         timestamp: new Date(),
       });
 
@@ -765,11 +924,19 @@ export class AppointmentController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: appointment.toObject(),
-          fieldsChanged: Object.keys(updateData),
-        },
+        changes: Object.keys(originalData).map(field => {
+          const oldValue = originalData[field];
+          const newValue = appointment.toObject()[field];
+          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+            return {
+              field,
+              oldValue,
+              newValue,
+              changeType: 'update',
+            };
+          }
+          return null;
+        }).filter(Boolean) as any,
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -916,6 +1083,76 @@ export class AppointmentController {
 
       // Reschedule the appointment
       await rescheduleAppointment(appointment, newStart, newEnd, authUser._id, reason);
+
+      // Log appointment rescheduling
+      const originalStart = appointment.rescheduling?.originalStartTime || appointment.startTime;
+      const originalEnd = appointment.rescheduling?.originalEndTime || appointment.endTime;
+
+      await AuditLog.create({
+        action: 'appointment_rescheduled',
+        entityType: 'appointment',
+        entityId: appointment._id.toString(),
+        actorId: authUser._id,
+        actorType: 'user',
+        actorEmail: authUser.email,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        status: 'success',
+        changes: [
+          {
+            field: 'startTime',
+            oldValue: originalStart,
+            newValue: appointment.startTime,
+            changeType: 'update',
+          },
+          {
+            field: 'endTime',
+            oldValue: originalEnd,
+            newValue: appointment.endTime,
+            changeType: 'update',
+          },
+          {
+            field: 'reason',
+            oldValue: null,
+            newValue: reason,
+            changeType: 'update',
+          }
+        ],
+        security: {
+          riskLevel: 'medium',
+          authMethod: 'jwt',
+          compliance: {
+            hipaaRelevant: true,
+            gdprRelevant: true,
+          }
+        },
+        business: {
+          department: 'scheduling',
+          team: 'appointments',
+        },
+        metadata: {
+          source: 'appointment_controller',
+          customFields: {
+            appointmentId: appointment._id.toString(),
+            patientId: appointment.patientId.toString(),
+            professionalId: appointment.professionalId.toString(),
+          }
+        },
+        alerting: {
+          threshold: 'medium',
+          channels: ['email', 'slack'],
+        },
+        retention: {
+          policy: 'appointment_records',
+          duration: '7y',
+        },
+        related: [
+          { type: 'patient', id: appointment.patientId.toString() },
+          { type: 'professional', id: appointment.professionalId.toString() },
+          { type: 'user', id: authUser._id.toString() },
+        ],
+        timestamp: new Date(),
+      });
 
       // Update room if provided
       if (roomId) {

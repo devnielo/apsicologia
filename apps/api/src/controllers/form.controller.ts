@@ -43,13 +43,23 @@ export class FormController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            title: formSchema.title,
-            category: formSchema.metadata.category,
-            isActive: formSchema.config.isActive,
+        changes: [
+          {
+            field: 'title',
+            newValue: formSchema.title,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'category',
+            newValue: formSchema.metadata.category,
+            changeType: 'create',
+          },
+          {
+            field: 'isActive',
+            newValue: formSchema.config.isActive,
+            changeType: 'create',
+          },
+        ],
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -249,11 +259,12 @@ export class FormController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: form.toObject(),
-          fieldsChanged: Object.keys(updateData),
-        },
+        changes: Object.keys(updateData).map(field => ({
+          field,
+          oldValue: originalData[field],
+          newValue: form.get(field),
+          changeType: 'update',
+        })),
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -326,10 +337,20 @@ export class FormController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          deletedAt: new Date(),
-          title: form.title,
-        },
+        changes: [
+           {
+             field: 'deletedAt',
+             oldValue: null,
+             newValue: new Date(),
+             changeType: 'update',
+           },
+           {
+             field: 'title',
+             oldValue: form.title,
+             newValue: null,
+             changeType: 'delete',
+           },
+         ],
         security: {
           riskLevel: 'high',
           authMethod: 'jwt',
@@ -425,13 +446,23 @@ export class FormController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            formSchemaId: form._id,
-            patientId,
-            responseCount: Object.keys(responseData.responses || {}).length,
+        changes: [
+          {
+            field: 'formSchemaId',
+            newValue: form._id,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'patientId',
+            newValue: formResponse.patientId,
+            changeType: 'create',
+          },
+          {
+            field: 'submittedAt',
+            newValue: formResponse.submittedAt,
+            changeType: 'create',
+          },
+        ],
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
