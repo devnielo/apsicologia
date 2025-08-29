@@ -574,12 +574,58 @@ async function seedData() {
             notes: Math.random() > 0.5 ? 'Paciente muestra motivación para el cambio' : undefined
           }
         },
-        episodes: [],
+        episodes: [
+          {
+            date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+            description: 'Paciente reporta episodio de ansiedad severa',
+            duration: '2 horas',
+            severity: 'severe',
+            impact: 'alta',
+            notes: 'Paciente requirió atención médica de emergencia'
+          },
+          ...(Math.random() > 0.7 ? [{
+            date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+            description: 'Paciente experimenta episodio de depresión',
+            duration: '3 días',
+            severity: 'moderate',
+            impact: 'media',
+            notes: 'Paciente requirió apoyo emocional de familiares y amigos'
+          }] : [])
+        ],
         billing: {
           paymentMethod: Math.random() > 0.2 ? 'stripe' : 'cash',
           preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
           stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
           billingNotes: ''
+        },
+        preferences: {
+          language: 'es',
+          communicationPreferences: {
+            appointmentReminders: true,
+            reminderMethods: ['email', 'sms'],
+            reminderTiming: [24, 2],
+            newsletters: Math.random() > 0.5,
+            marketingCommunications: Math.random() > 0.7
+          },
+          appointmentPreferences: {
+            preferredTimes: [{
+              dayOfWeek: Math.floor(Math.random() * 5) + 1, // Lunes a Viernes
+              startTime: '09:00',
+              endTime: '17:00'
+            }],
+            preferredProfessionals: [professionalId],
+            sessionFormat: ['in-person', 'video', 'any'][Math.floor(Math.random() * 3)],
+            sessionDuration: [45, 50, 60][Math.floor(Math.random() * 3)],
+            bufferBetweenSessions: Math.random() > 0.5 ? 15 : undefined,
+            notes: Math.random() > 0.5 ? 'Preferencias de horario flexibles' : undefined
+          },
+          portalAccess: {
+            enabled: Math.random() > 0.3,
+            lastLogin: Math.random() > 0.5 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
+            passwordLastChanged: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
+            twoFactorEnabled: Math.random() > 0.8,
+            loginNotifications: true
+          }
         },
         preferences: {
           language: 'es',

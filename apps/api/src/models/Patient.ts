@@ -145,7 +145,7 @@ export interface IPatientDocument extends Document {
     appointmentIds: mongoose.Types.ObjectId[];
   }[];
   
-  // Payment and billing configuration
+  // Payment and billing configuration (ESTRUCTURA CORREGIDA - Coincide con el modelo Patient.ts backend)
   billing: {
     paymentMethod: 'stripe' | 'cash';
     stripeCustomerId?: string;
@@ -164,7 +164,7 @@ export interface IPatientDocument extends Document {
       newsletters: boolean;
       marketingCommunications: boolean;
     };
-    
+
     // Appointment preferences
     appointmentPreferences: {
       preferredTimes: {
@@ -178,7 +178,7 @@ export interface IPatientDocument extends Document {
       bufferBetweenSessions?: number; // minutes
       notes?: string;
     };
-    
+
     // Portal access
     portalAccess: {
       enabled: boolean;
