@@ -563,7 +563,8 @@ async function seedData() {
             expectedDuration: ['3 meses', '6 meses', '1 año', 'Indefinido'][Math.floor(Math.random() * 4)],
             frequency: ['Semanal', 'Quincenal', 'Mensual'][Math.floor(Math.random() * 3)],
             notes: '<p><strong>Notas del tratamiento:</strong></p><ul><li>Paciente muestra buena adherencia al tratamiento</li><li>Respuesta positiva a técnicas de TCC</li><li>Requiere seguimiento de medicación</li></ul>'
-          }
+          },
+          clinicalNotes: `<h4>Observaciones Clínicas</h4><p><strong>Fecha de evaluación inicial:</strong> ${new Date().toLocaleDateString('es-ES')}</p><p><strong>Presentación clínica:</strong> Paciente presenta síntomas compatibles con ${condition.toLowerCase()}. Se observa:</p><ul><li>Estado de ánimo: ${['Deprimido', 'Ansioso', 'Estable', 'Variable'][Math.floor(Math.random() * 4)]}</li><li>Nivel de funcionamiento: ${['Alto', 'Moderado', 'Bajo'][Math.floor(Math.random() * 3)]}</li><li>Insight: ${['Bueno', 'Parcial', 'Limitado'][Math.floor(Math.random() * 3)]}</li></ul><p><strong>Evolución:</strong> ${Math.random() > 0.5 ? 'Evolución favorable con mejoría progresiva' : 'Evolución lenta pero constante'}. Se recomienda continuar con el plan terapéutico actual.</p><p><em>Próxima revisión programada para 4 semanas.</em></p>`
         },
         episodes: [
           {

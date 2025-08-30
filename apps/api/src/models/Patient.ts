@@ -120,7 +120,7 @@ export interface IPatientDocument extends Document {
     
     // Current treatment
     currentTreatment: {
-      treatmentPlan?: string;
+      treatmentPlan?: string; // Rich text HTML content
       goals: string[];
       startDate: Date;
       expectedDuration?: string;
@@ -786,7 +786,11 @@ const PatientSchema = new Schema<IPatientDocument>(
         }],
       },
       currentTreatment: {
-        treatmentPlan: String,
+        treatmentPlan: {
+          type: String,
+          trim: true,
+          // Rich text HTML content for treatment plan
+        },
         goals: [String],
         startDate: {
           type: Date,
@@ -795,6 +799,12 @@ const PatientSchema = new Schema<IPatientDocument>(
         expectedDuration: String,
         frequency: String,
         notes: String,
+      },
+      // Rich text clinical notes
+      clinicalNotes: {
+        type: String,
+        trim: true,
+        // HTML content for clinical observations and notes
       },
     },
     

@@ -2,29 +2,284 @@ import type { ObjectId, ITimestamps, ISoftDelete, IAddress, IContact, IConsent }
 
 export interface IPatient extends ITimestamps, ISoftDelete {
   _id: ObjectId;
-  name: string;
-  email: string;
-  phone: string;
-  birthDate?: Date;
-  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  address?: IAddress;
-  emergencyContact?: IContact;
-  tags: string[];
-  consents: IConsent[];
-  newsletterOptIn: boolean;
-  notes?: string;
-  allergies?: string[];
-  medicalHistory?: string;
-  currentMedications?: string[];
-  insuranceInfo?: IInsuranceInfo;
-  referredBy?: string;
-  status: 'active' | 'inactive' | 'archived';
-  lastAppointmentAt?: Date;
-  totalAppointments: number;
-  assignedProfessionalIds: ObjectId[];
-  avatar?: string;
-  language: string;
-  timezone: string;
+  userId?: ObjectId;
+  
+  // Personal Information
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    dateOfBirth: Date;
+    age: number;
+    gender: 'male' | 'female' | 'non-binary' | 'other' | 'prefer-not-to-say';
+    nationality?: string;
+    idNumber?: string;
+    idType?: 'dni' | 'nie' | 'passport' | 'other';
+    maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed' | 'separated' | 'domestic-partner';
+    occupation?: string;
+    employer?: string;
+    profilePicture?: string;
+  };
+  
+  // Contact Information
+  contactInfo: {
+    email: string;
+    phone: string;
+    alternativePhone?: string;
+    preferredContactMethod: 'email' | 'phone' | 'sms' | 'whatsapp';
+    address: {
+      street: string;
+      city: string;
+      postalCode: string;
+      state?: string;
+      country: string;
+    };
+  };
+  
+  // Emergency Contact
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phone: string;
+    email?: string;
+  };
+  
+  // Clinical Information
+  clinicalInfo: {
+    primaryProfessional?: ObjectId;
+    assignedProfessionals: ObjectId[];
+    medicalHistory: {
+      conditions: string[];
+      medications: {
+        name: string;
+        dosage: string;
+        frequency: string;
+        prescribedBy?: string;
+        startDate: Date;
+        endDate?: Date;
+        active: boolean;
+        notes?: string;
+      }[];
+      allergies: {
+        type: 'medication' | 'food' | 'environmental' | 'other';
+        allergen: string;
+        severity: 'mild' | 'moderate' | 'severe';
+        reaction: string;
+        notes?: string;
+      }[];
+      surgeries: {
+        procedure: string;
+        date: Date;
+        hospital?: string;
+        surgeon?: string;
+        notes?: string;
+      }[];
+      hospitalizations: {
+        reason: string;
+        admissionDate: Date;
+        dischargeDate?: Date;
+        hospital: string;
+        notes?: string;
+      }[];
+    };
+    mentalHealthHistory: {
+      previousTreatments: {
+        type: 'therapy' | 'medication' | 'hospitalization' | 'other';
+        provider?: string;
+        startDate: Date;
+        endDate?: Date;
+        reason: string;
+        outcome?: string;
+        notes?: string;
+      }[];
+      diagnoses: {
+        condition: string;
+        diagnosedBy?: string;
+        diagnosisDate: Date;
+        icdCode?: string;
+        status: 'active' | 'resolved' | 'in-remission' | 'chronic';
+        severity?: 'mild' | 'moderate' | 'severe';
+        notes?: string;
+      }[];
+      riskFactors: {
+        factor: string;
+        level: 'low' | 'moderate' | 'high';
+        notes?: string;
+        assessedDate: Date;
+        assessedBy: ObjectId;
+      }[];
+    };
+    currentTreatment: {
+      treatmentPlan?: string; // Rich text HTML content
+      goals: string[];
+      startDate: Date;
+      expectedDuration?: string;
+      frequency?: string;
+      notes?: string;
+    };
+    // Rich text clinical notes
+    clinicalNotes?: string; // HTML content for clinical observations
+  };
+  
+  // Episodes
+  episodes: {
+    episodeId: string;
+    title: string;
+    description?: string;
+    startDate: Date;
+    endDate?: Date;
+    status: 'active' | 'completed' | 'on-hold' | 'cancelled';
+    primaryProfessional: ObjectId;
+    treatmentType: string;
+    goals: string[];
+    outcome?: string;
+    notes?: string;
+    appointmentIds: ObjectId[];
+  }[];
+  
+  // Billing
+  billing: {
+    paymentMethod: 'stripe' | 'cash';
+    stripeCustomerId?: string;
+    preferredPaymentMethod?: 'card' | 'cash';
+    billingNotes?: string;
+  };
+  
+  // Preferences
+  preferences: {
+    language: string;
+    communicationPreferences: {
+      appointmentReminders: boolean;
+      reminderMethods: ('email' | 'sms' | 'phone' | 'push')[];
+      reminderTiming: number[];
+      newsletters: boolean;
+      marketingCommunications: boolean;
+    };
+    appointmentPreferences: {
+      preferredTimes: {
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+      }[];
+      preferredProfessionals: ObjectId[];
+      sessionFormat: 'in-person' | 'video' | 'phone' | 'any';
+      sessionDuration: number;
+      bufferBetweenSessions?: number;
+      notes?: string;
+    };
+    portalAccess: {
+      enabled: boolean;
+      lastLogin?: Date;
+      passwordLastChanged?: Date;
+      twoFactorEnabled: boolean;
+      loginNotifications: boolean;
+    };
+  };
+  
+  // GDPR Consent
+  gdprConsent: {
+    dataProcessing: {
+      consented: boolean;
+      consentDate: Date;
+      consentMethod: 'verbal' | 'written' | 'digital';
+      consentVersion: string;
+      witnessedBy?: ObjectId;
+      notes?: string;
+    };
+    marketingCommunications: {
+      consented: boolean;
+      consentDate?: Date;
+      withdrawnDate?: Date;
+      method: 'verbal' | 'written' | 'digital';
+    };
+    dataSharing: {
+      healthcareProfessionals: boolean;
+      insuranceProviders: boolean;
+      emergencyContacts: boolean;
+      researchPurposes?: boolean;
+      consentDate: Date;
+    };
+    rightToErasure: {
+      requested: boolean;
+      requestDate?: Date;
+      processedDate?: Date;
+      processedBy?: ObjectId;
+      retentionReason?: string;
+      notes?: string;
+    };
+    dataPortability: {
+      lastExportDate?: Date;
+      exportFormat?: string;
+      exportedBy?: ObjectId;
+    };
+  };
+  
+  // Tags
+  tags: {
+    name: string;
+    category: 'clinical' | 'administrative' | 'billing' | 'custom';
+    color?: string;
+    addedBy: ObjectId;
+    addedDate: Date;
+  }[];
+  
+  // Status
+  status: 'active' | 'inactive' | 'discharged' | 'transferred' | 'deceased' | 'deleted';
+  
+  // Relationships
+  relationships: {
+    relatedPatientId: ObjectId;
+    relationship: 'spouse' | 'child' | 'parent' | 'sibling' | 'guardian' | 'other';
+    description?: string;
+    canAccessInformation: boolean;
+    emergencyContact: boolean;
+  }[];
+  
+  // Referral
+  referral: {
+    source?: 'self' | 'physician' | 'family' | 'friend' | 'insurance' | 'online' | 'other';
+    referringPhysician?: {
+      name: string;
+      specialty?: string;
+      phone?: string;
+      email?: string;
+      notes?: string;
+    };
+    referringPerson?: string;
+    referralDate?: Date;
+    referralReason?: string;
+    referralNotes?: string;
+  };
+  
+  // Statistics
+  statistics: {
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    noShowAppointments: number;
+    firstAppointmentDate?: Date;
+    lastAppointmentDate?: Date;
+    totalInvoiceAmount: number;
+    totalPaidAmount: number;
+    averageSessionRating?: number;
+  };
+  
+  // Administrative Notes
+  administrativeNotes: {
+    noteId: string;
+    content: string;
+    category: 'general' | 'billing' | 'scheduling' | 'clinical' | 'behavior';
+    isPrivate: boolean;
+    addedBy: ObjectId;
+    addedDate: Date;
+    lastModified?: Date;
+    lastModifiedBy?: ObjectId;
+  }[];
+  
+  // Audit
+  createdBy: ObjectId;
+  lastModifiedBy?: ObjectId;
+  version: number;
 }
 
 export interface IInsuranceInfo {

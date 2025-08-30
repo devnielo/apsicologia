@@ -645,8 +645,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </header>
 
           {/* Contenido */}
-          <main className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 to-slate-100/30">
-            <div className="space-y-4 mx-auto h-full w-full">
+          <main className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100/30">
+            <div className="h-full w-full">
               {children}
             </div>
           </main>
