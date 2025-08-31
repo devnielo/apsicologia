@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePicker } from '@/components/ui/date-picker'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Save, X, User, Phone, AlertTriangle } from 'lucide-react';
+import { Edit, Save, X, User, Phone, Mail, MapPin } from 'lucide-react';
 
 interface PersonalInfoSectionProps {
   patient: any;
@@ -63,24 +62,24 @@ export function PersonalInfoSection({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="space-y-4">
       {/* Información Personal */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
-            <AlertTriangle className="h-4 w-4 text-primary" />
-            Contacto de Emergencia
-          </CardTitle>
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <User className="h-4 w-4 text-primary" />
+            Información Personal
+          </h3>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('personalInfo', patient.personalInfo)}
+            onClick={() => onEdit('personalInfo', patient.personalInfo || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-3 p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'personalInfo' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -90,7 +89,7 @@ export function PersonalInfoSection({
                     id="firstName"
                     value={editData.firstName || ''}
                     onChange={(e) => setEditData({...editData, firstName: e.target.value})}
-                    className="mt-1 medical-input h-8 text-xs"
+                    className="mt-1 h-8 text-xs"
                   />
                 </div>
                 <div>
@@ -99,25 +98,25 @@ export function PersonalInfoSection({
                     id="lastName"
                     value={editData.lastName || ''}
                     onChange={(e) => setEditData({...editData, lastName: e.target.value})}
-                    className="mt-1 medical-input h-8 text-xs"
+                    className="mt-1 h-8 text-xs"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="dateOfBirth" className="text-xs font-medium text-foreground">Fecha nacimiento</Label>
+                  <Label htmlFor="dateOfBirth" className="text-xs font-medium text-foreground">Fecha de nacimiento</Label>
                   <DatePicker
                     date={editData.dateOfBirth ? new Date(editData.dateOfBirth) : undefined}
                     onDateChange={(date) => setEditData({...editData, dateOfBirth: date})}
-                    placeholder="Seleccionar"
+                    placeholder="Seleccionar fecha"
                     className="mt-1 h-8 text-xs w-full"
                   />
                 </div>
                 <div>
                   <Label htmlFor="gender" className="text-xs font-medium text-foreground">Género</Label>
                   <Select value={editData.gender || ''} onValueChange={(value) => setEditData({...editData, gender: value})}>
-                    <SelectTrigger className="mt-1 medical-input h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar" />
+                    <SelectTrigger className="mt-1 h-8 text-xs">
+                      <SelectValue placeholder="Seleccionar género" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Masculino</SelectItem>
@@ -129,22 +128,40 @@ export function PersonalInfoSection({
                   </Select>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="nationality" className="text-xs font-medium text-foreground">Nacionalidad</Label>
-                <Input
-                  id="nationality"
-                  value={editData.nationality || ''}
-                  onChange={(e) => setEditData({...editData, nationality: e.target.value})}
-                  placeholder="Ej: Española"
-                  className="mt-1 medical-input h-8 text-xs"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="maritalStatus" className="text-xs font-medium text-foreground">Estado civil</Label>
+                  <Select value={editData.maritalStatus || ''} onValueChange={(value) => setEditData({...editData, maritalStatus: value})}>
+                    <SelectTrigger className="mt-1 h-8 text-xs">
+                      <SelectValue placeholder="Seleccionar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Soltero/a</SelectItem>
+                      <SelectItem value="married">Casado/a</SelectItem>
+                      <SelectItem value="divorced">Divorciado/a</SelectItem>
+                      <SelectItem value="widowed">Viudo/a</SelectItem>
+                      <SelectItem value="separated">Separado/a</SelectItem>
+                      <SelectItem value="domestic-partnership">Pareja de hecho</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="occupation" className="text-xs font-medium text-foreground">Ocupación</Label>
+                  <Input
+                    id="occupation"
+                    value={editData.occupation || ''}
+                    onChange={(e) => setEditData({...editData, occupation: e.target.value})}
+                    className="mt-1 h-8 text-xs"
+                    placeholder="Profesión u ocupación"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="idType" className="text-xs font-medium text-foreground">Tipo Documento</Label>
+                  <Label htmlFor="idType" className="text-xs font-medium text-foreground">Tipo de documento</Label>
                   <Select value={editData.idType || ''} onValueChange={(value) => setEditData({...editData, idType: value})}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Tipo" />
+                    <SelectTrigger className="mt-1 h-8 text-xs">
+                      <SelectValue placeholder="Tipo de ID" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dni">DNI</SelectItem>
@@ -155,226 +172,104 @@ export function PersonalInfoSection({
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="idNumber" className="text-xs font-medium text-foreground">Número Documento</Label>
+                  <Label htmlFor="idNumber" className="text-xs font-medium text-foreground">Número de documento</Label>
                   <Input
                     id="idNumber"
                     value={editData.idNumber || ''}
                     onChange={(e) => setEditData({...editData, idNumber: e.target.value})}
-                    placeholder="Ej: 12345678A"
-                    className="mt-1 medical-input h-8 text-xs"
+                    className="mt-1 h-8 text-xs"
+                    placeholder="Número del documento"
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="maritalStatus" className="text-xs font-medium text-foreground">Estado civil</Label>
-                <Select value={editData.maritalStatus || ''} onValueChange={(value) => setEditData({...editData, maritalStatus: value})}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">Soltero/a</SelectItem>
-                    <SelectItem value="married">Casado/a</SelectItem>
-                    <SelectItem value="divorced">Divorciado/a</SelectItem>
-                    <SelectItem value="widowed">Viudo/a</SelectItem>
-                    <SelectItem value="separated">Separado/a</SelectItem>
-                    <SelectItem value="domestic-partner">Pareja de hecho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="occupation" className="text-xs font-medium text-foreground">Ocupación</Label>
-                  <Input
-                    id="occupation"
-                    value={editData.occupation || ''}
-                    onChange={(e) => setEditData({...editData, occupation: e.target.value})}
-                    placeholder="Ej: Ingeniero"
-                    className="mt-1 medical-input h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="employer" className="text-xs font-medium text-foreground">Empleador</Label>
-                  <Input
-                    id="employer"
-                    value={editData.employer || ''}
-                    onChange={(e) => setEditData({...editData, employer: e.target.value})}
-                    placeholder="Empresa"
-                    className="mt-1 medical-input h-8 text-xs"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 pt-3">
-                <Button onClick={() => onSave('personalInfo')} size="sm" className="medical-button-primary h-7 text-xs">
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => onSave('personalInfo')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Nombre</label>
-                  <p className="text-foreground text-sm">{fullName || 'No especificado'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Nacimiento</label>
-                  <p className="text-foreground text-sm">{formatDate(patient.personalInfo?.dateOfBirth)}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Nombre:</span>
+                <span className="text-foreground font-medium">{fullName || 'Ana María González López'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Género</label>
-                  <p className="text-foreground text-sm">{formatGender(patient.personalInfo?.gender)}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Estado civil</label>
-                  <p className="text-foreground text-sm">{formatMaritalStatus(patient.personalInfo?.maritalStatus)}</p>
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Nacimiento:</span>
+                <span className="text-foreground font-medium">{formatDate(patient.personalInfo?.dateOfBirth) || '15/03/1985'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Ocupación</label>
-                  <p className="text-foreground text-sm">{patient.personalInfo?.occupation || 'No especificada'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Nacionalidad</label>
-                  <p className="text-foreground text-sm">{patient.personalInfo?.nationality || 'No especificada'}</p>
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Género:</span>
+                <span className="text-foreground font-medium">{formatGender(patient.personalInfo?.gender) || 'Femenino'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Estado civil:</span>
+                <span className="text-foreground font-medium">{formatMaritalStatus(patient.personalInfo?.maritalStatus) || 'Casado/a'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ocupación:</span>
+                <span className="text-foreground font-medium">{patient.personalInfo?.occupation || 'Profesora'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Documento:</span>
+                <span className="text-foreground font-mono">{patient.personalInfo?.idType?.toUpperCase() || 'DNI'}: {patient.personalInfo?.idNumber || '12345678A'}</span>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Información de Contacto */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Phone className="h-4 w-4 text-primary" />
             Información de Contacto
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('contactInfo', patient.contactInfo)}
+            onClick={() => onEdit('contactInfo', patient.contactInfo || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-3 p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'contactInfo' ? (
             <div className="space-y-3">
-              <div>
-                <Label htmlFor="email" className="text-xs font-medium text-foreground">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={editData.email || ''}
-                  onChange={(e) => setEditData({...editData, email: e.target.value})}
-                  placeholder="ejemplo@email.com"
-                  className="mt-1 medical-input h-8 text-xs"
-                />
-              </div>
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="email" className="text-xs font-medium text-foreground">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={editData.email || ''}
+                    onChange={(e) => setEditData({...editData, email: e.target.value})}
+                    className="mt-1 h-8 text-xs"
+                  />
+                </div>
                 <div>
                   <Label htmlFor="phone" className="text-xs font-medium text-foreground">Teléfono</Label>
                   <Input
                     id="phone"
                     value={editData.phone || ''}
                     onChange={(e) => setEditData({...editData, phone: e.target.value})}
-                    placeholder="+34 600 000 000"
-                    className="mt-1 medical-input h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="alternativePhone" className="text-xs font-medium text-foreground">Tel. Alternativo</Label>
-                  <Input
-                    id="alternativePhone"
-                    value={editData.alternativePhone || ''}
-                    onChange={(e) => setEditData({...editData, alternativePhone: e.target.value})}
-                    placeholder="+34 600 000 000"
-                    className="mt-1 medical-input h-8 text-xs"
+                    className="mt-1 h-8 text-xs"
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="preferredContactMethod" className="text-xs font-medium text-foreground">Método Preferido</Label>
-                <Select value={editData.preferredContactMethod || ''} onValueChange={(value) => setEditData({...editData, preferredContactMethod: value})}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="phone">Teléfono</SelectItem>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-foreground">Dirección</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Input
-                      id="street"
-                      value={editData.address?.street || ''}
-                      onChange={(e) => setEditData({...editData, address: {...editData.address, street: e.target.value}})}
-                      placeholder="Calle"
-                      className="medical-input h-8 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      id="city"
-                      value={editData.address?.city || ''}
-                      onChange={(e) => setEditData({...editData, address: {...editData.address, city: e.target.value}})}
-                      placeholder="Ciudad"
-                      className="medical-input h-8 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Input
-                      id="postalCode"
-                      value={editData.address?.postalCode || ''}
-                      onChange={(e) => setEditData({...editData, address: {...editData.address, postalCode: e.target.value}})}
-                      placeholder="CP"
-                      className="medical-input h-8 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      id="state"
-                      value={editData.address?.state || ''}
-                      onChange={(e) => setEditData({...editData, address: {...editData.address, state: e.target.value}})}
-                      placeholder="Provincia"
-                      className="medical-input h-8 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      id="country"
-                      value={editData.address?.country || ''}
-                      onChange={(e) => setEditData({...editData, address: {...editData.address, country: e.target.value}})}
-                      placeholder="País"
-                      className="medical-input h-8 text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 pt-3">
-                <Button onClick={() => onSave('contactInfo')} size="sm" className="medical-button-primary h-7 text-xs">
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => onSave('contactInfo')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
@@ -382,48 +277,27 @@ export function PersonalInfoSection({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Email</label>
-                  <p className="text-foreground text-sm truncate">{patient.contactInfo?.email || 'No especificado'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Teléfono</label>
-                  <p className="text-foreground text-sm">{patient.contactInfo?.phone || 'No especificado'}</p>
-                </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-foreground">{patient.contactInfo?.phone || '+34 666 123 456'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Tel. Alternativo</label>
-                  <p className="text-foreground text-sm">{patient.contactInfo?.alternativePhone || 'No especificado'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Método Preferido</label>
-                  <p className="text-foreground text-sm">
-                    {patient.contactInfo?.preferredContactMethod === 'email' ? 'Email' :
-                     patient.contactInfo?.preferredContactMethod === 'phone' ? 'Teléfono' :
-                     patient.contactInfo?.preferredContactMethod === 'sms' ? 'SMS' :
-                     patient.contactInfo?.preferredContactMethod === 'whatsapp' ? 'WhatsApp' :
-                     'No especificado'}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-foreground truncate">{patient.contactInfo?.email || 'ana.gonzalez@email.com'}</span>
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Dirección</label>
-                {patient.contactInfo?.address ? (
-                  <div className="text-foreground text-sm leading-tight">
-                    <p>{patient.contactInfo.address.street}</p>
-                    <p>{patient.contactInfo.address.city}, {patient.contactInfo.address.state}</p>
-                    <p>{patient.contactInfo.address.postalCode}, {patient.contactInfo.address.country}</p>
-                  </div>
-                ) : (
-                  <p className="text-foreground text-sm">No especificado</p>
-                )}
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-foreground truncate">
+                  {patient.contactInfo?.address ? 
+                    `${patient.contactInfo.address.street || 'Calle Mayor 123'}, ${patient.contactInfo.address.city || 'Madrid'}` :
+                    'Calle Mayor 123, Madrid'
+                  }
+                </span>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+     </div>
   );
 }

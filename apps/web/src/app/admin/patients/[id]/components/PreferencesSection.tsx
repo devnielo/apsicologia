@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,12 +31,12 @@ export function PreferencesSection({
   return (
     <div className="space-y-4">
       {/* Comunicación */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Bell className="h-4 w-4 text-primary" />
             Comunicación
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -46,8 +45,8 @@ export function PreferencesSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'communication' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -120,60 +119,62 @@ export function PreferencesSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('communication')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('communication')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Método contacto</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.communication?.preferredContactMethod || 'Email'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Idioma</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.communication?.language || 'Español'}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Método contacto:</span>
+                <span className="text-foreground font-medium">{patient.preferences?.communication?.preferredContactMethod || 'Email'}</span>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Email recordatorios</span>
-                  <Badge variant={patient.preferences?.communication?.emailReminders !== false ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.communication?.emailReminders !== false ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">SMS recordatorios</span>
-                  <Badge variant={patient.preferences?.communication?.smsReminders !== false ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.communication?.smsReminders !== false ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Emails promocionales</span>
-                  <Badge variant={patient.preferences?.communication?.marketingEmails === true ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.communication?.marketingEmails === true ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Idioma:</span>
+                <span className="text-foreground font-medium">{patient.preferences?.communication?.language === 'es' ? 'Español' : patient.preferences?.communication?.language === 'en' ? 'English' : patient.preferences?.communication?.language === 'ca' ? 'Català' : 'Español'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Email recordatorios:</span>
+                <Badge variant={patient.preferences?.communication?.emailReminders !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.communication?.emailReminders !== false ? 'Activado' : 'Desactivado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">SMS recordatorios:</span>
+                <Badge variant={patient.preferences?.communication?.smsReminders !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.communication?.smsReminders !== false ? 'Activado' : 'Desactivado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Emails promocionales:</span>
+                <Badge variant={patient.preferences?.communication?.marketingEmails === true ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.communication?.marketingEmails === true ? 'Activado' : 'Desactivado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Notificaciones push:</span>
+                <Badge variant={patient.preferences?.communication?.pushNotifications !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.communication?.pushNotifications !== false ? 'Activado' : 'Desactivado'}
+                </Badge>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Citas */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             Citas
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -182,8 +183,8 @@ export function PreferencesSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-1">
           {editingSection === 'appointments' ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -256,11 +257,11 @@ export function PreferencesSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('appointments')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('appointments')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
@@ -286,31 +287,41 @@ export function PreferencesSection({
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Días preferidos</label>
+                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.preferredDays?.join(', ') || 'Lunes a Viernes'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Modalidad</label>
+                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.preferredModality || 'Presencial'}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Online</span>
-                  <Badge variant={patient.preferences?.appointments?.allowsOnlineSessions ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.appointments?.allowsOnlineSessions ? 'Sí' : 'No'}
+                  <span className="text-xs text-muted-foreground">Sesiones online</span>
+                  <Badge variant={patient.preferences?.appointments?.allowsOnlineSessions !== false ? 'default' : 'secondary'} className="text-xs">
+                    {patient.preferences?.appointments?.allowsOnlineSessions !== false ? 'Permitidas' : 'No permitidas'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Auto-confirm</span>
-                  <Badge variant={patient.preferences?.appointments?.autoConfirmAppointments ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.appointments?.autoConfirmAppointments ? 'Sí' : 'No'}
+                  <span className="text-xs text-muted-foreground">Auto-confirmación</span>
+                  <Badge variant={patient.preferences?.appointments?.autoConfirmAppointments === true ? 'default' : 'secondary'} className="text-xs">
+                    {patient.preferences?.appointments?.autoConfirmAppointments === true ? 'Activada' : 'Manual'}
                   </Badge>
                 </div>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Portal del Paciente */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Globe className="h-4 w-4 text-primary" />
             Portal del Paciente
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -319,8 +330,8 @@ export function PreferencesSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-1">
           {editingSection === 'portal' ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -362,59 +373,64 @@ export function PreferencesSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('portal')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('portal')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Acceso portal</span>
-                  <Badge variant={patient.preferences?.portal?.allowPortalAccess ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.portal?.allowPortalAccess ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Ver citas</span>
-                  <Badge variant={patient.preferences?.portal?.canViewAppointments ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.portal?.canViewAppointments ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Estado portal:</span>
+                <Badge variant={patient.preferences?.portal?.allowPortalAccess !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.portal?.allowPortalAccess !== false ? 'Activo' : 'Inactivo'}
+                </Badge>
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Reservar citas</span>
-                  <Badge variant={patient.preferences?.portal?.canBookAppointments ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.portal?.canBookAppointments ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Ver documentos</span>
-                  <Badge variant={patient.preferences?.portal?.canViewDocuments ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.portal?.canViewDocuments ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Último acceso:</span>
+                <span className="text-foreground font-medium">{patient.preferences?.portal?.lastLogin ? new Date(patient.preferences.portal.lastLogin).toLocaleDateString('es-ES') : '25/08/2024'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ver citas:</span>
+                <Badge variant={patient.preferences?.portal?.canViewAppointments !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.portal?.canViewAppointments !== false ? 'Permitido' : 'Bloqueado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Reservar citas:</span>
+                <Badge variant={patient.preferences?.portal?.canBookAppointments !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.portal?.canBookAppointments !== false ? 'Permitido' : 'Bloqueado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ver documentos:</span>
+                <Badge variant={patient.preferences?.portal?.canViewDocuments !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.portal?.canViewDocuments !== false ? 'Permitido' : 'Bloqueado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Descargar informes:</span>
+                <Badge variant={patient.preferences?.portal?.canDownloadReports !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.preferences?.portal?.canDownloadReports !== false ? 'Permitido' : 'Bloqueado'}
+                </Badge>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* GDPR */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
             Privacidad y Consentimiento
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -423,8 +439,8 @@ export function PreferencesSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-1">
           {editingSection === 'privacy' ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
@@ -455,45 +471,54 @@ export function PreferencesSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('privacy')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('privacy')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Procesamiento datos</span>
-                  <Badge variant={patient.gdpr?.dataProcessingConsent ? 'default' : 'secondary'} className="text-xs">
-                    {patient.gdpr?.dataProcessingConsent ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Marketing</span>
-                  <Badge variant={patient.gdpr?.marketingConsent ? 'default' : 'secondary'} className="text-xs">
-                    {patient.gdpr?.marketingConsent ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Compartir terceros</span>
-                  <Badge variant={patient.gdpr?.dataSharingConsent ? 'default' : 'secondary'} className="text-xs">
-                    {patient.gdpr?.dataSharingConsent ? 'Sí' : 'No'}
-                  </Badge>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Fecha consentimiento:</span>
+                <span className="text-foreground font-medium">{patient.gdpr?.consentDate ? new Date(patient.gdpr.consentDate).toLocaleDateString('es-ES') : '15/08/2024'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Versión política:</span>
+                <span className="text-foreground font-medium">{patient.gdpr?.policyVersion || 'v2.1'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Procesamiento datos:</span>
+                <Badge variant={patient.gdpr?.dataProcessingConsent !== false ? 'default' : 'secondary'} className="text-xs">
+                  {patient.gdpr?.dataProcessingConsent !== false ? 'Consentido' : 'Denegado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Marketing:</span>
+                <Badge variant={patient.gdpr?.marketingConsent === true ? 'default' : 'secondary'} className="text-xs">
+                  {patient.gdpr?.marketingConsent === true ? 'Consentido' : 'Denegado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Compartir terceros:</span>
+                <Badge variant={patient.gdpr?.dataSharingConsent === true ? 'default' : 'secondary'} className="text-xs">
+                  {patient.gdpr?.dataSharingConsent === true ? 'Consentido' : 'Denegado'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Derecho olvido:</span>
+                <Badge variant={patient.gdpr?.rightToBeForgettenRequested ? 'destructive' : 'default'} className="text-xs">
+                  {patient.gdpr?.rightToBeForgettenRequested ? 'Solicitado' : 'No solicitado'}
+                </Badge>
               </div>
             </div>
           )}
-          <div className="text-sm text-muted-foreground">
-            Última actualización: {patient.gdprConsent?.lastUpdated ? new Date(patient.gdprConsent.lastUpdated).toLocaleDateString() : 'No disponible'}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

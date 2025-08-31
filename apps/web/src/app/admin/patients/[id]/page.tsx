@@ -16,9 +16,10 @@ import { IPatient } from '@apsicologia/shared/types';
 // Import new compact components
 import { PatientSidebar } from './components/PatientSidebar';
 import { PersonalInfoSection } from './components/PersonalInfoSection';
-import { ClinicalSection } from './components/ClinicalSection';
+import ClinicalSection from './components/ClinicalSection';
 import { PreferencesSection } from './components/PreferencesSection';
 import { AdministrativeSection } from './components/AdministrativeSection';
+import { EpisodesSection } from './components/EpisodesSection';
 
 interface PatientDetailsPageProps {
   params: {
@@ -70,7 +71,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
   const fetchPatient = async (id: string) => {
     try {
       const response = await api.patients.get(id);
-      return response.data.data.patient;
+      return response.data.data?.patient;
     } catch (error) {
       console.error('Error fetching patient:', error);
       throw error;
@@ -185,14 +186,62 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-10">
-                <TabsTrigger value="personal" className="text-sm text-muted-foreground data-[state=active]:text-foreground">Personal</TabsTrigger>
-                <TabsTrigger value="clinical" className="text-sm text-muted-foreground data-[state=active]:text-foreground">Clínico</TabsTrigger>
-                <TabsTrigger value="preferences" className="text-sm text-muted-foreground data-[state=active]:text-foreground">Preferencias</TabsTrigger>
-                <TabsTrigger value="admin" className="text-sm text-muted-foreground data-[state=active]:text-foreground">Admin</TabsTrigger>
-              </TabsList>
+              <div className="border-b border-border/30 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                <div className="flex space-x-8 px-1">
+                  <button
+                    onClick={() => setActiveTab('personal')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'personal'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('clinical')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'clinical'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Clinical
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('preferences')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'preferences'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Preferences
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('episodes')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'episodes'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Episodios
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'admin'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
 
-              <TabsContent value="personal" className="mt-6">
+              <TabsContent value="personal" className="mt-2">
                 <PersonalInfoSection
                   patient={patient}
                   editingSection={editingSection}
@@ -204,7 +253,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                 />
               </TabsContent>
 
-              <TabsContent value="clinical" className="mt-6">
+              <TabsContent value="clinical" className="mt-2">
                 <ClinicalSection
                   patient={patient}
                   editingSection={editingSection}
@@ -216,7 +265,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                 />
               </TabsContent>
 
-              <TabsContent value="preferences" className="mt-6">
+              <TabsContent value="preferences" className="mt-2">
                 <PreferencesSection
                   patient={patient}
                   editingSection={editingSection}
@@ -228,7 +277,19 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                 />
               </TabsContent>
 
-              <TabsContent value="admin" className="mt-6">
+              <TabsContent value="episodes" className="mt-2">
+                <EpisodesSection
+                  patient={patient}
+                  editingSection={editingSection}
+                  editData={editData}
+                  onEdit={handleEdit}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                  setEditData={setEditData}
+                />
+              </TabsContent>
+
+              <TabsContent value="admin" className="mt-2">
                 <AdministrativeSection
                   patient={patient}
                   editingSection={editingSection}

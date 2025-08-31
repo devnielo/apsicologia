@@ -1022,7 +1022,7 @@ export class PatientController {
       res.status(200).json({
         success: true,
         message: 'Patient updated successfully',
-        data: updatedPatient,
+        data: { patient: updatedPatient },
       });
     } catch (error) {
       logger.error('Update patient error:', error);

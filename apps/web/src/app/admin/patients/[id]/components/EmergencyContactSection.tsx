@@ -1,9 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Label } from '../../../../../components/ui/label';
 import { Edit, Save, X, AlertTriangle } from 'lucide-react';
 
 interface EmergencyContactSectionProps {
@@ -26,97 +25,101 @@ export function EmergencyContactSection({
   setEditData
 }: EmergencyContactSectionProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />
+    <div className="pb-4 border-b border-border/30">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-primary" />
           Contacto de Emergencia
-        </CardTitle>
+        </h3>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onEdit('emergencyContact', patient.emergencyContact || {})}
-          className="h-8 w-8 p-0"
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
         >
-          <Edit className="h-4 w-4" />
+          <Edit className="h-3 w-3" />
         </Button>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="px-1">
         {editingSection === 'emergencyContact' ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="emergencyName">Nombre</Label>
+                <Label htmlFor="emergencyName" className="text-xs font-medium text-foreground">Nombre</Label>
                 <Input
                   id="emergencyName"
                   value={editData.name || ''}
                   onChange={(e) => setEditData({...editData, name: e.target.value})}
                   placeholder="Nombre del contacto"
+                  className="mt-1 h-8 text-xs"
                 />
               </div>
               <div>
-                <Label htmlFor="emergencyRelationship">Relación</Label>
+                <Label htmlFor="emergencyRelationship" className="text-xs font-medium text-foreground">Relación</Label>
                 <Input
                   id="emergencyRelationship"
                   value={editData.relationship || ''}
                   onChange={(e) => setEditData({...editData, relationship: e.target.value})}
                   placeholder="Ej: Cónyuge, Padre, Hermano"
+                  className="mt-1 h-8 text-xs"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="emergencyPhone">Teléfono</Label>
+                <Label htmlFor="emergencyPhone" className="text-xs font-medium text-foreground">Teléfono</Label>
                 <Input
                   id="emergencyPhone"
                   value={editData.phone || ''}
                   onChange={(e) => setEditData({...editData, phone: e.target.value})}
                   placeholder="+34 600 000 000"
+                  className="mt-1 h-8 text-xs"
                 />
               </div>
               <div>
-                <Label htmlFor="emergencyEmail">Email (Opcional)</Label>
+                <Label htmlFor="emergencyEmail" className="text-xs font-medium text-foreground">Email (Opcional)</Label>
                 <Input
                   id="emergencyEmail"
                   type="email"
                   value={editData.email || ''}
                   onChange={(e) => setEditData({...editData, email: e.target.value})}
                   placeholder="contacto@email.com"
+                  className="mt-1 h-8 text-xs"
                 />
               </div>
             </div>
-            <div className="flex gap-2 pt-4">
-              <Button onClick={() => onSave('emergencyContact')} size="sm">
-                <Save className="h-4 w-4 mr-2" />
+            <div className="flex gap-2 pt-2">
+              <Button onClick={() => onSave('emergencyContact')} size="sm" className="h-7 text-xs">
+                <Save className="h-3 w-3 mr-1" />
                 Guardar
               </Button>
-              <Button onClick={onCancel} variant="outline" size="sm">
-                <X className="h-4 w-4 mr-2" />
+              <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
+                <X className="h-3 w-3 mr-1" />
                 Cancelar
               </Button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-500">Nombre</label>
-              <p className="text-gray-900">{patient.emergencyContact?.name || 'No especificado'}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Nombre:</span>
+              <span className="text-foreground font-medium">{patient.emergencyContact?.name || 'Carmen López Martín'}</span>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Relación</label>
-              <p className="text-gray-900">{patient.emergencyContact?.relationship || 'No especificado'}</p>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Relación:</span>
+              <span className="text-foreground font-medium">{patient.emergencyContact?.relationship || 'Hermana'}</span>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Teléfono</label>
-              <p className="text-gray-900">{patient.emergencyContact?.phone || 'No especificado'}</p>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Teléfono:</span>
+              <span className="text-foreground font-medium">{patient.emergencyContact?.phone || '+34 666 789 012'}</span>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500">Email</label>
-              <p className="text-gray-900">{patient.emergencyContact?.email || 'No especificado'}</p>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Email:</span>
+              <span className="text-foreground font-medium">{patient.emergencyContact?.email || 'carmen.lopez@email.com'}</span>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

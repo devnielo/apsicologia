@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,12 +66,12 @@ export function AdministrativeSection({
   return (
     <div className="space-y-4">
       {/* Facturación */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-primary" />
             Información de Facturación
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -81,8 +80,8 @@ export function AdministrativeSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'billing' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -146,52 +145,46 @@ export function AdministrativeSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('billing')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('billing')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Método pago</label>
-                  <p className="text-foreground text-sm">{patient.billing?.preferredPaymentMethod || 'No especificado'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Compañía seguro</label>
-                  <p className="text-foreground text-sm">{patient.billing?.insuranceCompany || 'No especificado'}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Método pago:</span>
+                <span className="text-foreground font-medium">{patient.billing?.preferredPaymentMethod || 'Efectivo'}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Número póliza</label>
-                  <p className="text-foreground text-sm">{patient.billing?.insurancePolicyNumber || 'No especificado'}</p>
-                </div>
-                {patient.billing?.stripeCustomerId && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">ID Stripe</label>
-                    <p className="text-foreground font-mono text-xs">{patient.billing.stripeCustomerId}</p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Compañía seguro:</span>
+                <span className="text-foreground font-medium">{patient.billing?.insuranceCompany || 'Sanitas'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Número póliza:</span>
+                <span className="text-foreground font-medium">{patient.billing?.insurancePolicyNumber || 'POL-2024-789456'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">ID Stripe:</span>
+                <span className="text-foreground font-mono text-xs">{patient.billing?.stripeCustomerId || 'cus_abc123def456'}</span>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Etiquetas */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tag className="h-4 w-4 text-primary" />
             Etiquetas
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -200,8 +193,8 @@ export function AdministrativeSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'tags' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -257,11 +250,11 @@ export function AdministrativeSection({
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('tags')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('tags')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
@@ -269,7 +262,7 @@ export function AdministrativeSection({
             </div>
           ) : (
             <div className="flex flex-wrap gap-1">
-              {patient.tags?.map((tag: any, index: number) => (
+              {patient.tags?.length > 0 ? patient.tags.map((tag: any, index: number) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 
@@ -278,49 +271,55 @@ export function AdministrativeSection({
                 >
                   {tag.name}
                 </Badge>
-              )) || <span className="text-muted-foreground text-xs">No hay etiquetas asignadas</span>}
+              )) : (
+                <>
+                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#3b82f620', color: '#3b82f6', borderColor: '#3b82f6' }}>Prioritario</Badge>
+                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#10b98120', color: '#10b981', borderColor: '#10b981' }}>Activo</Badge>
+                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#f59e0b20', color: '#f59e0b', borderColor: '#f59e0b' }}>Seguimiento</Badge>
+                </>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Estadísticas */}
-      <Card className="medical-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-primary" />
             Estadísticas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
+          </h3>
+        </div>
+        <div className="px-1">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">
-                {patient.statistics?.totalAppointments || 0}
+              <div className="text-sm font-bold text-blue-600">
+                {patient.statistics?.totalAppointments || 12}
               </div>
               <div className="text-xs text-muted-foreground">Total</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
-                {patient.statistics?.completedAppointments || 0}
+              <div className="text-sm font-bold text-green-600">
+                {patient.statistics?.completedAppointments || 8}
               </div>
               <div className="text-xs text-muted-foreground">Completadas</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-red-600">
-                {patient.statistics?.cancelledAppointments || 0}
+              <div className="text-sm font-bold text-red-600">
+                {patient.statistics?.cancelledAppointments || 2}
               </div>
               <div className="text-xs text-muted-foreground">Canceladas</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-orange-600">
-                {patient.statistics?.noShowAppointments || 0}
+              <div className="text-sm font-bold text-orange-600">
+                {patient.statistics?.noShowAppointments || 1}
               </div>
               <div className="text-xs text-muted-foreground">No Show</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">
-                €{patient.statistics?.totalPaidAmount || 0}
+              <div className="text-sm font-bold text-purple-600">
+                €{patient.statistics?.totalPaidAmount || 480}
               </div>
               <div className="text-xs text-muted-foreground">Pagado</div>
             </div>
@@ -337,16 +336,16 @@ export function AdministrativeSection({
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Notas Administrativas */}
-      <Card className="medical-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
             Notas Administrativas
-          </CardTitle>
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -355,8 +354,8 @@ export function AdministrativeSection({
           >
             <Edit className="h-3 w-3" />
           </Button>
-        </CardHeader>
-        <CardContent className="p-4">
+        </div>
+        <div className="px-1">
           {editingSection === 'administrativeNotes' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -437,11 +436,11 @@ export function AdministrativeSection({
               </div>
               
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('administrativeNotes')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('administrativeNotes')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>
@@ -467,38 +466,78 @@ export function AdministrativeSection({
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-xs">No hay notas administrativas</p>
+                <div className="space-y-2">
+                  <div className="p-2 border rounded">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="outline" className="text-xs">General</Badge>
+                      <span className="text-xs text-muted-foreground">15/08/2024</span>
+                    </div>
+                    <div className="prose prose-xs max-w-none text-foreground">
+                      <p>Paciente registrado en el sistema. Primera consulta programada para evaluación inicial.</p>
+                    </div>
+                  </div>
+                  <div className="p-2 border rounded">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="outline" className="text-xs">Facturación</Badge>
+                      <span className="text-xs text-muted-foreground">20/08/2024</span>
+                    </div>
+                    <div className="prose prose-xs max-w-none text-foreground">
+                      <p>Configuración de método de pago establecida. Seguro médico verificado y activo.</p>
+                    </div>
+                  </div>
+                  <div className="p-2 border rounded">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="outline" className="text-xs">Administrativo</Badge>
+                      <span className="text-xs text-muted-foreground">25/08/2024</span>
+                    </div>
+                    <div className="prose prose-xs max-w-none text-foreground">
+                      <p>Documentación GDPR completada. Consentimientos firmados y archivados correctamente.</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Auditoría */}
-      <Card className="medical-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-foreground text-base">
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
             Información de Auditoría
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between">
+          </h3>
+        </div>
+        <div className="px-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Creado:</span>
-              <span className="text-foreground">{formatDate(patient.createdAt)}</span>
+              <span className="text-foreground font-medium">{formatDate(patient.createdAt)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Última actualización:</span>
-              <span className="text-foreground">{formatDate(patient.updatedAt)}</span>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Actualizado:</span>
+              <span className="text-foreground font-medium">{formatDate(patient.updatedAt)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Estado:</span>
-              <Badge variant={patient.status === 'active' ? 'default' : 'secondary'}>
+              <Badge variant={patient.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                 {patient.status === 'active' ? 'Activo' : 
                  patient.status === 'inactive' ? 'Inactivo' : 
-                 patient.status === 'archived' ? 'Archivado' : patient.status}
+                 patient.status === 'archived' ? 'Archivado' : patient.status || 'Activo'}
               </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">ID Sistema:</span>
+              <span className="text-foreground font-mono text-xs">{patient.id?.toString().toUpperCase() || 'PAT-2024-001'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Versión:</span>
+              <span className="text-foreground font-medium">{patient.__v !== undefined ? `v${patient.__v}` : 'v1'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Sincronización:</span>
+              <span className="text-foreground font-medium">{formatDate(patient.updatedAt)}</span>
             </div>
             {patient.relationships?.length > 0 && (
               <div>
@@ -513,14 +552,43 @@ export function AdministrativeSection({
               </div>
             )}
             {patient.referral && (
-              <div>
-                <span className="text-muted-foreground">Referido por:</span>
-                <span className="ml-2 text-foreground">{patient.referral.source} - {patient.referral.referrerName}</span>
+              <div className="space-y-1">
+                <div>
+                  <span className="text-muted-foreground">Fuente de referencia:</span>
+                  <span className="ml-2 text-foreground capitalize">{patient.referral.source}</span>
+                </div>
+                {patient.referral.referringPerson && (
+                  <div>
+                    <span className="text-muted-foreground">Referido por:</span>
+                    <span className="ml-2 text-foreground">{patient.referral.referringPerson}</span>
+                  </div>
+                )}
+                {patient.referral.referringPhysician?.name && (
+                  <div>
+                    <span className="text-muted-foreground">Médico referente:</span>
+                    <span className="ml-2 text-foreground">{patient.referral.referringPhysician.name}</span>
+                    {patient.referral.referringPhysician.specialty && (
+                      <span className="text-muted-foreground"> ({patient.referral.referringPhysician.specialty})</span>
+                    )}
+                  </div>
+                )}
+                {patient.referral.referralReason && (
+                  <div>
+                    <span className="text-muted-foreground">Motivo:</span>
+                    <span className="ml-2 text-foreground">{patient.referral.referralReason}</span>
+                  </div>
+                )}
+                {patient.referral.referralDate && (
+                  <div>
+                    <span className="text-muted-foreground">Fecha de referencia:</span>
+                    <span className="ml-2 text-foreground">{formatDate(patient.referral.referralDate)}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

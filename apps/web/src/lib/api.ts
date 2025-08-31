@@ -164,13 +164,13 @@ export const api = {
       }>>('/patients', { params }),
 
     get: (id: string) =>
-      apiClient.get<ApiResponse<any>>(`/patients/${id}`),
+      apiClient.get<ApiResponse<{ patient: any }>>(`/patients/${id}`),
 
     create: (data: any) =>
-      apiClient.post<ApiResponse<any>>('/patients', data),
+      apiClient.post<ApiResponse<{ patient: any }>>('/patients', data),
 
     update: (id: string, data: any) =>
-      apiClient.put<ApiResponse<any>>(`/patients/${id}`, data),
+      apiClient.put<ApiResponse<{ patient: any }>>(`/patients/${id}`, data),
 
     delete: (id: string) =>
       apiClient.delete<ApiResponse>(`/patients/${id}`),
