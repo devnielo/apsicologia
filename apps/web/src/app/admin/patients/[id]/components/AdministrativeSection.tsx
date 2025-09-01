@@ -38,29 +38,19 @@ export function AdministrativeSection({
   };
 
   const addTag = () => {
-    const newTag = { 
-      name: '', 
-      color: '#3b82f6', 
-      category: 'general',
-      addedBy: 'current-user-id', // This should be set from current user context
-      addedDate: new Date()
-    };
-    setEditData({
-      ...editData,
-      tags: [...(editData.tags || []), newTag]
-    });
+    const newTags = [...(editData.tags || []), { name: '', color: '#3b82f6', description: '' }];
+    setEditData({ ...editData, tags: newTags });
   };
 
   const removeTag = (index: number) => {
-    const tags = [...(editData.tags || [])];
-    tags.splice(index, 1);
-    setEditData({ ...editData, tags });
+    const newTags = (editData.tags || []).filter((_: any, i: number) => i !== index);
+    setEditData({ ...editData, tags: newTags });
   };
 
-  const updateTag = (index: number, field: string, value: any) => {
-    const tags = [...(editData.tags || [])];
-    tags[index] = { ...tags[index], [field]: value };
-    setEditData({ ...editData, tags });
+  const updateTag = (index: number, field: string, value: string) => {
+    const newTags = [...(editData.tags || [])];
+    newTags[index] = { ...newTags[index], [field]: value };
+    setEditData({ ...editData, tags: newTags });
   };
 
   return (
@@ -158,7 +148,7 @@ export function AdministrativeSection({
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Método pago:</span>
+                <span className="text-muted-foreground">Método de pago:</span>
                 <span className="text-foreground font-medium">{patient.billing?.preferredPaymentMethod || 'Efectivo'}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -171,8 +161,17 @@ export function AdministrativeSection({
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">ID Stripe:</span>
-                <span className="text-foreground font-mono text-xs">{patient.billing?.stripeCustomerId || 'cus_abc123def456'}</span>
+                <span className="text-foreground font-medium">{patient.billing?.stripeCustomerId || 'cus_OkwlMjKlmnop123'}</span>
               </div>
+              {patient.billing?.billingNotes && (
+                <div className="col-span-2">
+                  <span className="text-xs font-medium text-muted-foreground">Notas:</span>
+                  <div 
+                    className="text-sm text-foreground prose prose-sm max-w-none mt-1"
+                    dangerouslySetInnerHTML={{ __html: patient.billing.billingNotes }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -188,7 +187,7 @@ export function AdministrativeSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('tags', patient.tags || [])}
+            onClick={() => onEdit('tags', { tags: patient.tags || [] })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -206,7 +205,7 @@ export function AdministrativeSection({
               </div>
               
               <div className="space-y-2">
-                {editData.map((tag: any, index: number) => (
+                {(editData.tags || []).map((tag: any, index: number) => (
                   <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
                     <div className="flex-1 grid grid-cols-3 gap-2">
                       <Input

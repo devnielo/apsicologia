@@ -1,12 +1,14 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Edit, Save, X, Settings, Bell, Calendar, Globe, Shield } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Label } from '../../../../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
+import { Badge } from '../../../../../components/ui/badge';
+import { Switch } from '../../../../../components/ui/switch';
+import { Checkbox } from '../../../../../components/ui/checkbox';
+import { RichTextEditor } from '../../../../../components/ui/rich-text-editor';
+import { Edit, Save, X, MessageSquare, Calendar, Globe, Shield, Bell } from 'lucide-react';
 
 interface PreferencesSectionProps {
   patient: any;
@@ -40,7 +42,7 @@ export function PreferencesSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('communication', patient.preferences?.communication || {})}
+            onClick={() => onEdit('communication', patient.preferences?.communicationPreferences || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -87,34 +89,28 @@ export function PreferencesSection({
 
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="emailReminders"
                     checked={editData.emailReminders !== false}
-                    onChange={(e) => setEditData({...editData, emailReminders: e.target.checked})}
-                    className="rounded border-gray-300"
+                    onCheckedChange={(checked) => setEditData({...editData, emailReminders: checked})}
                   />
                   <Label htmlFor="emailReminders" className="text-xs text-foreground">Recordatorios por email</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="smsReminders"
                     checked={editData.smsReminders !== false}
-                    onChange={(e) => setEditData({...editData, smsReminders: e.target.checked})}
-                    className="rounded border-gray-300"
+                    onCheckedChange={(checked) => setEditData({...editData, smsReminders: checked})}
                   />
                   <Label htmlFor="smsReminders" className="text-xs text-foreground">Recordatorios por SMS</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="marketingEmails"
                     checked={editData.marketingEmails === true}
-                    onChange={(e) => setEditData({...editData, marketingEmails: e.target.checked})}
-                    className="rounded border-gray-300"
+                    onCheckedChange={(checked) => setEditData({...editData, marketingEmails: checked})}
                   />
-                  <Label htmlFor="marketingEmails" className="text-xs text-foreground">Emails promocionales</Label>
+                  <Label htmlFor="marketingEmails" className="text-xs text-foreground">Emails de marketing</Label>
                 </div>
               </div>
 
@@ -141,27 +137,36 @@ export function PreferencesSection({
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Email recordatorios:</span>
-                <Badge variant={patient.preferences?.communication?.emailReminders !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.communication?.emailReminders !== false ? 'Activado' : 'Desactivado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={patient.preferences?.communication?.emailReminders !== false}
+                    disabled
+                    className="h-3 w-3"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.communication?.emailReminders !== false ? 'Activado' : 'Desactivado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">SMS recordatorios:</span>
-                <Badge variant={patient.preferences?.communication?.smsReminders !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.communication?.smsReminders !== false ? 'Activado' : 'Desactivado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={patient.preferences?.communication?.smsReminders !== false}
+                    disabled
+                    className="h-3 w-3"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.communication?.smsReminders !== false ? 'Activado' : 'Desactivado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Emails promocionales:</span>
-                <Badge variant={patient.preferences?.communication?.marketingEmails === true ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.communication?.marketingEmails === true ? 'Activado' : 'Desactivado'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Notificaciones push:</span>
-                <Badge variant={patient.preferences?.communication?.pushNotifications !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.communication?.pushNotifications !== false ? 'Activado' : 'Desactivado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={patient.preferences?.communication?.marketingEmails === true}
+                    disabled
+                    className="h-3 w-3"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.communication?.marketingEmails === true ? 'Activado' : 'Desactivado'}</span>
+                </div>
               </div>
             </div>
           )}
@@ -178,7 +183,7 @@ export function PreferencesSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('appointments', patient.preferences?.appointments || {})}
+            onClick={() => onEdit('appointments', patient.preferences?.appointmentPreferences || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -268,46 +273,41 @@ export function PreferencesSection({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Duración</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.defaultDuration || 60} min</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Aviso mínimo</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.minimumNoticeHours || 24}h</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Duración citas:</span>
+                <span className="text-foreground font-medium">{patient.preferences?.appointments?.defaultDuration || 60} min</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Aviso mínimo:</span>
+                <span className="text-foreground font-medium">{patient.preferences?.appointments?.minimumNoticeHours || 24}h</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Horario preferido:</span>
+                <span className="text-foreground font-medium">
+                  {patient.preferences?.appointments?.preferredTimeSlots?.start || '09:00'} - {patient.preferences?.appointments?.preferredTimeSlots?.end || '17:00'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Sesiones online:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.appointments?.allowsOnlineSessions || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.appointments?.allowsOnlineSessions ? 'Permitido' : 'No permitido'}</span>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Horario preferido</label>
-                <p className="text-foreground text-sm">
-                  {patient.preferences?.appointments?.preferredTimeSlots?.start || '09:00'} - 
-                  {patient.preferences?.appointments?.preferredTimeSlots?.end || '17:00'}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Días preferidos</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.preferredDays?.join(', ') || 'Lunes a Viernes'}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Modalidad</label>
-                  <p className="text-foreground text-sm">{patient.preferences?.appointments?.preferredModality || 'Presencial'}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Sesiones online</span>
-                  <Badge variant={patient.preferences?.appointments?.allowsOnlineSessions !== false ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.appointments?.allowsOnlineSessions !== false ? 'Permitidas' : 'No permitidas'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Auto-confirmación</span>
-                  <Badge variant={patient.preferences?.appointments?.autoConfirmAppointments === true ? 'default' : 'secondary'} className="text-xs">
-                    {patient.preferences?.appointments?.autoConfirmAppointments === true ? 'Activada' : 'Manual'}
-                  </Badge>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Auto-confirmación:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.appointments?.autoConfirmAppointments || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.appointments?.autoConfirmAppointments ? 'Activado' : 'Desactivado'}</span>
                 </div>
               </div>
             </div>
@@ -325,7 +325,7 @@ export function PreferencesSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('portal', patient.preferences?.portal || {})}
+            onClick={() => onEdit('portal', patient.preferences?.portalAccess || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -386,38 +386,63 @@ export function PreferencesSection({
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Estado portal:</span>
-                <Badge variant={patient.preferences?.portal?.allowPortalAccess !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.portal?.allowPortalAccess !== false ? 'Activo' : 'Inactivo'}
-                </Badge>
+                <span className="text-muted-foreground">Acceso al portal:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.portal?.allowPortalAccess || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.portal?.allowPortalAccess ? 'Activo' : 'Inactivo'}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ver citas:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.portal?.canViewAppointments || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.portal?.canViewAppointments ? 'Permitido' : 'Bloqueado'}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Reservar citas:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.portal?.canBookAppointments || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.portal?.canBookAppointments ? 'Permitido' : 'Bloqueado'}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ver documentos:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.portal?.canViewDocuments || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.portal?.canViewDocuments ? 'Permitido' : 'Bloqueado'}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Descargar informes:</span>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.preferences?.portal?.canDownloadReports || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.preferences?.portal?.canDownloadReports ? 'Permitido' : 'Bloqueado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Último acceso:</span>
                 <span className="text-foreground font-medium">{patient.preferences?.portal?.lastLogin ? new Date(patient.preferences.portal.lastLogin).toLocaleDateString('es-ES') : '25/08/2024'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Ver citas:</span>
-                <Badge variant={patient.preferences?.portal?.canViewAppointments !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.portal?.canViewAppointments !== false ? 'Permitido' : 'Bloqueado'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Reservar citas:</span>
-                <Badge variant={patient.preferences?.portal?.canBookAppointments !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.portal?.canBookAppointments !== false ? 'Permitido' : 'Bloqueado'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Ver documentos:</span>
-                <Badge variant={patient.preferences?.portal?.canViewDocuments !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.portal?.canViewDocuments !== false ? 'Permitido' : 'Bloqueado'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Descargar informes:</span>
-                <Badge variant={patient.preferences?.portal?.canDownloadReports !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.preferences?.portal?.canDownloadReports !== false ? 'Permitido' : 'Bloqueado'}
-                </Badge>
               </div>
             </div>
           )}
@@ -434,7 +459,7 @@ export function PreferencesSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('privacy', patient.gdpr || {})}
+            onClick={() => onEdit('privacy', patient.gdprConsent || {})}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -493,27 +518,47 @@ export function PreferencesSection({
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Procesamiento datos:</span>
-                <Badge variant={patient.gdpr?.dataProcessingConsent !== false ? 'default' : 'secondary'} className="text-xs">
-                  {patient.gdpr?.dataProcessingConsent !== false ? 'Consentido' : 'Denegado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.gdpr?.dataProcessingConsent || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.gdpr?.dataProcessingConsent ? 'Consentido' : 'Denegado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Marketing:</span>
-                <Badge variant={patient.gdpr?.marketingConsent === true ? 'default' : 'secondary'} className="text-xs">
-                  {patient.gdpr?.marketingConsent === true ? 'Consentido' : 'Denegado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.gdpr?.marketingConsent || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.gdpr?.marketingConsent ? 'Consentido' : 'Denegado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Compartir terceros:</span>
-                <Badge variant={patient.gdpr?.dataSharingConsent === true ? 'default' : 'secondary'} className="text-xs">
-                  {patient.gdpr?.dataSharingConsent === true ? 'Consentido' : 'Denegado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.gdpr?.dataSharingConsent || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.gdpr?.dataSharingConsent ? 'Consentido' : 'Denegado'}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Derecho olvido:</span>
-                <Badge variant={patient.gdpr?.rightToBeForgettenRequested ? 'destructive' : 'default'} className="text-xs">
-                  {patient.gdpr?.rightToBeForgettenRequested ? 'Solicitado' : 'No solicitado'}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={patient.gdpr?.rightToBeForgettenRequested || false}
+                    disabled
+                    className="h-4 w-7"
+                  />
+                  <span className="text-xs text-foreground">{patient.gdpr?.rightToBeForgettenRequested ? 'Solicitado' : 'No solicitado'}</span>
+                </div>
               </div>
             </div>
           )}

@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+// Removed Card imports for minimalist design
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
@@ -262,8 +262,8 @@ export default function PatientsPage() {
       </div>
 
       {/* Advanced Data Table */}
-      <Card className="w-full">
-        <CardContent className="p-2">
+      <div className="w-full border border-border rounded-lg bg-card">
+        <div className="p-2">
           <AdvancedDataTable
             data={patients}
             columns={columns}
@@ -307,8 +307,8 @@ export default function PatientsPage() {
               sorting: sorting.map(s => ({ id: s.field, desc: s.order === 'desc' })),
             }), [pagination, tableFilters, globalFilter, sorting])}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

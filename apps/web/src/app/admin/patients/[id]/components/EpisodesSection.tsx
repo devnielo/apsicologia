@@ -219,11 +219,11 @@ export function EpisodesSection({
               ))}
 
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('episodes')} size="sm" className="medical-button-primary h-7 text-xs">
+                <Button onClick={() => onSave('episodes')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="medical-button-secondary h-7 text-xs">
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Cancelar
                 </Button>

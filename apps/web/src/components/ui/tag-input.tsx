@@ -63,31 +63,7 @@ export function TagInput({
   )
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {/* Display current tags */}
-      {value.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {value.map((tag, index) => (
-            <Badge 
-              key={index} 
-              variant="secondary" 
-              className="text-sm px-2 py-1 hover:bg-secondary/80 transition-colors"
-            >
-              {tag}
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  className="ml-1 hover:text-destructive transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </Badge>
-          ))}
-        </div>
-      )}
-
+    <div className={cn("w-full space-y-2", className)}>
       {/* Input section */}
       {!disabled && (!maxTags || value.length < maxTags) && (
         <div className="flex gap-2">
@@ -103,7 +79,7 @@ export function TagInput({
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     onFocus={() => setIsOpen(true)}
-                    className="flex-1"
+                    className="flex-1 h-8"
                   />
                 </div>
               </PopoverTrigger>
@@ -155,7 +131,7 @@ export function TagInput({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="flex-1"
+              className="flex-1 h-8"
             />
           )}
           
@@ -172,9 +148,33 @@ export function TagInput({
         </div>
       )}
 
+      {/* Display current tags below input */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {value.map((tag, index) => (
+            <Badge 
+              key={index} 
+              variant="secondary" 
+              className="text-xs px-1.5 py-0.5 h-5 hover:bg-secondary/80 transition-colors"
+            >
+              {tag}
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="ml-1 hover:text-destructive transition-colors"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              )}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {/* Max tags indicator */}
       {maxTags && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground mt-1">
           {value.length} / {maxTags} elementos
         </p>
       )}

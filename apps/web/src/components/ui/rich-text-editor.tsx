@@ -5,7 +5,6 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { ListItem } from '@tiptap/extension-list-item';
 import { 
   Bold, 
   Italic, 
@@ -56,7 +55,6 @@ export function RichTextEditor({
       }),
       TextStyle,
       Color,
-      ListItem,
     ],
     content,
     editable,
@@ -166,13 +164,15 @@ export function RichTextEditor({
   return (
     <div className={cn('border border-gray-200 rounded-md bg-white', className)}>
       {editable && <MenuBar />}
-      <EditorContent 
-        editor={editor} 
+      <div 
+        onClick={() => editor.commands.focus()}
         className={cn(
-          'prose prose-sm max-w-none p-3 min-h-[120px] focus-within:outline-none',
-          !editable && 'bg-gray-50'
+          'prose prose-sm max-w-none p-3 min-h-[120px] focus-within:outline-none cursor-text',
+          !editable && 'bg-gray-50 cursor-default'
         )}
-      />
+      >
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

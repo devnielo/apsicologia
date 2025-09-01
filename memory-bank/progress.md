@@ -549,3 +549,84 @@ La plataforma ahora cuenta con:
 - ✅ **Funcionalidad:** Modos edit/view completamente operativos en todas las secciones
 - ✅ **UX Mejorada:** Navegación fluida, feedback visual consistente, datos siempre visibles
 - ✅ **Mantenibilidad:** Código limpio, componentes modulares, estilos unificados
+
+#### **11. Corrección de Errores de Guardado - Patient Save Functionality (✅ COMPLETADO - Septiembre 1, 2025)**
+
+**🎯 Objetivo Completado:** Resolver errores HTTP 500 en guardado de secciones de pacientes causados por problemas de casting de ObjectIds y arrays embebidos
+
+**🔍 Problemas Identificados y Resueltos:**
+
+**1. Error de Casting de ObjectIds Poblados:**
+- ✅ **Problema:** Backend devuelve objetos profesionales poblados con `.populate()`, frontend enviaba objetos completos donde se esperaban ObjectIds
+- ✅ **Solución:** Función `cleanObjectIdReferences()` que extrae `_id` o `id` de objetos poblados
+- ✅ **Implementación:** Aplicada a `assignedProfessionals` y `primaryProfessional` en clinicalInfo
+
+**2. Error de Casting de Arrays Embebidos:**
+- ✅ **Problema:** ClinicalSection enviaba arrays de strings para alergias/medicaciones/cirugías, pero modelo espera objetos embebidos
+- ✅ **Error específico:** `Cast to embedded failed for value "Ácaros" (type string) at path "clinicalInfo.medicalHistory.allergies"`
+- ✅ **Causa raíz:** Líneas 68-76 en ClinicalSection.tsx convertían objetos a strings para UI
+- ✅ **Solución:** Función `transformMedicalHistoryArrays()` que convierte strings de vuelta a objetos
+
+**🔧 Funciones de Transformación Implementadas:**
+
+**cleanObjectIdReferences():**
+```typescript
+const cleanObjectIdReferences = (clinicalInfo: any) => {
+  // Extrae ObjectIds de objetos poblados
+  if (cleaned.assignedProfessionals) {
+    cleaned.assignedProfessionals = cleaned.assignedProfessionals.map((prof: any) => {
+      return prof._id || prof.id || prof;
+    });
+  }
+  if (cleaned.primaryProfessional && typeof cleaned.primaryProfessional === 'object') {
+    cleaned.primaryProfessional = cleaned.primaryProfessional._id || 
+                                 cleaned.primaryProfessional.id || 
+                                 cleaned.primaryProfessional;
+  }
+};
+```
+
+**transformMedicalHistoryArrays():**
+```typescript
+const transformMedicalHistoryArrays = (data: any) => {
+  // Convierte strings a objetos embebidos
+  if (transformed.allergies && Array.isArray(transformed.allergies)) {
+    transformed.allergies = transformed.allergies.map((allergy: any) => {
+      if (typeof allergy === 'string') {
+        return {
+          type: 'other',
+          allergen: allergy, // "Ácaros" → objeto completo
+          severity: 'mild',
+          reaction: 'Unknown'
+        };
+      }
+      return allergy;
+    });
+  }
+  // Similar para medications y surgeries
+};
+```
+
+**📋 Constantes y Organización del Código:**
+- ✅ **SECTION_NAMES:** Constantes tipadas para nombres de secciones
+- ✅ **Refactorización:** Uso de constantes en lugar de strings mágicos
+- ✅ **Estructura mejorada:** Funciones de utilidad organizadas y documentadas
+- ✅ **Patrón consistente:** Aplicación del mismo patrón exitoso de PersonalInfoSection
+
+**🧪 Casos de Transformación Cubiertos:**
+- ✅ **Alergias:** `"Ácaros"` → `{type: 'other', allergen: 'Ácaros', severity: 'mild', reaction: 'Unknown'}`
+- ✅ **Medicaciones:** `"Sertralina"` → `{name: 'Sertralina', dosage: '', frequency: '', startDate: Date, prescribedBy: ''}`
+- ✅ **Cirugías:** `"Apendicectomía"` → `{procedure: 'Apendicectomía', date: Date, hospital: '', surgeon: ''}`
+- ✅ **Profesionales:** `{_id: "...", name: "Dr. García", ...}` → `"ObjectId_string"`
+
+**🔄 Flujo de Datos Corregido:**
+1. **ClinicalSection:** Convierte objetos a strings para UI (líneas 68-76)
+2. **handleSave:** Aplica `transformMedicalHistoryArrays()` para convertir strings de vuelta a objetos
+3. **Backend:** Recibe estructura correcta de objetos embebidos
+4. **Mongoose:** Guarda exitosamente sin errores de casting
+
+**📊 Resultado:**
+- ✅ **Errores 500 eliminados:** Guardado de Medical History ahora funciona correctamente
+- ✅ **Datos consistentes:** Estructura frontend alineada con modelo backend
+- ✅ **Código mantenible:** Funciones de utilidad reutilizables y bien documentadas
+- ✅ **Patrón escalable:** Mismo enfoque aplicable a otras secciones clínicas

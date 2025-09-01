@@ -6,13 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { PatientCompactForm } from '@/components/admin/patient-compact-form';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+// Removed Card imports for minimalist design
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -213,25 +207,25 @@ export default function CreatePatientPage() {
       </div>
 
 
-      {/* Create Patient Form Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileTextIcon className="h-5 w-5" />
-            Información del Paciente
-          </CardTitle>
-          <CardDescription>
+      {/* Create Patient Form */}
+      <div className="border border-border rounded-lg bg-card">
+        <div className="p-6 border-b border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <FileTextIcon className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Información del Paciente</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
             Complete todos los campos requeridos para crear el perfil del paciente
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="p-6">
           <PatientCompactForm
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             isLoading={createPatientMutation.isPending}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

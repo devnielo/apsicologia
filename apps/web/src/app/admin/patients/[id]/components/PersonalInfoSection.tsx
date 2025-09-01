@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label';
-import { Edit, Save, X, User, Phone, Mail, MapPin } from 'lucide-react';
+import { Edit, Save, X, User, Mail, Phone, MapPin, AlertTriangle } from 'lucide-react';
 
 interface PersonalInfoSectionProps {
   patient: any;
@@ -73,7 +73,16 @@ export function PersonalInfoSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('personalInfo', patient.personalInfo || {})}
+            onClick={() => onEdit('personalInfo', {
+              firstName: patient.personalInfo?.firstName || '',
+              lastName: patient.personalInfo?.lastName || '',
+              dateOfBirth: patient.personalInfo?.dateOfBirth || '',
+              gender: patient.personalInfo?.gender || '',
+              maritalStatus: patient.personalInfo?.maritalStatus || '',
+              occupation: patient.personalInfo?.occupation || '',
+              idType: patient.personalInfo?.idType || '',
+              idNumber: patient.personalInfo?.idNumber || ''
+            })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -83,40 +92,42 @@ export function PersonalInfoSection({
           {editingSection === 'personalInfo' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="firstName" className="text-xs font-medium text-foreground">Nombre</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Nombre:</span>
                   <Input
                     id="firstName"
-                    value={editData.firstName || ''}
+                    value={editData.firstName ?? ''}
                     onChange={(e) => setEditData({...editData, firstName: e.target.value})}
-                    className="mt-1 h-8 text-xs"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el nombre"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="lastName" className="text-xs font-medium text-foreground">Apellidos</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Apellidos:</span>
                   <Input
                     id="lastName"
-                    value={editData.lastName || ''}
+                    value={editData.lastName ?? ''}
                     onChange={(e) => setEditData({...editData, lastName: e.target.value})}
-                    className="mt-1 h-8 text-xs"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce los apellidos"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="dateOfBirth" className="text-xs font-medium text-foreground">Fecha de nacimiento</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Nacimiento:</span>
                   <DatePicker
                     date={editData.dateOfBirth ? new Date(editData.dateOfBirth) : undefined}
                     onDateChange={(date) => setEditData({...editData, dateOfBirth: date})}
-                    placeholder="Seleccionar fecha"
-                    className="mt-1 h-8 text-xs w-full"
+                    placeholder="Introduce la fecha de nacimiento"
+                    className="h-9 text-sm w-[140px]"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="gender" className="text-xs font-medium text-foreground">Género</Label>
-                  <Select value={editData.gender || ''} onValueChange={(value) => setEditData({...editData, gender: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar género" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Género:</span>
+                  <Select value={editData.gender ?? ''} onValueChange={(value) => setEditData({...editData, gender: value})}>
+                    <SelectTrigger className="h-9 text-sm max-w-[50%]">
+                      <SelectValue placeholder="Introduce el género" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Masculino</SelectItem>
@@ -129,11 +140,11 @@ export function PersonalInfoSection({
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="maritalStatus" className="text-xs font-medium text-foreground">Estado civil</Label>
-                  <Select value={editData.maritalStatus || ''} onValueChange={(value) => setEditData({...editData, maritalStatus: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar estado" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Estado civil:</span>
+                  <Select value={editData.maritalStatus ?? ''} onValueChange={(value) => setEditData({...editData, maritalStatus: value})}>
+                    <SelectTrigger className="h-9 text-sm max-w-[50%]">
+                      <SelectValue placeholder="Introduce el estado civil" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="single">Soltero/a</SelectItem>
@@ -145,23 +156,23 @@ export function PersonalInfoSection({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="occupation" className="text-xs font-medium text-foreground">Ocupación</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Ocupación:</span>
                   <Input
                     id="occupation"
-                    value={editData.occupation || ''}
+                    value={editData.occupation ?? ''}
                     onChange={(e) => setEditData({...editData, occupation: e.target.value})}
-                    className="mt-1 h-8 text-xs"
-                    placeholder="Profesión u ocupación"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce la ocupación"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="idType" className="text-xs font-medium text-foreground">Tipo de documento</Label>
-                  <Select value={editData.idType || ''} onValueChange={(value) => setEditData({...editData, idType: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Tipo de ID" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tipo documento:</span>
+                  <Select value={editData.idType ?? ''} onValueChange={(value) => setEditData({...editData, idType: value})}>
+                    <SelectTrigger className="h-9 text-sm max-w-[50%]">
+                      <SelectValue placeholder="Introduce el tipo de documento" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dni">DNI</SelectItem>
@@ -171,14 +182,14 @@ export function PersonalInfoSection({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="idNumber" className="text-xs font-medium text-foreground">Número de documento</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Número:</span>
                   <Input
                     id="idNumber"
-                    value={editData.idNumber || ''}
+                    value={editData.idNumber ?? ''}
                     onChange={(e) => setEditData({...editData, idNumber: e.target.value})}
-                    className="mt-1 h-8 text-xs"
-                    placeholder="Número del documento"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el número de documento"
                   />
                 </div>
               </div>
@@ -194,28 +205,28 @@ export function PersonalInfoSection({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between text-sm">
+            <div className="grid grid-cols-2 gap-3" style={{minHeight: '144px'}}>
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Nombre:</span>
                 <span className="text-foreground font-medium">{fullName || 'Ana María González López'}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Nacimiento:</span>
                 <span className="text-foreground font-medium">{formatDate(patient.personalInfo?.dateOfBirth) || '15/03/1985'}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Género:</span>
                 <span className="text-foreground font-medium">{formatGender(patient.personalInfo?.gender) || 'Femenino'}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Estado civil:</span>
                 <span className="text-foreground font-medium">{formatMaritalStatus(patient.personalInfo?.maritalStatus) || 'Casado/a'}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Ocupación:</span>
                 <span className="text-foreground font-medium">{patient.personalInfo?.occupation || 'Profesora'}</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-sm h-9">
                 <span className="text-muted-foreground">Documento:</span>
                 <span className="text-foreground font-mono">{patient.personalInfo?.idType?.toUpperCase() || 'DNI'}: {patient.personalInfo?.idNumber || '12345678A'}</span>
               </div>
@@ -234,7 +245,14 @@ export function PersonalInfoSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('contactInfo', patient.contactInfo || {})}
+            onClick={() => onEdit('contactInfo', {
+              email: patient.contactInfo?.email || '',
+              phone: patient.contactInfo?.phone || '',
+              street: patient.contactInfo?.address?.street || '',
+              city: patient.contactInfo?.address?.city || '',
+              postalCode: patient.contactInfo?.address?.postalCode || '',
+              country: patient.contactInfo?.address?.country || ''
+            })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-3 w-3" />
@@ -244,23 +262,69 @@ export function PersonalInfoSection({
           {editingSection === 'contactInfo' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="email" className="text-xs font-medium text-foreground">Email</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Email:</span>
                   <Input
                     id="email"
                     type="email"
-                    value={editData.email || ''}
+                    value={editData.email ?? ''}
                     onChange={(e) => setEditData({...editData, email: e.target.value})}
-                    className="mt-1 h-8 text-xs"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el email"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="phone" className="text-xs font-medium text-foreground">Teléfono</Label>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Teléfono:</span>
                   <Input
                     id="phone"
-                    value={editData.phone || ''}
+                    value={editData.phone ?? ''}
                     onChange={(e) => setEditData({...editData, phone: e.target.value})}
-                    className="mt-1 h-8 text-xs"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el teléfono"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Dirección:</span>
+                  <Input
+                    id="street"
+                    value={editData.street ?? ''}
+                    onChange={(e) => setEditData({...editData, street: e.target.value})}
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce la dirección"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Ciudad:</span>
+                  <Input
+                    id="city"
+                    value={editData.city ?? ''}
+                    onChange={(e) => setEditData({...editData, city: e.target.value})}
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce la ciudad"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Código postal:</span>
+                  <Input
+                    id="postalCode"
+                    value={editData.postalCode ?? ''}
+                    onChange={(e) => setEditData({...editData, postalCode: e.target.value})}
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el código postal"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">País:</span>
+                  <Input
+                    id="country"
+                    value={editData.country ?? ''}
+                    onChange={(e) => setEditData({...editData, country: e.target.value})}
+                    className="h-9 text-sm max-w-[50%] text-left"
+                    placeholder="Introduce el país"
                   />
                 </div>
               </div>
@@ -276,23 +340,133 @@ export function PersonalInfoSection({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{patient.contactInfo?.phone || '+34 666 123 456'}</span>
+            <div className="grid grid-cols-2 gap-3" style={{minHeight: '144px'}}>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.email || 'ana.gonzalez@email.com'}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground truncate">{patient.contactInfo?.email || 'ana.gonzalez@email.com'}</span>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Teléfono:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.phone || '+34 666 123 456'}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground truncate">
-                  {patient.contactInfo?.address ? 
-                    `${patient.contactInfo.address.street || 'Calle Mayor 123'}, ${patient.contactInfo.address.city || 'Madrid'}` :
-                    'Calle Mayor 123, Madrid'
-                  }
-                </span>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Dirección:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.address?.street || 'Calle Mayor 123'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Ciudad:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.address?.city || 'Madrid'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Código postal:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.address?.postalCode || '28001'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">País:</span>
+                <span className="text-foreground font-medium">{patient.contactInfo?.address?.country || 'España'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Contacto de Emergencia */}
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-primary" />
+            Contacto de Emergencia
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit('emergencyContact', {
+              name: patient.emergencyContact?.name || '',
+              relationship: patient.emergencyContact?.relationship || '',
+              phone: patient.emergencyContact?.phone || '',
+              email: patient.emergencyContact?.email || ''
+            })}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="px-1">
+          {editingSection === 'emergencyContact' ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Nombre:</span>
+                  <Input
+                    id="emergencyName"
+                    value={editData.name ?? ''}
+                    onChange={(e) => setEditData({...editData, name: e.target.value})}
+                    placeholder="Introduce el nombre del contacto"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Relación:</span>
+                  <Input
+                    id="emergencyRelationship"
+                    value={editData.relationship ?? ''}
+                    onChange={(e) => setEditData({...editData, relationship: e.target.value})}
+                    placeholder="Introduce la relación"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Teléfono:</span>
+                  <Input
+                    id="emergencyPhone"
+                    value={editData.phone ?? ''}
+                    onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                    placeholder="Introduce el teléfono de emergencia"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Email:</span>
+                  <Input
+                    id="emergencyEmail"
+                    type="email"
+                    value={editData.email ?? ''}
+                    onChange={(e) => setEditData({...editData, email: e.target.value})}
+                    placeholder="Introduce el email de emergencia"
+                    className="h-9 text-sm max-w-[50%] text-left"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => onSave('emergencyContact')} size="sm" className="h-7 text-xs">
+                  <Save className="h-3 w-3 mr-1" />
+                  Guardar
+                </Button>
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
+                  <X className="h-3 w-3 mr-1" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3" style={{minHeight: '72px'}}>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Nombre:</span>
+                <span className="text-foreground font-medium">{patient.emergencyContact?.name || 'Carmen López Martín'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Relación:</span>
+                <span className="text-foreground font-medium">{patient.emergencyContact?.relationship || 'Hermana'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Teléfono:</span>
+                <span className="text-foreground font-medium">{patient.emergencyContact?.phone || '+34 666 789 012'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm h-9">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="text-foreground font-medium">{patient.emergencyContact?.email || 'carmen.lopez@email.com'}</span>
               </div>
             </div>
           )}

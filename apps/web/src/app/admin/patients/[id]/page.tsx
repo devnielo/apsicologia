@@ -41,11 +41,273 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     setEditData(data);
   };
 
+  // Constants for data transformation
+  const SECTION_NAMES = {
+    PERSONAL_INFO: 'personalInfo',
+    CONTACT_INFO: 'contactInfo',
+    EMERGENCY_CONTACT: 'emergencyContact',
+    MEDICAL_HISTORY: 'medicalHistory',
+    MENTAL_HEALTH_HISTORY: 'mentalHealthHistory',
+    TREATMENT_PLAN: 'treatmentPlan',
+    COMMUNICATION: 'communication',
+    APPOINTMENTS: 'appointments',
+    PORTAL: 'portal',
+    PRIVACY: 'privacy',
+    EPISODES: 'episodes',
+    BILLING: 'billing',
+    TAGS: 'tags',
+    ADMINISTRATIVE_NOTES: 'administrativeNotes'
+  } as const;
+
+  // Utility function to clean ObjectId references
+  const cleanObjectIdReferences = (clinicalInfo: any) => {
+    if (!clinicalInfo) return {};
+    
+    const cleaned = { ...clinicalInfo };
+    
+    // Clean assignedProfessionals - extract ObjectIds from populated objects
+    if (cleaned.assignedProfessionals) {
+      cleaned.assignedProfessionals = cleaned.assignedProfessionals.map((prof: any) => {
+        if (typeof prof === 'object' && prof !== null) {
+          return prof._id || prof.id || prof;
+        }
+        return prof;
+      });
+    }
+    
+    // Clean primaryProfessional - extract ObjectId from populated object
+    if (cleaned.primaryProfessional && typeof cleaned.primaryProfessional === 'object') {
+      cleaned.primaryProfessional = cleaned.primaryProfessional._id || 
+                                   cleaned.primaryProfessional.id || 
+                                   cleaned.primaryProfessional;
+    }
+    
+    return cleaned;
+  };
+
+  // Utility function to transform medical history arrays from strings to objects
+  const transformMedicalHistoryArrays = (data: any) => {
+    const transformed = { ...data };
+    
+    // Transform allergies from strings to objects
+    if (transformed.allergies && Array.isArray(transformed.allergies)) {
+      transformed.allergies = transformed.allergies.map((allergy: any) => {
+        if (typeof allergy === 'string') {
+          return {
+            type: 'other',
+            allergen: allergy,
+            severity: 'mild',
+            reaction: 'Unknown'
+          };
+        }
+        return allergy;
+      });
+    }
+    
+    // Transform medications from strings to objects
+    if (transformed.medications && Array.isArray(transformed.medications)) {
+      transformed.medications = transformed.medications.map((medication: any) => {
+        if (typeof medication === 'string') {
+          return {
+            name: medication,
+            dosage: '',
+            frequency: '',
+            startDate: new Date(),
+            prescribedBy: ''
+          };
+        }
+        return medication;
+      });
+    }
+    
+    // Transform surgeries from strings to objects
+    if (transformed.surgeries && Array.isArray(transformed.surgeries)) {
+      transformed.surgeries = transformed.surgeries.map((surgery: any) => {
+        if (typeof surgery === 'string') {
+          return {
+            procedure: surgery,
+            date: new Date(),
+            hospital: '',
+            surgeon: ''
+          };
+        }
+        return surgery;
+      });
+    }
+    
+    return transformed;
+  };
+
   const handleSave = async (section: string) => {
     try {
+      console.log('Saving section:', section);
+      console.log('Edit data:', editData);
+      console.log('Patient clinicalInfo before cleaning:', patient.clinicalInfo);
+      
+      let structuredData: any = {};
+      
+      switch (section) {
+        case SECTION_NAMES.PERSONAL_INFO:
+          structuredData = {
+            personalInfo: {
+              ...(patient.personalInfo || {}),
+              ...editData
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.CONTACT_INFO:
+          structuredData = {
+            contactInfo: {
+              ...(patient.contactInfo || {}),
+              // Transform flat address fields back to nested structure
+              address: {
+                ...(patient.contactInfo?.address || {}),
+                street: editData.street,
+                city: editData.city,
+                postalCode: editData.postalCode,
+                country: editData.country
+              },
+              email: editData.email,
+              phone: editData.phone
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.EMERGENCY_CONTACT:
+          structuredData = {
+            emergencyContact: {
+              ...(patient.emergencyContact || {}),
+              ...editData
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.MEDICAL_HISTORY:
+          structuredData = {
+            clinicalInfo: {
+              ...cleanObjectIdReferences(patient.clinicalInfo || {}),
+              medicalHistory: {
+                ...(patient.clinicalInfo?.medicalHistory || {}),
+                ...transformMedicalHistoryArrays(editData)
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.MENTAL_HEALTH_HISTORY:
+          structuredData = {
+            clinicalInfo: {
+              ...cleanObjectIdReferences(patient.clinicalInfo || {}),
+              mentalHealthHistory: {
+                ...(patient.clinicalInfo?.mentalHealthHistory || {}),
+                ...editData
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.TREATMENT_PLAN:
+          const currentTreatment = patient.clinicalInfo?.currentTreatment || {};
+          const treatmentPlan = currentTreatment.treatmentPlan || {};
+          
+          structuredData = {
+            clinicalInfo: {
+              ...cleanObjectIdReferences(patient.clinicalInfo || {}),
+              currentTreatment: {
+                ...currentTreatment,
+                treatmentPlan: {
+                  ...treatmentPlan,
+                  ...editData
+                }
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.COMMUNICATION:
+          structuredData = {
+            preferences: {
+              ...(patient.preferences || {}),
+              communicationPreferences: {
+                ...(patient.preferences?.communicationPreferences || {}),
+                ...editData
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.APPOINTMENTS:
+          structuredData = {
+            preferences: {
+              ...(patient.preferences || {}),
+              appointmentPreferences: {
+                ...(patient.preferences?.appointmentPreferences || {}),
+                ...editData
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.PORTAL:
+          structuredData = {
+            preferences: {
+              ...(patient.preferences || {}),
+              portalAccess: {
+                ...(patient.preferences?.portalAccess || {}),
+                ...editData
+              }
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.PRIVACY:
+          structuredData = {
+            gdprConsent: {
+              ...(patient.gdprConsent || {}),
+              ...editData
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.EPISODES:
+          structuredData = {
+            episodes: editData.episodes || patient.episodes || []
+          };
+          break;
+          
+        case SECTION_NAMES.BILLING:
+          structuredData = {
+            billing: {
+              ...(patient.billing || {}),
+              ...editData
+            }
+          };
+          break;
+          
+        case SECTION_NAMES.TAGS:
+          structuredData = {
+            tags: editData.tags || patient.tags || []
+          };
+          break;
+          
+        case SECTION_NAMES.ADMINISTRATIVE_NOTES:
+          structuredData = {
+            administrativeNotes: editData.administrativeNotes || patient.administrativeNotes || []
+          };
+          break;
+          
+        default:
+          // For unknown sections, use the editData directly
+          structuredData = editData;
+          break;
+      }
+      
+      console.log('Structured data for backend:', structuredData);
+      
       await updatePatientMutation.mutateAsync({
         id: params.id,
-        data: editData
+        data: structuredData
       });
       setEditingSection(null);
       setEditData({});
@@ -54,6 +316,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
         description: 'Información actualizada correctamente'
       });
     } catch (error) {
+      console.error('Save error:', error);
       toast({
         title: 'Error',
         description: 'No se pudo actualizar la información',
