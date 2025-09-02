@@ -17,7 +17,7 @@ import { IPatient } from '@apsicologia/shared/types';
 import { PatientSidebar } from './components/PatientSidebar';
 import { PersonalInfoSection } from './components/PersonalInfoSection';
 import ClinicalSection from './components/ClinicalSection';
-import { PreferencesSection } from './components/PreferencesSection';
+import PreferencesSection from './components/PreferencesSection';
 import { AdministrativeSection } from './components/AdministrativeSection';
 import { EpisodesSection } from './components/EpisodesSection';
 import { SessionsSection } from './components/SessionsSection';
@@ -172,11 +172,19 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           
         case SECTION_NAMES.COMMUNICATION:
           structuredData = {
+            contactInfo: {
+              ...(patient.contactInfo || {}),
+              preferredContactMethod: editData.preferredContactMethod
+            },
             preferences: {
               ...(patient.preferences || {}),
+              language: editData.language,
               communicationPreferences: {
                 ...(patient.preferences?.communicationPreferences || {}),
-                ...editData
+                appointmentReminders: editData.appointmentReminders,
+                reminderMethods: editData.reminderMethods,
+                newsletters: editData.newsletters,
+                marketingCommunications: editData.marketingCommunications
               }
             }
           };

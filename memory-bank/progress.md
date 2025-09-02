@@ -667,6 +667,62 @@ const transformMedicalHistoryArrays = (data: any) => {
 - ✅ **Feedback mejorado:** Status badges proporcionan retroalimentación visual clara
 - ✅ **Labels descriptivos:** Sliders de ánimo muestran tanto valor numérico como etiqueta descriptiva
 - ✅ **Diseño limpio:** Mantenido el diseño sin cards, usando divs y separadores minimalistas
+
+#### **13. Refactorización Patient Preferences Sync - Sincronización de Preferencias del Paciente (✅ COMPLETADO - Septiembre 2, 2025)**
+
+**🎯 Objetivo Completado:** Refactorización completa del sistema de preferencias del paciente para alinear frontend y backend, simplificar appointmentPreferences basado en servicios, y mejorar la sincronización de datos
+
+**🔧 Frontend - PreferencesSection.tsx:**
+- ✅ **Sección de citas corregida:** Eliminada edición de duración y formato de sesión (ahora derivados del servicio)
+- ✅ **Campos editables agregados:** Aviso de cancelación, lista de espera, notas y servicios preferidos
+- ✅ **Mapeo de datos actualizado:** Uso de `preferredServices` en lugar de campos obsoletos
+- ✅ **UI simplificada:** Interfaz de edición acorde al modelo backend actualizado
+- ✅ **Modo vista mejorado:** Muestra información completa incluyendo servicios preferidos y configuraciones
+
+**🗄️ Backend - Patient.ts Model:**
+- ✅ **appointmentPreferences simplificado:** Eliminados `sessionDuration` y `sessionFormat`
+- ✅ **preferredServices agregado:** Array de ObjectIds referenciando servicios disponibles
+- ✅ **Campos mantenidos:** `preferredTimes`, `cancellationNotice`, `waitingListOptIn`, `notes`, `preferredProfessionals`
+- ✅ **Estructura coherente:** Modelo alineado con lógica de negocio donde servicios definen duración y formato
+
+**🌱 Datos de Semilla - seed-simple.cjs:**
+- ✅ **Solo 2 tipos de servicios:** "Terapia Online" (videollamada) y "Terapia Presencial" (excepcional)
+- ✅ **Configuración específica:** Duración fija de 50 minutos, precios diferenciados
+- ✅ **Terapia presencial:** Marcada como excepcional, requiere aprobación, no públicamente reservable
+- ✅ **Pacientes actualizados:** Estructura de appointmentPreferences simplificada con referencia a servicios
+
+**📦 Tipos Compartidos - packages/shared:**
+- ✅ **IPatient actualizado:** Interfaz refleja cambios en appointmentPreferences
+- ✅ **Consistencia de campos:** `day` en lugar de `dayOfWeek`, nuevos campos agregados
+- ✅ **Campos obsoletos eliminados:** `sessionFormat` y `sessionDuration` removidos
+- ✅ **Nuevos campos:** `preferredServices`, `cancellationNotice`, `waitingListOptIn`
+
+**🔐 Flujo de Autenticación Mejorado:**
+- ✅ **Almacenamiento de URL:** localStorage guarda URL actual en expiración de sesión
+- ✅ **Redirección automática:** Usuario redirigido a página original tras login exitoso
+- ✅ **auth-context.tsx:** Implementada lógica de captura y redirección
+- ✅ **admin/layout.tsx:** Protección de rutas con guardado de URL mejorada
+
+**🎯 Resultado de la Refactorización:**
+- ✅ **Sincronización completa:** Frontend, backend y tipos compartidos alineados
+- ✅ **Lógica de negocio coherente:** Duración y formato determinados por servicio, no por preferencias
+- ✅ **Experiencia de usuario mejorada:** Flujo de autenticación sin pérdida de contexto
+- ✅ **Código mantenible:** Estructura simplificada y consistente en toda la aplicación
+- ✅ **Datos realistas:** Semillas actualizadas con solo servicios necesarios
+
+**📋 Campos de Preferencias de Citas Finales:**
+- **preferredTimes:** Horarios preferidos del paciente (día, hora inicio/fin)
+- **preferredProfessionals:** Profesionales preferidos (ObjectIds)
+- **preferredServices:** Servicios preferidos (ObjectIds) - NUEVO
+- **cancellationNotice:** Horas de aviso para cancelación - NUEVO  
+- **waitingListOptIn:** Opción de lista de espera - NUEVO
+- **notes:** Notas adicionales sobre preferencias
+
+**🔄 Flujo de Datos Optimizado:**
+1. **Servicio seleccionado** → determina duración y formato automáticamente
+2. **Preferencias del paciente** → solo aspectos personalizables (horarios, profesionales, políticas)
+3. **Frontend** → muestra información completa pero permite editar solo lo relevante
+4. **Backend** → estructura simplificada y consistente con lógica de negocio
 - ✅ **Experiencia full-screen:** Modales ocupan 95% del viewport para mejor enfoque
 
 **📊 Beneficios Técnicos Logrados:**

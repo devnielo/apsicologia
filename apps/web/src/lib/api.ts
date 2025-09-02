@@ -195,6 +195,33 @@ export const api = {
       apiClient.post<ApiResponse<any>>('/patients/import', file, {
         headers: { 'Content-Type': 'multipart/form-data' }
       }),
+
+    // Preferences
+    updatePreferences: (id: string, section: string, data: any) =>
+      apiClient.put<ApiResponse<{ patient: any }>>(`/patients/${id}/preferences/${section}`, data),
+
+    getPreferences: (id: string) =>
+      apiClient.get<ApiResponse<{ preferences: any }>>(`/patients/${id}/preferences`),
+
+    // Signed Consent Documents
+    addSignedConsent: (id: string, data: {
+      documentId: string;
+      documentType: string;
+      documentTitle: string;
+      signatureMethod: string;
+      witnessedBy?: string;
+      notes?: string;
+    }) =>
+      apiClient.post<ApiResponse<any>>(`/patients/${id}/signed-consents`, data),
+
+    getSignedConsents: (id: string) =>
+      apiClient.get<ApiResponse<any[]>>(`/patients/${id}/signed-consents`),
+
+    updateSignedConsent: (id: string, consentId: string, data: any) =>
+      apiClient.put<ApiResponse<any>>(`/patients/${id}/signed-consents/${consentId}`, data),
+
+    revokeSignedConsent: (id: string, consentId: string, reason: string) =>
+      apiClient.put<ApiResponse<any>>(`/patients/${id}/signed-consents/${consentId}/revoke`, { reason }),
   },
 
   // Professionals

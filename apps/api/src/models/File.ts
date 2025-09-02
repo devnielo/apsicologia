@@ -602,6 +602,34 @@ const FileSchema = new Schema<IFileDocument>(
         signedAt: { type: Date },
         signatureData: { type: String, trim: true },
         certificateInfo: { type: Schema.Types.Mixed },
+        
+        // Global consent document properties
+        isGlobalConsent: { type: Boolean, default: false },
+        consentType: {
+          type: String,
+          enum: ['informed_consent', 'treatment_agreement', 'privacy_policy', 'data_processing', 'research_consent', 'telehealth_consent', 'minor_consent', 'emergency_contact', 'financial_agreement', 'custom'],
+        },
+        documentVersion: { type: String, trim: true },
+        isTemplate: { type: Boolean, default: false },
+        templateId: { type: Schema.Types.ObjectId, ref: 'File' },
+        
+        // Signature validation
+        signatureMethod: {
+          type: String,
+          enum: ['digital', 'physical', 'verbal'],
+          default: 'digital',
+        },
+        witnessedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        signatureLocation: { type: String, trim: true },
+        signatureDevice: { type: String, trim: true },
+        ipAddress: { type: String, trim: true },
+        
+        // Expiration and validity
+        expiresAt: { type: Date },
+        isActive: { type: Boolean, default: true },
+        revokedAt: { type: Date },
+        revokedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        revocationReason: { type: String, trim: true },
       },
       
       watermark: {

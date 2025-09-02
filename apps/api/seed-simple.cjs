@@ -311,38 +311,97 @@ async function seedData() {
       console.log('ℹ️ Patient user already exists: Miguel Fernández López');
     }
 
-    // Create services
+    // Create services - Only 2 types: Online and In-Person
     const services = [
       {
-        name: 'Consulta Individual Adultos',
-        description: 'Sesión individual de psicoterapia para adultos',
-        category: 'therapy',
-        duration: 50,
-        price: 60.00,
+        name: 'Terapia Online',
+        description: 'Sesión de terapia psicológica mediante videollamada',
+        durationMinutes: 50,
+        price: 70,
         currency: 'EUR',
+        color: '#3B82F6',
+        category: 'Terapia',
+        tags: ['online', 'videollamada', 'virtual'],
         isActive: true,
+        isOnlineAvailable: true,
+        requiresApproval: false,
+        availableTo: [], // Available to all professionals
+        isPubliclyBookable: true,
+        priceDetails: {
+          basePrice: 70,
+          insuranceCoverage: []
+        },
+        settings: {
+          maxAdvanceBookingDays: 30,
+          minAdvanceBookingHours: 24,
+          allowSameDayBooking: false,
+          bufferBefore: 5,
+          bufferAfter: 5,
+          maxConcurrentBookings: 1,
+          requiresIntake: false
+        },
+        preparation: {
+          instructions: 'Asegúrese de tener una conexión estable a internet y un lugar privado',
+          requiredDocuments: [],
+          recommendedDuration: 5
+        },
+        followUp: {
+          instructions: 'Se enviará el enlace de la próxima sesión por email',
+          scheduledTasks: ['Seguimiento de objetivos'],
+          recommendedGap: 7
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          totalRevenue: 0
+        },
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        name: 'Terapia Infantil',
-        description: 'Sesión de psicoterapia especializada para niños y adolescentes',
-        category: 'therapy',
-        duration: 45,
-        price: 55.00,
+        name: 'Terapia Presencial',
+        description: 'Sesión de terapia psicológica en consulta física (casos excepcionales)',
+        durationMinutes: 50,
+        price: 80,
         currency: 'EUR',
+        color: '#10B981',
+        category: 'Terapia',
+        tags: ['presencial', 'consulta', 'fisica'],
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        name: 'Evaluación Psicológica',
-        description: 'Evaluación psicológica completa con informe',
-        category: 'assessment',
-        duration: 90,
-        price: 120.00,
-        currency: 'EUR',
-        isActive: true,
+        isOnlineAvailable: false,
+        requiresApproval: true, // Requires approval as it's exceptional
+        availableTo: [],
+        isPubliclyBookable: false, // Not publicly bookable, needs professional approval
+        priceDetails: {
+          basePrice: 80,
+          insuranceCoverage: []
+        },
+        settings: {
+          maxAdvanceBookingDays: 15,
+          minAdvanceBookingHours: 48,
+          allowSameDayBooking: false,
+          bufferBefore: 10,
+          bufferAfter: 10,
+          maxConcurrentBookings: 1,
+          requiresIntake: true
+        },
+        preparation: {
+          instructions: 'Por favor, llegue 10 minutos antes de su cita. Uso de mascarilla obligatorio.',
+          requiredDocuments: ['DNI', 'Justificación para sesión presencial'],
+          recommendedDuration: 10
+        },
+        followUp: {
+          instructions: 'Se priorizará el retorno a modalidad online para próximas sesiones',
+          scheduledTasks: ['Evaluación necesidad presencial', 'Seguimiento de objetivos'],
+          recommendedGap: 7
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          totalRevenue: 0
+        },
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -662,30 +721,38 @@ async function seedData() {
         preferences: {
           language: 'es',
           communicationPreferences: {
-            appointmentReminders: true,
-            reminderMethods: ['email', 'sms'],
-            reminderTiming: [24, 2],
+            appointmentReminders: Math.random() > 0.2,
+            reminderMethods: getRandomItems(['email', 'sms', 'phone'], Math.floor(Math.random() * 2) + 1),
             newsletters: Math.random() > 0.5,
-            marketingCommunications: Math.random() > 0.7
+            marketingCommunications: Math.random() > 0.7,
+            preferredContactTimes: Math.random() > 0.6 ? ['morning'] : ['afternoon', 'evening']
           },
           appointmentPreferences: {
-            preferredTimes: [{
-              dayOfWeek: Math.floor(Math.random() * 5) + 1, // Lunes a Viernes
-              startTime: '09:00',
-              endTime: '17:00'
-            }],
+            preferredTimes: getRandomItems([
+              { day: 'monday', startTime: '09:00', endTime: '12:00' },
+              { day: 'tuesday', startTime: '14:00', endTime: '17:00' },
+              { day: 'wednesday', startTime: '10:00', endTime: '13:00' },
+              { day: 'thursday', startTime: '15:00', endTime: '18:00' },
+              { day: 'friday', startTime: '09:00', endTime: '11:00' }
+            ], Math.floor(Math.random() * 3) + 1),
             preferredProfessionals: [professionalId],
-            sessionFormat: ['in-person', 'video', 'any'][Math.floor(Math.random() * 3)],
-            sessionDuration: [45, 50, 60][Math.floor(Math.random() * 3)],
-            bufferBetweenSessions: Math.random() > 0.5 ? 15 : undefined,
-            notes: Math.random() > 0.5 ? 'Preferencias de horario flexibles' : undefined
+            preferredServices: [], // Will be populated after services are created
+            cancellationNotice: [24, 48, 72][Math.floor(Math.random() * 3)],
+            waitingListOptIn: Math.random() > 0.4,
+            notes: Math.random() > 0.5 ? 'Flexibilidad en horarios de tarde' : undefined
           },
           portalAccess: {
-            enabled: Math.random() > 0.3,
+            enabled: Math.random() > 0.2,
             lastLogin: Math.random() > 0.5 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
             passwordLastChanged: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
             twoFactorEnabled: Math.random() > 0.8,
-            loginNotifications: true
+            loginNotifications: Math.random() > 0.3,
+            sessionTimeout: [15, 30, 60][Math.floor(Math.random() * 3)],
+            documentAccess: Math.random() > 0.1,
+            appointmentBooking: Math.random() > 0.4,
+            paymentManagement: Math.random() > 0.6,
+            communicationHistory: Math.random() > 0.5,
+            portalNotes: Math.random() > 0.7 ? 'Usuario activo del portal' : undefined
           }
         },
         gdprConsent: {
@@ -714,6 +781,51 @@ async function seedData() {
           },
           dataPortability: {}
         },
+        
+        // Signed Consent Documents (Global/Shared)
+        signedConsentDocuments: [
+          {
+            documentId: new mongoose.Types.ObjectId(),
+            documentType: 'informed_consent',
+            documentTitle: 'Consentimiento Informado para Tratamiento Psicológico',
+            signedDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000),
+            signedBy: professionalId,
+            witnessedBy: Math.random() > 0.5 ? adminUser._id : undefined,
+            signatureMethod: 'digital',
+            documentVersion: '2.1',
+            isActive: true,
+            expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año
+            notes: 'Consentimiento firmado durante la primera consulta',
+            metadata: {
+              ipAddress: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              location: 'Madrid, España',
+              deviceInfo: 'Desktop - Chrome'
+            }
+          },
+          ...(Math.random() > 0.6 ? [{
+            documentId: new mongoose.Types.ObjectId(),
+            documentType: 'privacy_policy',
+            documentTitle: 'Política de Privacidad y Protección de Datos',
+            signedDate: new Date(Date.now() - Math.floor(Math.random() * 20) * 24 * 60 * 60 * 1000),
+            signedBy: professionalId,
+            signatureMethod: 'digital',
+            documentVersion: '1.3',
+            isActive: true,
+            notes: 'Aceptación de política de privacidad actualizada'
+          }] : []),
+          ...(Math.random() > 0.8 ? [{
+            documentId: new mongoose.Types.ObjectId(),
+            documentType: 'telehealth_consent',
+            documentTitle: 'Consentimiento para Sesiones de Telesalud',
+            signedDate: new Date(Date.now() - Math.floor(Math.random() * 15) * 24 * 60 * 60 * 1000),
+            signedBy: professionalId,
+            signatureMethod: 'digital',
+            documentVersion: '1.0',
+            isActive: true,
+            notes: 'Autorización para sesiones virtuales por videollamada'
+          }] : [])
+        ],
         tags: Math.random() > 0.3 ? [{
           name: ['VIP', 'Seguimiento especial', 'Primera consulta', 'Urgente', 'Derivado'][Math.floor(Math.random() * 5)],
           category: ['clinical', 'administrative', 'billing'][Math.floor(Math.random() * 3)],

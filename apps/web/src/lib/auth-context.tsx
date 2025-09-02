@@ -60,8 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         return userData;
       } catch (error: any) {
-        // If token is invalid, clear it
+        // If token is invalid, clear it and store current URL for redirect
         if (error.response?.status === 401) {
+          // Store current URL before clearing tokens
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
+          }
           Cookies.remove('auth-token');
           Cookies.remove('refresh-token');
         }
@@ -91,6 +95,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Update query cache
         queryClient.setQueryData(['auth', 'profile'], data.user);
+        
+        // Handle redirect after login
+        if (typeof window !== 'undefined') {
+          const redirectUrl = localStorage.getItem('redirectAfterLogin');
+          if (redirectUrl) {
+            localStorage.removeItem('redirectAfterLogin');
+            // Use setTimeout to ensure the login process completes first
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 100);
+          }
+        }
       }
     },
     onError: (error: any) => {

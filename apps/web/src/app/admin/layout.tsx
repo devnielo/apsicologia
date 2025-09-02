@@ -164,6 +164,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (isLoading) return; // Wait for auth context to load
     
     if (!isAuthenticated || !user) {
+      // Store current URL for redirect after login
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
+      }
       router.push('/auth/login');
       return;
     }

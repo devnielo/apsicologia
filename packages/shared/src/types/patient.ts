@@ -157,14 +157,14 @@ export interface IPatient extends ITimestamps, ISoftDelete {
     };
     appointmentPreferences: {
       preferredTimes: {
-        dayOfWeek: number;
+        day: string;
         startTime: string;
         endTime: string;
       }[];
       preferredProfessionals: ObjectId[];
-      sessionFormat: 'in-person' | 'video' | 'phone' | 'any';
-      sessionDuration: number;
-      bufferBetweenSessions?: number;
+      preferredServices: ObjectId[];
+      cancellationNotice: number;
+      waitingListOptIn: boolean;
       notes?: string;
     };
     portalAccess: {
@@ -213,6 +213,27 @@ export interface IPatient extends ITimestamps, ISoftDelete {
       exportedBy?: ObjectId;
     };
   };
+  
+  // Signed Consent Documents (Global/Shared)
+  signedConsentDocuments: {
+    documentId: ObjectId;
+    documentType: 'informed_consent' | 'treatment_agreement' | 'privacy_policy' | 'data_processing' | 'research_consent' | 'telehealth_consent' | 'minor_consent' | 'emergency_contact' | 'financial_agreement' | 'custom';
+    documentTitle: string;
+    signedDate: Date;
+    signedBy: ObjectId;
+    witnessedBy?: ObjectId;
+    signatureMethod: 'digital' | 'physical' | 'verbal';
+    documentVersion: string;
+    isActive: boolean;
+    expirationDate?: Date;
+    notes?: string;
+    metadata?: {
+      ipAddress?: string;
+      userAgent?: string;
+      location?: string;
+      deviceInfo?: string;
+    };
+  }[];
   
   // Tags
   tags: {

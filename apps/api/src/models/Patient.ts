@@ -202,6 +202,27 @@ export interface IPatientDocument extends Document {
     };
   };
   
+  // Signed Consent Documents (Global/Shared)
+  signedConsentDocuments: {
+    documentId: mongoose.Types.ObjectId;
+    documentType: 'informed_consent' | 'treatment_agreement' | 'privacy_policy' | 'data_processing' | 'research_consent' | 'telehealth_consent' | 'minor_consent' | 'emergency_contact' | 'financial_agreement' | 'custom';
+    documentTitle: string;
+    signedDate: Date;
+    signedBy: mongoose.Types.ObjectId;
+    witnessedBy?: mongoose.Types.ObjectId;
+    signatureMethod: 'digital' | 'physical' | 'verbal';
+    documentVersion: string;
+    isActive: boolean;
+    expirationDate?: Date;
+    notes?: string;
+    metadata?: {
+      ipAddress?: string;
+      userAgent?: string;
+      location?: string;
+      deviceInfo?: string;
+    };
+  }[];
+  
   // Tags and categorization
   tags: {
     name: string;
@@ -871,29 +892,50 @@ const PatientSchema = new Schema<IPatientDocument>(
       },
       appointmentPreferences: {
         preferredTimes: [{
-          dayOfWeek: {
-            type: Number,
-            min: 0,
-            max: 6,
+          day: {
+            type: String,
+            enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+            required: true
           },
-          startTime: String, // HH:mm
-          endTime: String,   // HH:mm
+          startTime: {
+            type: String,
+            required: true,
+            validate: {
+              validator: (v: string) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
+              message: 'Start time must be in HH:MM format'
+            }
+          },
+          endTime: {
+            type: String,
+            required: true,
+            validate: {
+              validator: (v: string) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
+              message: 'End time must be in HH:MM format'
+            }
+          }
         }],
         preferredProfessionals: [{
           type: Schema.Types.ObjectId,
-          ref: 'Professional',
+          ref: 'Professional'
         }],
-        sessionFormat: {
-          type: String,
-          enum: ['in-person', 'video', 'phone', 'any'],
-          default: 'in-person',
-        },
-        sessionDuration: {
+        preferredServices: [{
+          type: Schema.Types.ObjectId,
+          ref: 'Service'
+        }],
+        cancellationNotice: {
           type: Number,
-          default: 50, // minutes
+          min: [1, 'Cancellation notice must be at least 1 hour'],
+          max: [168, 'Cancellation notice cannot exceed 7 days'],
+          default: 24
         },
-        bufferBetweenSessions: Number,
-        notes: String,
+        waitingListOptIn: {
+          type: Boolean,
+          default: false
+        },
+        notes: {
+          type: String,
+          maxlength: [500, 'Appointment notes cannot exceed 500 characters']
+        }
       },
       portalAccess: {
         enabled: {
@@ -997,6 +1039,64 @@ const PatientSchema = new Schema<IPatientDocument>(
         },
       },
     },
+    
+    // Signed Consent Documents (Global/Shared)
+    signedConsentDocuments: [{
+      documentId: {
+        type: Schema.Types.ObjectId,
+        ref: 'File',
+        required: true,
+      },
+      documentType: {
+        type: String,
+        enum: ['informed_consent', 'treatment_agreement', 'privacy_policy', 'data_processing', 'research_consent', 'telehealth_consent', 'minor_consent', 'emergency_contact', 'financial_agreement', 'custom'],
+        required: true,
+      },
+      documentTitle: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      signedDate: {
+        type: Date,
+        required: true,
+      },
+      signedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      witnessedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      signatureMethod: {
+        type: String,
+        enum: ['digital', 'physical', 'verbal'],
+        required: true,
+        default: 'digital',
+      },
+      documentVersion: {
+        type: String,
+        required: true,
+        default: '1.0',
+      },
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
+      expirationDate: Date,
+      notes: {
+        type: String,
+        trim: true,
+      },
+      metadata: {
+        ipAddress: String,
+        userAgent: String,
+        location: String,
+        deviceInfo: String,
+      },
+    }],
     
     // Tags
     tags: [TagSchema],
