@@ -1,13 +1,16 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Edit, Save, X, MessageCircle, Calendar, Shield, Monitor } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Edit, Save, X, Plus, Trash2, FileText, Download, Eye, MessageCircle, Calendar, Monitor, Shield } from "lucide-react";
 
 interface PreferencesSectionProps {
   patient: any;
@@ -165,9 +168,31 @@ export default function PreferencesSection({
                     onCheckedChange={(checked) => setEditData({...editData, newsletters: checked})}
                   />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Métodos recordatorio:</span>
-                  <span className="text-xs text-muted-foreground">Email, SMS</span>
+                <div className="space-y-2">
+                  <span className="text-muted-foreground text-sm">Métodos recordatorio:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {['email', 'sms', 'phone', 'push'].map((method) => (
+                      <div key={method} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={method}
+                          checked={(editData.reminderMethods || []).includes(method)}
+                          onCheckedChange={(checked) => {
+                            const currentMethods = editData.reminderMethods || [];
+                            if (checked) {
+                              setEditData({...editData, reminderMethods: [...currentMethods, method]});
+                            } else {
+                              setEditData({...editData, reminderMethods: currentMethods.filter((m: string) => m !== method)});
+                            }
+                          }}
+                        />
+                        <Label htmlFor={method} className="text-xs">
+                          {method === 'email' ? 'Email' : 
+                           method === 'sms' ? 'SMS' : 
+                           method === 'phone' ? 'Teléfono' : 'Push'}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
@@ -217,7 +242,7 @@ export default function PreferencesSection({
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
-            Citas
+            Preferencias de Citas
           </h3>
           <Button
             variant="ghost"
@@ -225,6 +250,7 @@ export default function PreferencesSection({
             onClick={() => onEdit('appointments', {
               preferredTimes: patient.preferences?.appointmentPreferences?.preferredTimes || [],
               preferredServices: patient.preferences?.appointmentPreferences?.preferredServices || [],
+              preferredProfessionals: patient.preferences?.appointmentPreferences?.preferredProfessionals || [],
               cancellationNotice: patient.preferences?.appointmentPreferences?.cancellationNotice || 24,
               waitingListOptIn: patient.preferences?.appointmentPreferences?.waitingListOptIn || false,
               notes: patient.preferences?.appointmentPreferences?.notes || ''
@@ -236,7 +262,86 @@ export default function PreferencesSection({
         </div>
         <div className="px-1">
           {editingSection === 'appointments' ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Horarios Preferidos */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Horarios Preferidos</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {(editData.preferredTimes || []).map((time: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                      <Select 
+                        value={time.day || 'monday'}
+                        onValueChange={(value) => {
+                          const newTimes = [...(editData.preferredTimes || [])];
+                          newTimes[index] = { ...newTimes[index], day: value };
+                          setEditData({...editData, preferredTimes: newTimes});
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monday">Lun</SelectItem>
+                          <SelectItem value="tuesday">Mar</SelectItem>
+                          <SelectItem value="wednesday">Mié</SelectItem>
+                          <SelectItem value="thursday">Jue</SelectItem>
+                          <SelectItem value="friday">Vie</SelectItem>
+                          <SelectItem value="saturday">Sáb</SelectItem>
+                          <SelectItem value="sunday">Dom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="time"
+                        value={time.startTime || '09:00'}
+                        onChange={(e) => {
+                          const newTimes = [...(editData.preferredTimes || [])];
+                          newTimes[index] = { ...newTimes[index], startTime: e.target.value };
+                          setEditData({...editData, preferredTimes: newTimes});
+                        }}
+                        className="h-8 text-xs w-20"
+                      />
+                      <span className="text-xs text-muted-foreground">-</span>
+                      <Input
+                        type="time"
+                        value={time.endTime || '17:00'}
+                        onChange={(e) => {
+                          const newTimes = [...(editData.preferredTimes || [])];
+                          newTimes[index] = { ...newTimes[index], endTime: e.target.value };
+                          setEditData({...editData, preferredTimes: newTimes});
+                        }}
+                        className="h-8 text-xs w-20"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newTimes = (editData.preferredTimes || []).filter((_: any, i: number) => i !== index);
+                          setEditData({...editData, preferredTimes: newTimes});
+                        }}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newTimes = [...(editData.preferredTimes || []), { day: 'monday', startTime: '09:00', endTime: '17:00' }];
+                      setEditData({...editData, preferredTimes: newTimes});
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Agregar horario
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Configuraciones */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Aviso cancelación:</span>
@@ -263,18 +368,18 @@ export default function PreferencesSection({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Notas:</span>
-                  <Input
-                    value={editData.notes || ''}
-                    onChange={(e) => setEditData({...editData, notes: e.target.value})}
-                    className="h-9 text-sm max-w-[70%] text-left"
-                    placeholder="Notas adicionales"
-                  />
-                </div>
-                <div></div>
+
+              {/* Notas */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Notas adicionales</Label>
+                <Textarea
+                  value={editData.notes || ''}
+                  onChange={(e) => setEditData({...editData, notes: e.target.value})}
+                  className="text-sm min-h-[60px]"
+                  placeholder="Preferencias adicionales sobre citas..."
+                />
               </div>
+
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => onSave('appointments')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
@@ -287,31 +392,91 @@ export default function PreferencesSection({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3" style={{minHeight: '144px'}}>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Horarios preferidos:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.preferredTimes?.length || 0} configurados</span>
+            <div className="space-y-4">
+              {/* Horarios Preferidos */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Horarios Preferidos</Label>
+                {patient.preferences?.appointmentPreferences?.preferredTimes?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {patient.preferences.appointmentPreferences.preferredTimes.map((time: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <Badge variant="outline" className="text-xs">
+                          {time.day === 'monday' ? 'Lun' : 
+                           time.day === 'tuesday' ? 'Mar' : 
+                           time.day === 'wednesday' ? 'Mié' : 
+                           time.day === 'thursday' ? 'Jue' : 
+                           time.day === 'friday' ? 'Vie' : 
+                           time.day === 'saturday' ? 'Sáb' : 'Dom'}
+                        </Badge>
+                        <span className="text-sm text-foreground">
+                          {time.startTime} - {time.endTime}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">No configurados</span>
+                )}
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Servicios preferidos:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.preferredServices?.length || 0} seleccionados</span>
+
+              <Separator />
+
+              {/* Servicios y Profesionales Preferidos */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Servicios Preferidos</Label>
+                  {patient.preferences?.appointmentPreferences?.preferredServices?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {patient.preferences.appointmentPreferences.preferredServices.map((serviceId: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {serviceId}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Ninguno seleccionado</span>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Profesionales Preferidos</Label>
+                  {patient.preferences?.appointmentPreferences?.preferredProfessionals?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {patient.preferences.appointmentPreferences.preferredProfessionals.map((professionalId: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {professionalId}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Ninguno asignado</span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Aviso cancelación:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.cancellationNotice || 24} horas</span>
+
+              <Separator />
+
+              {/* Configuraciones */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Aviso cancelación:</span>
+                  <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.cancellationNotice || 24} horas</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Lista de espera:</span>
+                  <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.waitingListOptIn ? 'Sí' : 'No'}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Lista de espera:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.waitingListOptIn ? 'Sí' : 'No'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Profesionales:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.preferredProfessionals?.length || 0} asignados</span>
-              </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Notas:</span>
-                <span className="text-foreground font-medium">{patient.preferences?.appointmentPreferences?.notes || 'Sin notas'}</span>
-              </div>
+
+              {/* Notas */}
+              {patient.preferences?.appointmentPreferences?.notes && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Notas</Label>
+                  <div className="p-2 border rounded-md bg-muted/30">
+                    <span className="text-sm text-foreground">{patient.preferences.appointmentPreferences.notes}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -418,11 +583,18 @@ export default function PreferencesSection({
             size="sm"
             onClick={() => onEdit('privacy', {
               dataProcessingConsented: patient.gdprConsent?.dataProcessing?.consented || false,
+              dataProcessingMethod: patient.gdprConsent?.dataProcessing?.consentMethod || 'digital',
+              dataProcessingVersion: patient.gdprConsent?.dataProcessing?.consentVersion || '1.0',
+              dataProcessingNotes: patient.gdprConsent?.dataProcessing?.notes || '',
               marketingConsented: patient.gdprConsent?.marketingCommunications?.consented || false,
+              marketingMethod: patient.gdprConsent?.marketingCommunications?.method || 'digital',
               dataSharingHealthcare: patient.gdprConsent?.dataSharing?.healthcareProfessionals || false,
               dataSharingInsurance: patient.gdprConsent?.dataSharing?.insuranceProviders || false,
               dataSharingEmergency: patient.gdprConsent?.dataSharing?.emergencyContacts || false,
-              rightToErasureRequested: patient.gdprConsent?.rightToErasure?.requested || false
+              dataSharingResearch: patient.gdprConsent?.dataSharing?.researchPurposes || false,
+              rightToErasureRequested: patient.gdprConsent?.rightToErasure?.requested || false,
+              rightToErasureReason: patient.gdprConsent?.rightToErasure?.retentionReason || '',
+              rightToErasureNotes: patient.gdprConsent?.rightToErasure?.notes || ''
             })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
@@ -432,51 +604,141 @@ export default function PreferencesSection({
         <div className="px-1">
           {editingSection === 'privacy' ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Procesamiento datos:</span>
-                  <Switch
-                    checked={editData.dataProcessingConsented || false}
-                    onCheckedChange={(checked) => setEditData({...editData, dataProcessingConsented: checked})}
-                  />
+              {/* Procesamiento de Datos */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Procesamiento de Datos</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Consentimiento:</span>
+                    <Switch
+                      checked={editData.dataProcessingConsented || false}
+                      onCheckedChange={(checked) => setEditData({...editData, dataProcessingConsented: checked})}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Método:</span>
+                    <Select 
+                      value={editData.dataProcessingMethod || 'digital'} 
+                      onValueChange={(value) => setEditData({...editData, dataProcessingMethod: value})}
+                    >
+                      <SelectTrigger className="h-9 text-sm max-w-[50%]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="digital">Digital</SelectItem>
+                        <SelectItem value="written">Escrito</SelectItem>
+                        <SelectItem value="verbal">Verbal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Marketing:</span>
-                  <Switch
-                    checked={editData.marketingConsented || false}
-                    onCheckedChange={(checked) => setEditData({...editData, marketingConsented: checked})}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Versión:</span>
+                    <Input
+                      value={editData.dataProcessingVersion || '1.0'}
+                      onChange={(e) => setEditData({...editData, dataProcessingVersion: e.target.value})}
+                      className="h-9 text-sm max-w-[50%]"
+                      placeholder="1.0"
+                    />
+                  </div>
+                  <div></div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Compartir profesionales:</span>
-                  <Switch
-                    checked={editData.dataSharingHealthcare || false}
-                    onCheckedChange={(checked) => setEditData({...editData, dataSharingHealthcare: checked})}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Compartir seguros:</span>
-                  <Switch
-                    checked={editData.dataSharingInsurance || false}
-                    onCheckedChange={(checked) => setEditData({...editData, dataSharingInsurance: checked})}
-                  />
+
+              <Separator />
+
+              {/* Marketing */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Comunicaciones de Marketing</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Consentimiento:</span>
+                    <Switch
+                      checked={editData.marketingConsented || false}
+                      onCheckedChange={(checked) => setEditData({...editData, marketingConsented: checked})}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Método:</span>
+                    <Select 
+                      value={editData.marketingMethod || 'digital'} 
+                      onValueChange={(value) => setEditData({...editData, marketingMethod: value})}
+                    >
+                      <SelectTrigger className="h-9 text-sm max-w-[50%]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="digital">Digital</SelectItem>
+                        <SelectItem value="written">Escrito</SelectItem>
+                        <SelectItem value="verbal">Verbal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Contactos emergencia:</span>
-                  <Switch
-                    checked={editData.dataSharingEmergency || false}
-                    onCheckedChange={(checked) => setEditData({...editData, dataSharingEmergency: checked})}
-                  />
+
+              <Separator />
+
+              {/* Compartir Datos */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Compartir Datos</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Profesionales:</span>
+                    <Switch
+                      checked={editData.dataSharingHealthcare || false}
+                      onCheckedChange={(checked) => setEditData({...editData, dataSharingHealthcare: checked})}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Seguros:</span>
+                    <Switch
+                      checked={editData.dataSharingInsurance || false}
+                      onCheckedChange={(checked) => setEditData({...editData, dataSharingInsurance: checked})}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Derecho olvido:</span>
-                  <Switch
-                    checked={editData.rightToErasureRequested || false}
-                    onCheckedChange={(checked) => setEditData({...editData, rightToErasureRequested: checked})}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Emergencia:</span>
+                    <Switch
+                      checked={editData.dataSharingEmergency || false}
+                      onCheckedChange={(checked) => setEditData({...editData, dataSharingEmergency: checked})}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Investigación:</span>
+                    <Switch
+                      checked={editData.dataSharingResearch || false}
+                      onCheckedChange={(checked) => setEditData({...editData, dataSharingResearch: checked})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Derecho al Olvido */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Derecho al Olvido</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Solicitado:</span>
+                    <Switch
+                      checked={editData.rightToErasureRequested || false}
+                      onCheckedChange={(checked) => setEditData({...editData, rightToErasureRequested: checked})}
+                    />
+                  </div>
+                  <div></div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Razón de retención</Label>
+                  <Textarea
+                    value={editData.rightToErasureReason || ''}
+                    onChange={(e) => setEditData({...editData, rightToErasureReason: e.target.value})}
+                    className="text-sm min-h-[60px]"
+                    placeholder="Razón para retener los datos..."
                   />
                 </div>
               </div>
@@ -493,30 +755,157 @@ export default function PreferencesSection({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3" style={{minHeight: '144px'}}>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Fecha consentimiento:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.dataProcessing?.consentDate ? new Date(patient.gdprConsent.dataProcessing.consentDate).toLocaleDateString('es-ES') : 'No registrado'}</span>
+            <div className="space-y-4">
+              {/* Procesamiento de Datos */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Procesamiento de Datos</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Estado:</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={patient.gdprConsent?.dataProcessing?.consented ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataProcessing?.consented ? 'Consentido' : 'Denegado'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Método:</span>
+                    <span className="text-sm text-foreground">
+                      {patient.gdprConsent?.dataProcessing?.consentMethod === 'digital' ? 'Digital' :
+                       patient.gdprConsent?.dataProcessing?.consentMethod === 'written' ? 'Escrito' :
+                       patient.gdprConsent?.dataProcessing?.consentMethod === 'verbal' ? 'Verbal' : 'Digital'}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Fecha:</span>
+                    <span className="text-sm text-foreground">
+                      {patient.gdprConsent?.dataProcessing?.consentDate ? 
+                        new Date(patient.gdprConsent.dataProcessing.consentDate).toLocaleDateString('es-ES') : 
+                        'No registrado'}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Versión:</span>
+                    <span className="text-sm text-foreground">{patient.gdprConsent?.dataProcessing?.consentVersion || 'v1.0'}</span>
+                  </div>
+                </div>
+                {patient.gdprConsent?.dataProcessing?.notes && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Notas:</span>
+                    <div className="p-2 border rounded-md bg-muted/30">
+                      <span className="text-sm text-foreground">{patient.gdprConsent.dataProcessing.notes}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Versión política:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.dataProcessing?.consentVersion || 'v1.0'}</span>
+
+              <Separator />
+
+              {/* Marketing */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Comunicaciones de Marketing</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Estado:</span>
+                    <Badge variant={patient.gdprConsent?.marketingCommunications?.consented ? "default" : "secondary"} className="text-xs">
+                      {patient.gdprConsent?.marketingCommunications?.consented ? 'Consentido' : 'Denegado'}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Método:</span>
+                    <span className="text-sm text-foreground">
+                      {patient.gdprConsent?.marketingCommunications?.method === 'digital' ? 'Digital' :
+                       patient.gdprConsent?.marketingCommunications?.method === 'written' ? 'Escrito' :
+                       patient.gdprConsent?.marketingCommunications?.method === 'verbal' ? 'Verbal' : 'Digital'}
+                    </span>
+                  </div>
+                </div>
+                {patient.gdprConsent?.marketingCommunications?.consentDate && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Fecha consentimiento:</span>
+                    <span className="text-sm text-foreground">
+                      {new Date(patient.gdprConsent.marketingCommunications.consentDate).toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Procesamiento datos:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.dataProcessing?.consented ? 'Consentido' : 'Denegado'}</span>
+
+              <Separator />
+
+              {/* Compartir Datos */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Compartir Datos</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Profesionales:</span>
+                      <Badge variant={patient.gdprConsent?.dataSharing?.healthcareProfessionals ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataSharing?.healthcareProfessionals ? 'Permitido' : 'Denegado'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Seguros:</span>
+                      <Badge variant={patient.gdprConsent?.dataSharing?.insuranceProviders ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataSharing?.insuranceProviders ? 'Permitido' : 'Denegado'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Emergencia:</span>
+                      <Badge variant={patient.gdprConsent?.dataSharing?.emergencyContacts ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataSharing?.emergencyContacts ? 'Permitido' : 'Denegado'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Investigación:</span>
+                      <Badge variant={patient.gdprConsent?.dataSharing?.researchPurposes ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataSharing?.researchPurposes ? 'Permitido' : 'Denegado'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Marketing:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.marketingCommunications?.consented ? 'Consentido' : 'Denegado'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Compartir profesionales:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.dataSharing?.healthcareProfessionals ? 'Permitido' : 'Denegado'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm h-9">
-                <span className="text-muted-foreground">Derecho olvido:</span>
-                <span className="text-foreground font-medium">{patient.gdprConsent?.rightToErasure?.requested ? 'Solicitado' : 'No solicitado'}</span>
+
+              <Separator />
+
+              {/* Derecho al Olvido */}
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">Derecho al Olvido</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Estado:</span>
+                    <Badge variant={patient.gdprConsent?.rightToErasure?.requested ? "destructive" : "secondary"} className="text-xs">
+                      {patient.gdprConsent?.rightToErasure?.requested ? 'Solicitado' : 'No solicitado'}
+                    </Badge>
+                  </div>
+                  {patient.gdprConsent?.rightToErasure?.requestDate && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Fecha solicitud:</span>
+                      <span className="text-sm text-foreground">
+                        {new Date(patient.gdprConsent.rightToErasure.requestDate).toLocaleDateString('es-ES')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {patient.gdprConsent?.rightToErasure?.retentionReason && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Razón de retención:</span>
+                    <div className="p-2 border rounded-md bg-muted/30">
+                      <span className="text-sm text-foreground">{patient.gdprConsent.rightToErasure.retentionReason}</span>
+                    </div>
+                  </div>
+                )}
+                {patient.gdprConsent?.rightToErasure?.notes && (
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Notas:</span>
+                    <div className="p-2 border rounded-md bg-muted/30">
+                      <span className="text-sm text-foreground">{patient.gdprConsent.rightToErasure.notes}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

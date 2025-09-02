@@ -143,7 +143,7 @@ export interface IPatientDocument extends Document {
     // Appointment preferences
     appointmentPreferences: {
       preferredTimes: {
-        dayOfWeek: number; // 0-6, 0 = Sunday
+        day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
         startTime: string; // HH:mm format
         endTime: string;
       }[];
@@ -182,7 +182,6 @@ export interface IPatientDocument extends Document {
     };
     dataSharing: {
       healthcareProfessionals: boolean;
-      insuranceProviders: boolean;
       emergencyContacts: boolean;
       researchPurposes?: boolean;
       consentDate: Date;
@@ -246,7 +245,7 @@ export interface IPatientDocument extends Document {
   
   // Referral information
   referral: {
-    source?: 'self' | 'physician' | 'family' | 'friend' | 'insurance' | 'online' | 'other';
+    source?: 'self' | 'physician' | 'family' | 'friend' | 'online' | 'other';
     referringPhysician?: {
       name: string;
       specialty?: string;
@@ -302,7 +301,6 @@ export interface IPatientDocument extends Document {
   closeEpisode(episodeId: string, outcome?: string): Promise<this>;
   addTag(tag: string, category: string, addedBy: mongoose.Types.ObjectId): Promise<this>;
   removeTag(tagName: string): Promise<this>;
-  updateInsuranceUsage(sessionsUsed: number): Promise<this>;
   exportData(): Promise<any>;
   softDelete(): Promise<this>;
   generatePatientNumber(): string;
@@ -955,90 +953,6 @@ const PatientSchema = new Schema<IPatientDocument>(
       },
     },
     
-    // GDPR Consent
-    gdprConsent: {
-      dataProcessing: {
-        consented: {
-          type: Boolean,
-          required: true,
-        },
-        consentDate: {
-          type: Date,
-          required: true,
-        },
-        consentMethod: {
-          type: String,
-          enum: ['verbal', 'written', 'digital'],
-          required: true,
-        },
-        consentVersion: {
-          type: String,
-          required: true,
-          default: '1.0',
-        },
-        witnessedBy: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
-        notes: String,
-      },
-      marketingCommunications: {
-        consented: {
-          type: Boolean,
-          default: false,
-        },
-        consentDate: Date,
-        withdrawnDate: Date,
-        method: {
-          type: String,
-          enum: ['verbal', 'written', 'digital'],
-        },
-      },
-      dataSharing: {
-        healthcareProfessionals: {
-          type: Boolean,
-          default: true,
-        },
-        insuranceProviders: {
-          type: Boolean,
-          default: false,
-        },
-        emergencyContacts: {
-          type: Boolean,
-          default: true,
-        },
-        researchPurposes: {
-          type: Boolean,
-          default: false,
-        },
-        consentDate: {
-          type: Date,
-          required: true,
-        },
-      },
-      rightToErasure: {
-        requested: {
-          type: Boolean,
-          default: false,
-        },
-        requestDate: Date,
-        processedDate: Date,
-        processedBy: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
-        retentionReason: String,
-        notes: String,
-      },
-      dataPortability: {
-        lastExportDate: Date,
-        exportFormat: String,
-        exportedBy: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
-      },
-    },
     
     // Signed Consent Documents (Global/Shared)
     signedConsentDocuments: [{
@@ -1136,7 +1050,7 @@ const PatientSchema = new Schema<IPatientDocument>(
     referral: {
       source: {
         type: String,
-        enum: ['self', 'physician', 'family', 'friend', 'insurance', 'online', 'other'],
+        enum: ['self', 'physician', 'family', 'friend', 'online', 'other'],
       },
       referringPhysician: {
         name: String,
@@ -1436,18 +1350,6 @@ PatientSchema.methods.addTag = function(tag: string, category: string, addedBy: 
   return this.save();
 };
 
-PatientSchema.methods.removeTag = function(tagName: string) {
-  this.tags = this.tags.filter((tag: any) => tag.name !== tagName);
-  return this.save();
-};
-
-PatientSchema.methods.updateInsuranceUsage = function(sessionsUsed: number) {
-  if (this.insurance.primaryInsurance) {
-    this.insurance.primaryInsurance.sessionsUsed = sessionsUsed;
-  }
-  return this.save();
-};
-
 PatientSchema.methods.exportData = function() {
   const exportData = this.toObject();
   
@@ -1464,6 +1366,11 @@ PatientSchema.methods.exportData = function() {
   this.gdprConsent.dataPortability.exportFormat = 'json';
   
   return this.save().then(() => exportData);
+};
+
+PatientSchema.methods.removeTag = function(tagName: string) {
+  this.tags = this.tags.filter((tag: any) => tag.name !== tagName);
+  return this.save();
 };
 
 PatientSchema.methods.softDelete = function() {

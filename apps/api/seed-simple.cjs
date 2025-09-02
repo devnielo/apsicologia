@@ -71,6 +71,7 @@ const patientSchema = new mongoose.Schema({}, { strict: false });
 const serviceSchema = new mongoose.Schema({}, { strict: false });
 const roomSchema = new mongoose.Schema({}, { strict: false });
 const appointmentSchema = new mongoose.Schema({}, { strict: false });
+const fileSchema = new mongoose.Schema({}, { strict: false });
 
 const User = mongoose.model('User', userSchema);
 const Professional = mongoose.model('Professional', professionalSchema);
@@ -78,6 +79,7 @@ const Patient = mongoose.model('Patient', patientSchema);
 const Service = mongoose.model('Service', serviceSchema);
 const Room = mongoose.model('Room', roomSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
+const File = mongoose.model('File', fileSchema);
 
 // Helper function to get random items from an array
 function getRandomItems(array, count) {
@@ -108,6 +110,7 @@ async function seedData() {
     await Patient.deleteMany({});
     await Service.deleteMany({});
     await Room.deleteMany({});
+    await File.deleteMany({});
     await User.deleteMany({ email: { $ne: 'admin@arribapsicologia.com' } }); // Don't delete admin
     console.log('🗑️ Cleared existing seed data (preserved admin user)');
 
@@ -540,6 +543,118 @@ async function seedData() {
     const statuses = ['active', 'inactive', 'discharged', 'transferred'];
     const maritalStatuses = ['single', 'married', 'divorced', 'widowed', 'separated', 'domestic-partner'];
     
+    // Create sample consent documents
+    const consentDocuments = [];
+    
+    // Informed Consent Document
+    const informedConsentDoc = new File({
+      fileName: 'consentimiento-informado-v2.1.pdf',
+      originalFileName: 'consentimiento-informado-v2.1.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 245760, // ~240KB
+      category: 'consent',
+      description: 'Documento de Consentimiento Informado para Tratamiento Psicológico',
+      tags: ['consentimiento', 'informado', 'tratamiento', 'psicologia'],
+      uploadedBy: adminUser._id,
+      permissions: {
+        visibility: 'private',
+        userPermissions: [],
+        rolePermissions: [
+          { role: 'admin', permissions: ['read', 'write', 'delete'] },
+          { role: 'professional', permissions: ['read'] }
+        ]
+      },
+      digitalSignature: {
+        isSigned: false,
+        signatureMethod: 'digital'
+      },
+      metadata: {
+        documentType: 'informed_consent',
+        version: '2.1',
+        language: 'es',
+        jurisdiction: 'España',
+        effectiveDate: new Date('2024-01-01'),
+        expirationDate: new Date('2025-12-31')
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await informedConsentDoc.save();
+    consentDocuments.push(informedConsentDoc);
+    console.log('📄 Created consent document: Consentimiento Informado');
+
+    // Privacy Policy Document
+    const privacyPolicyDoc = new File({
+      fileName: 'politica-privacidad-v1.3.pdf',
+      originalFileName: 'politica-privacidad-v1.3.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 189440, // ~185KB
+      category: 'consent',
+      description: 'Política de Privacidad y Protección de Datos GDPR',
+      tags: ['privacidad', 'gdpr', 'proteccion-datos'],
+      uploadedBy: adminUser._id,
+      permissions: {
+        visibility: 'private',
+        userPermissions: [],
+        rolePermissions: [
+          { role: 'admin', permissions: ['read', 'write', 'delete'] },
+          { role: 'professional', permissions: ['read'] }
+        ]
+      },
+      digitalSignature: {
+        isSigned: false,
+        signatureMethod: 'digital'
+      },
+      metadata: {
+        documentType: 'privacy_policy',
+        version: '1.3',
+        language: 'es',
+        jurisdiction: 'España',
+        effectiveDate: new Date('2024-03-01')
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await privacyPolicyDoc.save();
+    consentDocuments.push(privacyPolicyDoc);
+    console.log('📄 Created consent document: Política de Privacidad');
+
+    // Telehealth Consent Document
+    const telehealthConsentDoc = new File({
+      fileName: 'consentimiento-telesalud-v1.0.pdf',
+      originalFileName: 'consentimiento-telesalud-v1.0.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 156672, // ~153KB
+      category: 'consent',
+      description: 'Consentimiento para Sesiones de Telesalud y Videollamadas',
+      tags: ['telesalud', 'videollamada', 'online'],
+      uploadedBy: adminUser._id,
+      permissions: {
+        visibility: 'private',
+        userPermissions: [],
+        rolePermissions: [
+          { role: 'admin', permissions: ['read', 'write', 'delete'] },
+          { role: 'professional', permissions: ['read'] }
+        ]
+      },
+      digitalSignature: {
+        isSigned: false,
+        signatureMethod: 'digital'
+      },
+      metadata: {
+        documentType: 'telehealth_consent',
+        version: '1.0',
+        language: 'es',
+        jurisdiction: 'España',
+        effectiveDate: new Date('2024-02-01')
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    await telehealthConsentDoc.save();
+    consentDocuments.push(telehealthConsentDoc);
+    console.log('📄 Created consent document: Consentimiento Telesalud');
+
     // Combinar todos los profesionales (originales + nuevos)
     const allProfessionals = [professional1, professional2, ...additionalProfessionals];
 
@@ -746,13 +861,7 @@ async function seedData() {
             lastLogin: Math.random() > 0.5 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
             passwordLastChanged: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
             twoFactorEnabled: Math.random() > 0.8,
-            loginNotifications: Math.random() > 0.3,
-            sessionTimeout: [15, 30, 60][Math.floor(Math.random() * 3)],
-            documentAccess: Math.random() > 0.1,
-            appointmentBooking: Math.random() > 0.4,
-            paymentManagement: Math.random() > 0.6,
-            communicationHistory: Math.random() > 0.5,
-            portalNotes: Math.random() > 0.7 ? 'Usuario activo del portal' : undefined
+            loginNotifications: Math.random() > 0.3
           }
         },
         gdprConsent: {
@@ -785,7 +894,7 @@ async function seedData() {
         // Signed Consent Documents (Global/Shared)
         signedConsentDocuments: [
           {
-            documentId: new mongoose.Types.ObjectId(),
+            documentId: informedConsentDoc._id,
             documentType: 'informed_consent',
             documentTitle: 'Consentimiento Informado para Tratamiento Psicológico',
             signedDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000),
@@ -804,7 +913,7 @@ async function seedData() {
             }
           },
           ...(Math.random() > 0.6 ? [{
-            documentId: new mongoose.Types.ObjectId(),
+            documentId: privacyPolicyDoc._id,
             documentType: 'privacy_policy',
             documentTitle: 'Política de Privacidad y Protección de Datos',
             signedDate: new Date(Date.now() - Math.floor(Math.random() * 20) * 24 * 60 * 60 * 1000),
@@ -815,7 +924,7 @@ async function seedData() {
             notes: 'Aceptación de política de privacidad actualizada'
           }] : []),
           ...(Math.random() > 0.8 ? [{
-            documentId: new mongoose.Types.ObjectId(),
+            documentId: telehealthConsentDoc._id,
             documentType: 'telehealth_consent',
             documentTitle: 'Consentimiento para Sesiones de Telesalud',
             signedDate: new Date(Date.now() - Math.floor(Math.random() * 15) * 24 * 60 * 60 * 1000),
