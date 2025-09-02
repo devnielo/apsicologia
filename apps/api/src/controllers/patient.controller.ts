@@ -1535,6 +1535,211 @@ export class PatientController {
       next(error);
     }
   }
+
+  /**
+   * Add a new session to patient's current treatment
+   */
+  static async addSession(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { patientId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const sessionData = req.body;
+
+      const patient = await Patient.findById(patientId);
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found',
+        });
+      }
+
+      // Check permissions
+      const canUpdate = 
+        authUser.role === 'admin' ||
+        (authUser.role === 'professional' && (
+          authUser.professionalId?.toString() === patient.clinicalInfo.primaryProfessional?.toString() ||
+          patient.clinicalInfo.assignedProfessionals.some((profId: any) => 
+            profId.toString() === authUser.professionalId?.toString()
+          )
+        ));
+
+      if (!canUpdate) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot add sessions to this patient',
+        });
+      }
+
+      // Generate unique session ID
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const newSession = {
+        sessionId,
+        date: new Date(sessionData.date),
+        duration: sessionData.duration,
+        type: sessionData.type || 'individual',
+        status: sessionData.status || 'completed',
+        professionalId: authUser.professionalId || authUser._id,
+        notes: sessionData.notes || '',
+        objectives: sessionData.objectives || [],
+        homework: sessionData.homework || '',
+        nextSessionPlan: sessionData.nextSessionPlan || '',
+        mood: sessionData.mood || {},
+        progress: sessionData.progress || {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Initialize sessions array if it doesn't exist
+      if (!patient.clinicalInfo.currentTreatment.sessions) {
+        patient.clinicalInfo.currentTreatment.sessions = [];
+      }
+
+      patient.clinicalInfo.currentTreatment.sessions.push(newSession);
+      await patient.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Session added successfully',
+        data: { session: newSession },
+      });
+    } catch (error) {
+      logger.error('Add session error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Update an existing session
+   */
+  static async updateSession(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { patientId, sessionId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const updateData = req.body;
+
+      const patient = await Patient.findById(patientId);
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found',
+        });
+      }
+
+      // Check permissions
+      const canUpdate = 
+        authUser.role === 'admin' ||
+        (authUser.role === 'professional' && (
+          authUser.professionalId?.toString() === patient.clinicalInfo.primaryProfessional?.toString() ||
+          patient.clinicalInfo.assignedProfessionals.some((profId: any) => 
+            profId.toString() === authUser.professionalId?.toString()
+          )
+        ));
+
+      if (!canUpdate) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot update sessions for this patient',
+        });
+      }
+
+      // Ensure sessions array exists
+      if (!patient.clinicalInfo.currentTreatment.sessions) {
+        patient.clinicalInfo.currentTreatment.sessions = [];
+      }
+
+      // Find and update the session
+      const sessionIndex = patient.clinicalInfo.currentTreatment.sessions.findIndex(
+        session => session.sessionId === sessionId
+      );
+
+      if (sessionIndex === -1 || sessionIndex === undefined) {
+        return res.status(404).json({
+          success: false,
+          message: 'Session not found',
+        });
+      }
+
+      // Ensure sessions array exists
+      if (!patient.clinicalInfo.currentTreatment.sessions) {
+        patient.clinicalInfo.currentTreatment.sessions = [];
+      }
+
+      // Update session data
+      const updatedSession = {
+        ...patient.clinicalInfo.currentTreatment.sessions[sessionIndex],
+        ...updateData,
+        updatedAt: new Date(),
+      };
+
+      patient.clinicalInfo.currentTreatment.sessions[sessionIndex] = updatedSession;
+      await patient.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Session updated successfully',
+        data: { session: updatedSession },
+      });
+    } catch (error) {
+      logger.error('Update session error:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get sessions for a patient
+   */
+  static async getSessions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { patientId } = req.params;
+      const authUser = (req as AuthRequest).user!;
+      const { limit = '10', offset = '0' } = req.query;
+
+      const patient = await Patient.findById(patientId)
+        .populate('clinicalInfo.currentTreatment.sessions.professionalId', 'name specialties');
+
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found',
+        });
+      }
+
+      // Check permissions
+      const canView = 
+        authUser.role === 'admin' ||
+        authUser.role === 'reception' ||
+        (authUser.role === 'professional' && (
+          authUser.professionalId?.toString() === patient.clinicalInfo.primaryProfessional?.toString() ||
+          patient.clinicalInfo.assignedProfessionals.some((profId: any) => 
+            profId.toString() === authUser.professionalId?.toString()
+          )
+        ));
+
+      if (!canView) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot view sessions for this patient',
+        });
+      }
+
+      const sessions = patient.clinicalInfo.currentTreatment.sessions || [];
+      const sortedSessions = sessions
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(parseInt(offset.toString()), parseInt(offset.toString()) + parseInt(limit.toString()));
+
+      res.status(200).json({
+        success: true,
+        data: {
+          sessions: sortedSessions,
+          total: sessions.length,
+        },
+      });
+    } catch (error) {
+      logger.error('Get sessions error:', error);
+      next(error);
+    }
+  }
 }
 
 export default PatientController;

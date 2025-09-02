@@ -175,6 +175,16 @@ export const api = {
     delete: (id: string) =>
       apiClient.delete<ApiResponse>(`/patients/${id}`),
 
+    // Sessions
+    addSession: (patientId: string, data: any) =>
+      apiClient.post<ApiResponse<any>>(`/patients/${patientId}/sessions`, data),
+
+    getSessions: (patientId: string, params?: { limit?: number; offset?: number }) =>
+      apiClient.get<ApiResponse<any>>(`/patients/${patientId}/sessions`, { params }),
+
+    updateSession: (patientId: string, sessionId: string, data: any) =>
+      apiClient.put<ApiResponse<any>>(`/patients/${patientId}/sessions/${sessionId}`, data),
+
     export: (params?: { format?: 'csv' | 'excel'; filters?: any }) =>
       apiClient.get<Blob>('/patients/export', { 
         params, 

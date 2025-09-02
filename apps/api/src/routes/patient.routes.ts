@@ -129,6 +129,45 @@ router.get(
 );
 
 /**
+ * @route   POST /api/v1/patients/:patientId/sessions
+ * @desc    Add new session to patient's current treatment
+ * @access  Private (Admin, Professional with access)
+ * @params  patientId
+ * @body    Session data (date, duration, type, notes, etc.)
+ */
+router.post(
+  '/:patientId/sessions',
+  authenticate,
+  PatientController.addSession
+);
+
+/**
+ * @route   GET /api/v1/patients/:patientId/sessions
+ * @desc    Get sessions for a patient
+ * @access  Private (Admin, Reception, Professional with access)
+ * @params  patientId
+ * @query   limit, offset
+ */
+router.get(
+  '/:patientId/sessions',
+  authenticate,
+  PatientController.getSessions
+);
+
+/**
+ * @route   PUT /api/v1/patients/:patientId/sessions/:sessionId
+ * @desc    Update an existing session
+ * @access  Private (Admin, Professional with access)
+ * @params  patientId, sessionId
+ * @body    Partial session data
+ */
+router.put(
+  '/:patientId/sessions/:sessionId',
+  authenticate,
+  PatientController.updateSession
+);
+
+/**
  * @route   DELETE /api/v1/patients/:patientId
  * @desc    Soft delete patient (GDPR compliance)
  * @access  Private (Admin only)

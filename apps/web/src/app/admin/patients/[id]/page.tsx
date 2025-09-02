@@ -20,6 +20,7 @@ import ClinicalSection from './components/ClinicalSection';
 import { PreferencesSection } from './components/PreferencesSection';
 import { AdministrativeSection } from './components/AdministrativeSection';
 import { EpisodesSection } from './components/EpisodesSection';
+import { SessionsSection } from './components/SessionsSection';
 
 interface PatientDetailsPageProps {
   params: {
@@ -85,58 +86,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     return cleaned;
   };
 
-  // Utility function to transform medical history arrays from strings to objects
-  const transformMedicalHistoryArrays = (data: any) => {
-    const transformed = { ...data };
-    
-    // Transform allergies from strings to objects
-    if (transformed.allergies && Array.isArray(transformed.allergies)) {
-      transformed.allergies = transformed.allergies.map((allergy: any) => {
-        if (typeof allergy === 'string') {
-          return {
-            type: 'other',
-            allergen: allergy,
-            severity: 'mild',
-            reaction: 'Unknown'
-          };
-        }
-        return allergy;
-      });
-    }
-    
-    // Transform medications from strings to objects
-    if (transformed.medications && Array.isArray(transformed.medications)) {
-      transformed.medications = transformed.medications.map((medication: any) => {
-        if (typeof medication === 'string') {
-          return {
-            name: medication,
-            dosage: '',
-            frequency: '',
-            startDate: new Date(),
-            prescribedBy: ''
-          };
-        }
-        return medication;
-      });
-    }
-    
-    // Transform surgeries from strings to objects
-    if (transformed.surgeries && Array.isArray(transformed.surgeries)) {
-      transformed.surgeries = transformed.surgeries.map((surgery: any) => {
-        if (typeof surgery === 'string') {
-          return {
-            procedure: surgery,
-            date: new Date(),
-            hospital: '',
-            surgeon: ''
-          };
-        }
-        return surgery;
-      });
-    }
-    
-    return transformed;
-  };
 
   const handleSave = async (section: string) => {
     try {
@@ -189,7 +138,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               ...cleanObjectIdReferences(patient.clinicalInfo || {}),
               medicalHistory: {
                 ...(patient.clinicalInfo?.medicalHistory || {}),
-                ...transformMedicalHistoryArrays(editData)
+                ...editData
               }
             }
           };
@@ -209,17 +158,13 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           
         case SECTION_NAMES.TREATMENT_PLAN:
           const currentTreatment = patient.clinicalInfo?.currentTreatment || {};
-          const treatmentPlan = currentTreatment.treatmentPlan || {};
           
           structuredData = {
             clinicalInfo: {
               ...cleanObjectIdReferences(patient.clinicalInfo || {}),
               currentTreatment: {
                 ...currentTreatment,
-                treatmentPlan: {
-                  ...treatmentPlan,
-                  ...editData
-                }
+                ...editData
               }
             }
           };
@@ -492,6 +437,16 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                     Episodios
                   </button>
                   <button
+                    onClick={() => setActiveTab('sessions')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                      activeTab === 'sessions'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Sesiones
+                  </button>
+                  <button
                     onClick={() => setActiveTab('admin')}
                     className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
                       activeTab === 'admin'
@@ -549,6 +504,13 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                   onSave={handleSave}
                   onCancel={handleCancel}
                   setEditData={setEditData}
+                />
+              </TabsContent>
+
+              <TabsContent value="sessions" className="mt-2">
+                <SessionsSection
+                  patient={patient}
+                  patientId={params.id}
                 />
               </TabsContent>
 

@@ -210,6 +210,63 @@ export const LANGUAGES = [
   'pt',
 ] as const;
 
+// Session types
+export const SESSION_TYPES = {
+  INDIVIDUAL: 'individual',
+  GROUP: 'group',
+  FAMILY: 'family',
+  ONLINE: 'online',
+} as const;
+
+export const SESSION_TYPE_LABELS = {
+  [SESSION_TYPES.INDIVIDUAL]: 'Individual',
+  [SESSION_TYPES.GROUP]: 'Grupal',
+  [SESSION_TYPES.FAMILY]: 'Familiar',
+  [SESSION_TYPES.ONLINE]: 'Online',
+} as const;
+
+// Session status
+export const SESSION_STATUS = {
+  SCHEDULED: 'scheduled',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  NO_SHOW: 'no_show',
+} as const;
+
+export const SESSION_STATUS_LABELS = {
+  [SESSION_STATUS.SCHEDULED]: 'Programada',
+  [SESSION_STATUS.COMPLETED]: 'Completada',
+  [SESSION_STATUS.CANCELLED]: 'Cancelada',
+  [SESSION_STATUS.NO_SHOW]: 'No asistió',
+} as const;
+
+// Mood levels
+export const MOOD_LEVELS = {
+  VERY_LOW: 1,
+  LOW: 2,
+  SOMEWHAT_LOW: 3,
+  NEUTRAL_LOW: 4,
+  NEUTRAL: 5,
+  NEUTRAL_HIGH: 6,
+  SOMEWHAT_HIGH: 7,
+  HIGH: 8,
+  VERY_HIGH: 9,
+  EXCELLENT: 10,
+} as const;
+
+export const MOOD_LEVEL_LABELS = {
+  [MOOD_LEVELS.VERY_LOW]: 'Muy bajo',
+  [MOOD_LEVELS.LOW]: 'Bajo',
+  [MOOD_LEVELS.SOMEWHAT_LOW]: 'Algo bajo',
+  [MOOD_LEVELS.NEUTRAL_LOW]: 'Neutral bajo',
+  [MOOD_LEVELS.NEUTRAL]: 'Neutral',
+  [MOOD_LEVELS.NEUTRAL_HIGH]: 'Neutral alto',
+  [MOOD_LEVELS.SOMEWHAT_HIGH]: 'Algo alto',
+  [MOOD_LEVELS.HIGH]: 'Alto',
+  [MOOD_LEVELS.VERY_HIGH]: 'Muy alto',
+  [MOOD_LEVELS.EXCELLENT]: 'Excelente',
+} as const;
+
 // System status
 export const SYSTEM_STATUS = {
   HEALTHY: 'healthy',
@@ -219,3 +276,6 @@ export const SYSTEM_STATUS = {
 
 // Form options (countries, provinces, gender, etc.)
 export * from './form-options';
+
+// Clinical options (medical conditions, treatments, etc.)
+export * from './clinical-options';

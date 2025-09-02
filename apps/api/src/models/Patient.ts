@@ -56,66 +56,19 @@ export interface IPatientDocument extends Document {
     // Medical history
     medicalHistory: {
       conditions: string[];
-      medications: {
-        name: string;
-        dosage: string;
-        frequency: string;
-        prescribedBy?: string;
-        startDate: Date;
-        endDate?: Date;
-        active: boolean;
-        notes?: string;
-      }[];
-      allergies: {
-        type: 'medication' | 'food' | 'environmental' | 'other';
-        allergen: string;
-        severity: 'mild' | 'moderate' | 'severe';
-        reaction: string;
-        notes?: string;
-      }[];
-      surgeries: {
-        procedure: string;
-        date: Date;
-        hospital?: string;
-        surgeon?: string;
-        notes?: string;
-      }[];
-      hospitalizations: {
-        reason: string;
-        admissionDate: Date;
-        dischargeDate?: Date;
-        hospital: string;
-        notes?: string;
-      }[];
+      medications: string[];
+      allergies: string[];
+      surgeries: string[];
+      notes?: string;
     };
     
     // Mental health history
     mentalHealthHistory: {
-      previousTreatments: {
-        type: 'therapy' | 'medication' | 'hospitalization' | 'other';
-        provider?: string;
-        startDate: Date;
-        endDate?: Date;
-        reason: string;
-        outcome?: string;
-        notes?: string;
-      }[];
-      diagnoses: {
-        condition: string;
-        diagnosedBy?: string;
-        diagnosisDate: Date;
-        icdCode?: string;
-        status: 'active' | 'resolved' | 'in-remission' | 'chronic';
-        severity?: 'mild' | 'moderate' | 'severe';
-        notes?: string;
-      }[];
-      riskFactors: {
-        factor: string;
-        level: 'low' | 'moderate' | 'high';
-        notes?: string;
-        assessedDate: Date;
-        assessedBy: mongoose.Types.ObjectId;
-      }[];
+      diagnoses: string[];
+      previousTreatments: string[];
+      currentStatus?: 'active' | 'stable' | 'improving' | 'critical';
+      severity?: 'mild' | 'moderate' | 'severe';
+      notes?: string;
     };
     
     // Current treatment
@@ -126,6 +79,28 @@ export interface IPatientDocument extends Document {
       expectedDuration?: string;
       frequency?: string;
       notes?: string;
+      sessions?: {
+        sessionId: string;
+        date: Date;
+        duration: number; // in minutes
+        type: 'individual' | 'group' | 'family' | 'assessment' | 'crisis';
+        status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
+        professionalId: mongoose.Types.ObjectId;
+        notes: string; // Rich text HTML content
+        objectives: string[];
+        homework?: string;
+        nextSessionPlan?: string;
+        mood?: {
+          before: number; // 1-10 scale
+          after: number; // 1-10 scale
+        };
+        progress?: {
+          rating: number; // 1-10 scale
+          observations: string;
+        };
+        createdAt: Date;
+        updatedAt: Date;
+      }[];
     };
   };
   
@@ -716,74 +691,45 @@ const PatientSchema = new Schema<IPatientDocument>(
           type: String,
           trim: true,
         }],
-        medications: [MedicationSchema],
-        allergies: [AllergySchema],
-        surgeries: [SurgerySchema],
-        hospitalizations: [HospitalizationSchema],
+        medications: [{
+          type: String,
+          trim: true,
+        }],
+        allergies: [{
+          type: String,
+          trim: true,
+        }],
+        surgeries: [{
+          type: String,
+          trim: true,
+        }],
+        notes: {
+          type: String,
+          trim: true,
+        },
       },
       mentalHealthHistory: {
-        previousTreatments: [{
-          type: {
-            type: String,
-            enum: ['therapy', 'medication', 'hospitalization', 'other'],
-            required: true,
-          },
-          provider: String,
-          startDate: {
-            type: Date,
-            required: true,
-          },
-          endDate: Date,
-          reason: {
-            type: String,
-            required: true,
-          },
-          outcome: String,
-          notes: String,
-        }],
         diagnoses: [{
-          condition: {
-            type: String,
-            required: true,
-          },
-          diagnosedBy: String,
-          diagnosisDate: {
-            type: Date,
-            required: true,
-          },
-          icdCode: String,
-          status: {
-            type: String,
-            enum: ['active', 'resolved', 'in-remission', 'chronic'],
-            default: 'active',
-          },
-          severity: {
-            type: String,
-            enum: ['mild', 'moderate', 'severe'],
-          },
-          notes: String,
+          type: String,
+          trim: true,
         }],
-        riskFactors: [{
-          factor: {
-            type: String,
-            required: true,
-          },
-          level: {
-            type: String,
-            enum: ['low', 'moderate', 'high'],
-            required: true,
-          },
-          notes: String,
-          assessedDate: {
-            type: Date,
-            required: true,
-          },
-          assessedBy: {
-            type: Schema.Types.ObjectId,
-            ref: 'Professional',
-            required: true,
-          },
+        previousTreatments: [{
+          type: String,
+          trim: true,
         }],
+        currentStatus: {
+          type: String,
+          enum: ['active', 'stable', 'improving', 'critical'],
+          default: 'active',
+        },
+        severity: {
+          type: String,
+          enum: ['mild', 'moderate', 'severe'],
+        },
+        notes: {
+          type: String,
+          trim: true,
+        },
       },
       currentTreatment: {
         treatmentPlan: {
@@ -799,6 +745,74 @@ const PatientSchema = new Schema<IPatientDocument>(
         expectedDuration: String,
         frequency: String,
         notes: String,
+        sessions: [{
+          sessionId: {
+            type: String,
+            required: true,
+            unique: true,
+          },
+          date: {
+            type: Date,
+            required: true,
+          },
+          duration: {
+            type: Number,
+            required: true,
+            min: 15,
+            max: 180,
+          },
+          type: {
+            type: String,
+            enum: ['individual', 'group', 'family', 'assessment', 'crisis'],
+            default: 'individual',
+          },
+          status: {
+            type: String,
+            enum: ['scheduled', 'completed', 'cancelled', 'no-show'],
+            default: 'scheduled',
+          },
+          professionalId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Professional',
+            required: true,
+          },
+          notes: {
+            type: String,
+            trim: true,
+            // Rich text HTML content for session notes
+          },
+          objectives: [String],
+          homework: String,
+          nextSessionPlan: String,
+          mood: {
+            before: {
+              type: Number,
+              min: 1,
+              max: 10,
+            },
+            after: {
+              type: Number,
+              min: 1,
+              max: 10,
+            },
+          },
+          progress: {
+            rating: {
+              type: Number,
+              min: 1,
+              max: 10,
+            },
+            observations: String,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
+          updatedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        }],
       },
       // Rich text clinical notes
       clinicalNotes: {

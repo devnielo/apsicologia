@@ -1,28 +1,26 @@
 'use client';
 
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Label } from '../../../../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
-import { Textarea } from '../../../../../components/ui/textarea';
-import { RichTextEditor } from '../../../../../components/ui/rich-text-editor';
-import { TagInput } from '../../../../../components/ui/tag-input';
-import { Badge } from '../../../../../components/ui/badge';
-import { DatePicker } from '../../../../../components/ui/date-picker';
-import { Edit, Save, X, Heart, Pill, AlertTriangle, Stethoscope } from 'lucide-react';
-
-const formatDate = (date: any) => {
-  if (!date) return null;
-  return new Date(date).toLocaleDateString('es-ES');
-};
-
-const stripHtml = (html: string) => {
-  if (!html) return '';
-  // Create a temporary div element to parse HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  return temp.textContent || temp.innerText || '';
-};
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { BadgeSelector } from '@/components/ui/badge-selector';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Edit, Save, X, Heart, Pill, Stethoscope } from 'lucide-react';
+import {
+  MEDICAL_CONDITIONS,
+  ALLERGIES,
+  MEDICATIONS,
+  SURGERIES,
+  MENTAL_HEALTH_DIAGNOSES,
+  MENTAL_HEALTH_TREATMENTS,
+  MENTAL_HEALTH_STATUS,
+  MENTAL_HEALTH_SEVERITY,
+  MENTAL_HEALTH_STATUS_LABELS,
+  MENTAL_HEALTH_SEVERITY_LABELS,
+  TREATMENT_FREQUENCY_LABELS,
+} from '@/../../packages/shared/src/constants';
 
 interface ClinicalSectionProps {
   patient: any;
@@ -43,12 +41,25 @@ export default function ClinicalSection({
   onCancel,
   setEditData
 }: ClinicalSectionProps) {
-  const setEditingSection = (section: string | null) => {
-    if (section) {
-      onEdit(section, {});
-    } else {
-      onCancel();
-    }
+  const formatDate = (date: string | Date) => {
+    if (!date) return 'No especificado';
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatStatus = (status: string) => {
+    return MENTAL_HEALTH_STATUS_LABELS[status as keyof typeof MENTAL_HEALTH_STATUS_LABELS] || status;
+  };
+
+  const formatSeverity = (severity: string) => {
+    return MENTAL_HEALTH_SEVERITY_LABELS[severity as keyof typeof MENTAL_HEALTH_SEVERITY_LABELS] || severity;
+  };
+
+  const formatFrequency = (frequency: string) => {
+    return TREATMENT_FREQUENCY_LABELS[frequency as keyof typeof TREATMENT_FREQUENCY_LABELS] || frequency;
   };
 
   return (
@@ -65,16 +76,10 @@ export default function ClinicalSection({
             size="sm"
             onClick={() => onEdit('medicalHistory', {
               conditions: patient.clinicalInfo?.medicalHistory?.conditions || [],
-              allergies: patient.clinicalInfo?.medicalHistory?.allergies?.map((a: any) => 
-                typeof a === 'string' ? a : a.allergen || a.name || a
-              ) || [],
-              medications: patient.clinicalInfo?.medicalHistory?.medications?.map((m: any) => 
-                typeof m === 'string' ? m : m.name || m.medication || m
-              ) || [],
-              surgeries: patient.clinicalInfo?.medicalHistory?.surgeries?.map((s: any) => 
-                typeof s === 'string' ? s : s.procedure || s.name || s
-              ) || [],
-              notes: stripHtml(patient.clinicalInfo?.medicalHistory?.notes || '')
+              medications: patient.clinicalInfo?.medicalHistory?.medications || [],
+              allergies: patient.clinicalInfo?.medicalHistory?.allergies || [],
+              surgeries: patient.clinicalInfo?.medicalHistory?.surgeries || [],
+              notes: patient.clinicalInfo?.medicalHistory?.notes || ''
             })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
@@ -83,54 +88,58 @@ export default function ClinicalSection({
         </div>
         <div className="px-1">
           {editingSection === 'medicalHistory' ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Condiciones médicas</Label>
-                  <TagInput
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Condiciones médicas</Label>
+                  <BadgeSelector
                     value={editData.conditions || []}
                     onChange={(conditions) => setEditData({...editData, conditions})}
-                    placeholder="Introduce las condiciones médicas"
-                    className="mt-1 text-xs"
+                    predefinedOptions={[...MEDICAL_CONDITIONS]}
+                    placeholder="Agregar condición"
+                    className="min-h-[60px]"
                   />
                 </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Alergias</Label>
-                  <TagInput
-                    value={editData.allergies || []}
-                    onChange={(allergies) => setEditData({...editData, allergies})}
-                    placeholder="Introduce las alergias"
-                    className="mt-1 text-xs"
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Medicación actual</Label>
+                  <BadgeSelector
+                    value={editData.medications || []}
+                    onChange={(medications) => setEditData({...editData, medications})}
+                    predefinedOptions={[...MEDICATIONS]}
+                    placeholder="Agregar medicamento"
+                    className="min-h-[60px]"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Medicación actual</Label>
-                  <TagInput
-                    value={editData.medications || []}
-                    onChange={(medications) => setEditData({...editData, medications})}
-                    placeholder="Introduce la medicación actual"
-                    className="mt-1 text-xs"
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Alergias</Label>
+                  <BadgeSelector
+                    value={editData.allergies || []}
+                    onChange={(allergies) => setEditData({...editData, allergies})}
+                    predefinedOptions={[...ALLERGIES]}
+                    placeholder="Agregar alergia"
+                    className="min-h-[60px]"
                   />
                 </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Cirugías previas</Label>
-                  <TagInput
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Cirugías previas</Label>
+                  <BadgeSelector
                     value={editData.surgeries || []}
                     onChange={(surgeries) => setEditData({...editData, surgeries})}
-                    placeholder="Introduce las cirugías previas"
-                    className="mt-1 text-xs"
+                    predefinedOptions={[...SURGERIES]}
+                    placeholder="Agregar cirugía"
+                    className="min-h-[60px]"
                   />
                 </div>
               </div>
               <div>
-                <Label className="text-xs font-medium text-foreground">Notas médicas</Label>
+                <Label className="text-xs font-medium text-foreground mb-2 block">Notas médicas</Label>
                 <RichTextEditor
                   content={editData.notes || ''}
                   onChange={(notes) => setEditData({...editData, notes})}
-                  placeholder="Introduce las notas médicas"
-                  className="mt-1 text-xs"
+                  placeholder="Introduce observaciones médicas adicionales..."
+                  className="min-h-[100px]"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -145,59 +154,69 @@ export default function ClinicalSection({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Condiciones:</span>
-                <div className="flex flex-wrap gap-1">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Condiciones médicas:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
                   {patient.clinicalInfo?.medicalHistory?.conditions?.length > 0 ? 
-                    patient.clinicalInfo.medicalHistory.conditions.slice(0, 2).map((condition: string, index: number) => (
-                      <Badge key={index} variant="outline" className="text-xs">
+                    patient.clinicalInfo.medicalHistory.conditions.map((condition: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
                         {condition}
                       </Badge>
                     )) : 
-                    <>
-                      <Badge variant="outline" className="text-xs">Ansiedad</Badge>
-                      <Badge variant="outline" className="text-xs">Insomnio</Badge>
-                    </>
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
                   }
                 </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Alergias:</span>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Alergias:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
                   {patient.clinicalInfo?.medicalHistory?.allergies?.length > 0 ? 
-                    patient.clinicalInfo.medicalHistory.allergies.slice(0, 2).map((allergy: any, index: number) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {typeof allergy === 'string' ? allergy : allergy.allergen || allergy.type || 'Alergia'}
-                      </Badge>
-                    )) : 
-                    <>
-                      <Badge variant="secondary" className="text-xs">Polen</Badge>
-                      <Badge variant="secondary" className="text-xs">Penicilina</Badge>
-                    </>
-                  }
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Medicación:</span>
-                <div className="flex flex-wrap gap-1">
-                  {patient.clinicalInfo?.medicalHistory?.medications?.length > 0 ? 
-                    patient.clinicalInfo.medicalHistory.medications.slice(0, 2).map((med: any, index: number) => (
+                    patient.clinicalInfo.medicalHistory.allergies.map((allergy: string, index: number) => (
                       <Badge key={index} variant="default" className="text-xs">
-                        {med.name}
+                        {allergy}
                       </Badge>
                     )) : 
-                    <>
-                      <Badge variant="default" className="text-xs">Sertralina</Badge>
-                      <Badge variant="default" className="text-xs">Lorazepam</Badge>
-                    </>
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
                   }
                 </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Última revisión:</span>
-                <span className="text-foreground font-medium">{formatDate(patient.clinicalInfo?.medicalHistory?.lastReview) || '15/08/2024'}</span>
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Medicación actual:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
+                  {patient.clinicalInfo?.medicalHistory?.medications?.length > 0 ? 
+                    patient.clinicalInfo.medicalHistory.medications.map((med: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
+                        {med}
+                      </Badge>
+                    )) : 
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
+                  }
+                </div>
               </div>
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Cirugías previas:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
+                  {patient.clinicalInfo?.medicalHistory?.surgeries?.length > 0 ? 
+                    patient.clinicalInfo.medicalHistory.surgeries.map((surgery: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
+                        {surgery}
+                      </Badge>
+                    )) : 
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
+                  }
+                </div>
+              </div>
+              {patient.clinicalInfo?.medicalHistory?.notes && (
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Notas médicas:</span>
+                  <RichTextEditor
+                    content={patient.clinicalInfo.medicalHistory.notes}
+                    editable={false}
+                    className="text-sm"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -213,16 +232,12 @@ export default function ClinicalSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('mentalHealth', {
-              diagnoses: patient.clinicalInfo?.mentalHealthHistory?.diagnoses?.map((d: any) => 
-                typeof d === 'string' ? d : d.condition || d.diagnosis || d
-              ) || [],
-              treatments: patient.clinicalInfo?.mentalHealthHistory?.previousTreatments?.map((t: any) => 
-                typeof t === 'string' ? t : t.type || t.treatment || t.provider || t
-              ) || [],
+            onClick={() => onEdit('mentalHealthHistory', {
+              diagnoses: patient.clinicalInfo?.mentalHealthHistory?.diagnoses || [],
+              previousTreatments: patient.clinicalInfo?.mentalHealthHistory?.previousTreatments || [],
               currentStatus: patient.clinicalInfo?.mentalHealthHistory?.currentStatus || '',
               severity: patient.clinicalInfo?.mentalHealthHistory?.severity || '',
-              mentalHealthNotes: stripHtml(patient.clinicalInfo?.mentalHealthHistory?.notes || '')
+              notes: patient.clinicalInfo?.mentalHealthHistory?.notes || ''
             })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
@@ -230,64 +245,71 @@ export default function ClinicalSection({
           </Button>
         </div>
         <div className="px-1">
-          {editingSection === 'mentalHealth' ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Diagnósticos</Label>
-                  <TagInput
+          {editingSection === 'mentalHealthHistory' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Diagnósticos</Label>
+                  <BadgeSelector
                     value={editData.diagnoses || []}
                     onChange={(diagnoses) => setEditData({...editData, diagnoses})}
-                    placeholder="Introduce los diagnósticos"
-                    className="mt-1 text-xs"
+                    predefinedOptions={[...MENTAL_HEALTH_DIAGNOSES]}
+                    placeholder="Agregar diagnóstico"
+                    className="min-h-[60px]"
                   />
                 </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Tratamientos</Label>
-                  <TagInput
-                    value={editData.treatments || []}
-                    onChange={(treatments) => setEditData({...editData, treatments})}
-                    placeholder="Introduce los tratamientos"
-                    className="mt-1 text-xs"
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Tratamientos previos</Label>
+                  <BadgeSelector
+                    value={editData.previousTreatments || []}
+                    onChange={(previousTreatments) => setEditData({...editData, previousTreatments})}
+                    predefinedOptions={[...MENTAL_HEALTH_TREATMENTS]}
+                    placeholder="Agregar tratamiento"
+                    className="min-h-[60px]"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Estado actual</Label>
-                  <Select value={editData.currentStatus || ''} onValueChange={(value) => setEditData({...editData, currentStatus: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Introduce el estado actual" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Estado actual</Label>
+                  <Select
+                    value={editData.currentStatus || ''}
+                    onValueChange={(currentStatus) => setEditData({...editData, currentStatus})}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Seleccionar estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">En tratamiento</SelectItem>
-                      <SelectItem value="stable">Estable</SelectItem>
-                      <SelectItem value="improving">Mejorando</SelectItem>
-                      <SelectItem value="critical">Crítico</SelectItem>
+                      {Object.entries(MENTAL_HEALTH_STATUS_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Severidad</Label>
-                  <Select value={editData.severity || ''} onValueChange={(value) => setEditData({...editData, severity: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Introduce la severidad" />
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Severidad</Label>
+                  <Select
+                    value={editData.severity || ''}
+                    onValueChange={(severity) => setEditData({...editData, severity})}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Seleccionar severidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mild">Leve</SelectItem>
-                      <SelectItem value="moderate">Moderado</SelectItem>
-                      <SelectItem value="severe">Severo</SelectItem>
+                      {Object.entries(MENTAL_HEALTH_SEVERITY_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div>
-                <Label className="text-xs font-medium text-foreground">Notas de salud mental</Label>
+                <Label className="text-xs font-medium text-foreground mb-2 block">Notas de salud mental</Label>
                 <RichTextEditor
-                  content={editData.mentalHealthNotes || ''}
-                  onChange={(mentalHealthNotes) => setEditData({...editData, mentalHealthNotes})}
-                  placeholder="Introduce las observaciones de salud mental"
-                  className="mt-1 text-xs"
+                  content={editData.notes || ''}
+                  onChange={(notes) => setEditData({...editData, notes})}
+                  placeholder="Introduce observaciones sobre el estado mental del paciente..."
+                  className="min-h-[100px]"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -302,73 +324,85 @@ export default function ClinicalSection({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Diagnósticos:</span>
-                <div className="flex flex-wrap gap-1">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Diagnósticos:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
                   {patient.clinicalInfo?.mentalHealthHistory?.diagnoses?.length > 0 ? 
-                    patient.clinicalInfo.mentalHealthHistory.diagnoses.slice(0, 2).map((diagnosis: any, index: number) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {diagnosis.condition || diagnosis}
+                    patient.clinicalInfo.mentalHealthHistory.diagnoses.map((diagnosis: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
+                        {diagnosis}
                       </Badge>
                     )) : 
-                    <>
-                      <Badge variant="outline" className="text-xs">Trastorno de ansiedad</Badge>
-                      <Badge variant="outline" className="text-xs">Depresión leve</Badge>
-                    </>
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
                   }
                 </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Tratamientos:</span>
-                <div className="flex flex-wrap gap-1">
-                  {patient.clinicalInfo?.mentalHealthHistory?.treatments?.length > 0 ? 
-                    patient.clinicalInfo.mentalHealthHistory.treatments.slice(0, 2).map((treatment: any, index: number) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {treatment.type || treatment}
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Tratamientos previos:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
+                  {patient.clinicalInfo?.mentalHealthHistory?.previousTreatments?.length > 0 ? 
+                    patient.clinicalInfo.mentalHealthHistory.previousTreatments.map((treatment: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
+                        {treatment}
                       </Badge>
                     )) : 
-                    <>
-                      <Badge variant="secondary" className="text-xs">Terapia cognitiva</Badge>
-                      <Badge variant="secondary" className="text-xs">Mindfulness</Badge>
-                    </>
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
                   }
                 </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Estado actual:</span>
-                <span className="text-foreground font-medium">
-                  {patient.clinicalInfo?.mentalHealthHistory?.currentStatus || 'En tratamiento'}
-                </span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Estado actual:</span>
+                  <span className="text-foreground font-medium text-sm block">
+                    {patient.clinicalInfo?.mentalHealthHistory?.currentStatus ? 
+                      formatStatus(patient.clinicalInfo.mentalHealthHistory.currentStatus) : 
+                      'No especificado'
+                    }
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Severidad:</span>
+                  <span className="text-foreground font-medium text-sm block">
+                    {patient.clinicalInfo?.mentalHealthHistory?.severity ? 
+                      formatSeverity(patient.clinicalInfo.mentalHealthHistory.severity) : 
+                      'No especificado'
+                    }
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Última evaluación:</span>
-                <span className="text-foreground font-medium">
-                  {formatDate(patient.clinicalInfo?.mentalHealthHistory?.lastEvaluation) || '10/08/2024'}
-                </span>
-              </div>
+              {patient.clinicalInfo?.mentalHealthHistory?.notes && (
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Notas de salud mental:</span>
+                  <RichTextEditor
+                    content={patient.clinicalInfo.mentalHealthHistory.notes}
+                    editable={false}
+                    className="text-sm"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Plan de Tratamiento */}
-      <div className="pb-4 border-b border-border/30">
+      {/* Tratamiento Actual */}
+      <div className="pb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Pill className="h-4 w-4 text-primary" />
-            Plan de Tratamiento
+            Tratamiento Actual
           </h3>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onEdit('treatmentPlan', {
-              objectives: stripHtml(patient.clinicalInfo?.currentTreatment?.treatmentPlan || ''),
-              estimatedDuration: patient.clinicalInfo?.currentTreatment?.expectedDuration || '',
-              frequency: patient.clinicalInfo?.currentTreatment?.frequency || '',
-              status: patient.clinicalInfo?.currentTreatment?.status || 'active',
+            onClick={() => onEdit('currentTreatment', {
+              treatmentPlan: patient.clinicalInfo?.currentTreatment?.treatmentPlan || '',
+              goals: patient.clinicalInfo?.currentTreatment?.goals || [],
               startDate: patient.clinicalInfo?.currentTreatment?.startDate || '',
-              planNotes: stripHtml(patient.clinicalInfo?.currentTreatment?.notes || '')
+              expectedDuration: patient.clinicalInfo?.currentTreatment?.expectedDuration || '',
+              frequency: patient.clinicalInfo?.currentTreatment?.frequency || '',
+              notes: patient.clinicalInfo?.currentTreatment?.notes || ''
             })}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
@@ -376,82 +410,64 @@ export default function ClinicalSection({
           </Button>
         </div>
         <div className="px-1">
-          {editingSection === 'treatmentPlan' ? (
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs font-medium text-foreground">Objetivos</Label>
-                <RichTextEditor
-                  content={editData.objectives || ''}
-                  onChange={(objectives) => setEditData({...editData, objectives})}
-                  placeholder="Introduce los objetivos del tratamiento"
-                  className="mt-1 text-xs"
+          {editingSection === 'currentTreatment' ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-foreground mb-2 block">Objetivos del tratamiento</Label>
+                <BadgeSelector
+                  value={editData.goals || []}
+                  onChange={(goals) => setEditData({...editData, goals})}
+                  predefinedOptions={[]}
+                  placeholder="Agregar objetivo"
+                  className="min-h-[60px]"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Duración estimada</Label>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Duración esperada</Label>
                   <Input
-                    value={editData.estimatedDuration || ''}
-                    onChange={(e) => setEditData({...editData, estimatedDuration: e.target.value})}
-                    placeholder="Introduce la duración estimada"
-                    className="mt-1 h-8 text-xs"
+                    value={editData.expectedDuration || ''}
+                    onChange={(e) => setEditData({...editData, expectedDuration: e.target.value})}
+                    placeholder="ej. 6 meses"
+                    className="h-8 text-xs"
                   />
                 </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Frecuencia</Label>
-                  <Select
-                    value={editData.frequency || ''}
-                    onValueChange={(frequency) => setEditData({...editData, frequency})}
-                  >
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Introduce la frecuencia" />
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-foreground mb-2 block">Frecuencia</Label>
+                  <Select value={editData.frequency || ''} onValueChange={(frequency) => setEditData({...editData, frequency})}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Seleccionar frecuencia" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="daily">Diaria</SelectItem>
                       <SelectItem value="weekly">Semanal</SelectItem>
                       <SelectItem value="biweekly">Quincenal</SelectItem>
                       <SelectItem value="monthly">Mensual</SelectItem>
-                      <SelectItem value="daily">Diario</SelectItem>
                       <SelectItem value="as-needed">Según necesidad</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Estado</Label>
-                  <Select value={editData.status || ''} onValueChange={(value) => setEditData({...editData, status: value})}>
-                    <SelectTrigger className="mt-1 h-8 text-xs">
-                      <SelectValue placeholder="Introduce el estado del plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="paused">Pausado</SelectItem>
-                      <SelectItem value="completed">Completado</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Fecha inicio</Label>
-                  <DatePicker
-                    date={editData.startDate ? new Date(editData.startDate) : undefined}
-                    onDateChange={(date) => setEditData({...editData, startDate: date})}
-                    placeholder="Introduce la fecha de inicio"
-                    className="mt-1 h-8 text-xs w-full"
-                  />
-                </div>
+              <div>
+                <Label className="text-xs font-medium text-foreground mb-2 block">Plan de tratamiento</Label>
+                <RichTextEditor
+                  content={editData.treatmentPlan || ''}
+                  onChange={(treatmentPlan) => setEditData({...editData, treatmentPlan})}
+                  placeholder="Describe el plan de tratamiento completo, objetivos, metodología, duración estimada, frecuencia de sesiones..."
+                  className="min-h-[200px]"
+                />
               </div>
               <div>
-                <Label className="text-xs font-medium text-foreground">Notas del plan</Label>
+                <Label className="text-xs font-medium text-foreground mb-2 block">Notas del tratamiento</Label>
                 <RichTextEditor
-                  content={editData.planNotes || ''}
-                  onChange={(planNotes) => setEditData({...editData, planNotes})}
-                  placeholder="Introduce las notas del plan de tratamiento"
-                  className="mt-1 text-xs"
+                  content={editData.notes || ''}
+                  onChange={(notes) => setEditData({...editData, notes})}
+                  placeholder="Notas adicionales sobre el tratamiento..."
+                  className="min-h-[120px]"
                 />
               </div>
               <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('treatmentPlan')} size="sm" className="h-7 text-xs">
+                <Button onClick={() => onSave('currentTreatment')} size="sm" className="h-7 text-xs">
                   <Save className="h-3 w-3 mr-1" />
                   Guardar
                 </Button>
@@ -463,41 +479,56 @@ export default function ClinicalSection({
             </div>
           ) : (
             <div className="space-y-3">
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">Objetivos principales</span>
-                <div className="mt-1 text-sm text-foreground">
-                  {patient.clinicalInfo?.treatmentPlan?.objectives || 
-                    'Reducir niveles de ansiedad mediante técnicas de relajación y reestructuración cognitiva. Mejorar patrones de sueño y establecer rutinas saludables.'}
+              <div className="space-y-2">
+                <span className="text-sm text-muted-foreground">Objetivos del tratamiento:</span>
+                <div className="flex flex-wrap gap-1 min-h-[24px]">
+                  {patient.clinicalInfo?.currentTreatment?.goals?.length > 0 ? 
+                    patient.clinicalInfo.currentTreatment.goals.map((goal: string, index: number) => (
+                      <Badge key={index} variant="default" className="text-xs">
+                        {goal}
+                      </Badge>
+                    )) : 
+                    <span className="text-foreground font-medium text-sm">No especificado</span>
+                  }
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Duración:</span>
-                  <span className="text-foreground font-medium">
-                    {patient.clinicalInfo?.treatmentPlan?.estimatedDuration || '6 meses'}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Duración esperada:</span>
+                  <span className="text-foreground font-medium text-sm block">
+                    {patient.clinicalInfo?.currentTreatment?.expectedDuration || 'No especificado'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Frecuencia:</span>
-                  <span className="text-foreground font-medium">
-                    {patient.clinicalInfo?.treatmentPlan?.frequency === 'weekly' ? 'Semanal' :
-                     patient.clinicalInfo?.treatmentPlan?.frequency === 'biweekly' ? 'Quincenal' :
-                     patient.clinicalInfo?.treatmentPlan?.frequency === 'monthly' ? 'Mensual' : 'Semanal'}
+                <div className="space-y-1">
+                  <span className="text-sm text-muted-foreground">Frecuencia:</span>
+                  <span className="text-foreground font-medium text-sm block">
+                    {patient.clinicalInfo?.currentTreatment?.frequency ? 
+                      formatFrequency(patient.clinicalInfo.currentTreatment.frequency) : 
+                      'No especificado'
+                    }
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Inicio:</span>
-                  <span className="text-foreground font-medium">
-                    {formatDate(patient.clinicalInfo?.treatmentPlan?.startDate) || '01/08/2024'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Estado:</span>
-                  <Badge variant="default" className="text-xs">
-                    {patient.clinicalInfo?.treatmentPlan?.status || 'Activo'}
-                  </Badge>
                 </div>
               </div>
+              {patient.clinicalInfo?.currentTreatment?.treatmentPlan && (
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Plan de tratamiento:</span>
+                  <RichTextEditor
+                    content={patient.clinicalInfo.currentTreatment.treatmentPlan}
+                    editable={false}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+              {patient.clinicalInfo?.currentTreatment?.notes && (
+                <div className="space-y-2">
+                  <span className="text-sm text-muted-foreground">Notas del tratamiento:</span>
+                  <RichTextEditor
+                    content={patient.clinicalInfo.currentTreatment.notes}
+                    editable={false}
+                    className="text-sm"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

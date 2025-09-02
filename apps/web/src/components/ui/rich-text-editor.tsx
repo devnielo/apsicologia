@@ -5,6 +5,10 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import ListItem from '@tiptap/extension-list-item';
+import BulletList from '@tiptap/extension-bullet-list';
+import OrderedList from '@tiptap/extension-ordered-list';
+import { useEffect } from 'react';
 import { 
   Bold, 
   Italic, 
@@ -39,15 +43,23 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        bulletList: {
-          HTMLAttributes: {
-            class: 'list-disc list-inside',
-          },
+        bulletList: false,
+        orderedList: false,
+        listItem: false,
+      }),
+      BulletList.configure({
+        HTMLAttributes: {
+          class: 'list-disc pl-4 space-y-1',
         },
-        orderedList: {
-          HTMLAttributes: {
-            class: 'list-decimal list-inside',
-          },
+      }),
+      OrderedList.configure({
+        HTMLAttributes: {
+          class: 'list-decimal pl-4 space-y-1',
+        },
+      }),
+      ListItem.configure({
+        HTMLAttributes: {
+          class: 'ml-2',
         },
       }),
       TextAlign.configure({
@@ -62,7 +74,19 @@ export function RichTextEditor({
       onChange?.(editor.getHTML());
     },
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4 [&_ul]:pl-4 [&_ol]:pl-4',
+      },
+    },
   });
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;
@@ -161,17 +185,39 @@ export function RichTextEditor({
     </div>
   );
 
+  // If not editable and no content, return simple display
+  if (!editable && !content) {
+    return (
+      <div className={cn('text-sm text-muted-foreground italic', className)}>
+        Sin información
+      </div>
+    );
+  }
+
+  // If not editable, render content as HTML
+  if (!editable) {
+    return (
+      <div 
+        className={cn('text-sm prose prose-sm max-w-none [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4 [&_ul]:pl-4 [&_ol]:pl-4 [&_p]:my-1 [&_ul]:my-2 [&_ol]:my-2 [&_[style*="text-align:_center"]]:text-center [&_[style*="text-align:_right"]]:text-right [&_[style*="text-align:_left"]]:text-left', className)}
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+
   return (
     <div className={cn('border border-gray-200 rounded-md bg-white', className)}>
       {editable && <MenuBar />}
       <div 
-        onClick={() => editor.commands.focus()}
+        onClick={() => editable && editor.commands.focus()}
         className={cn(
-          'prose prose-sm max-w-none p-3 min-h-[120px] focus-within:outline-none cursor-text',
-          !editable && 'bg-gray-50 cursor-default'
+          'p-3 min-h-[120px] focus-within:outline-none',
+          editable ? 'cursor-text' : 'bg-gray-50 cursor-default'
         )}
       >
-        <EditorContent editor={editor} />
+        <EditorContent 
+          editor={editor} 
+          className="prose prose-sm max-w-none text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[100px] [&_.ProseMirror_p]:my-1 [&_.ProseMirror_ul]:my-2 [&_.ProseMirror_ol]:my-2 [&_.ProseMirror_h1]:my-2 [&_.ProseMirror_h2]:my-2 [&_.ProseMirror_h3]:my-1 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_li]:ml-4"
+        />
       </div>
     </div>
   );

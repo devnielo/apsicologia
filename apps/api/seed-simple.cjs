@@ -3,6 +3,60 @@ const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
 
+// Define clinical constants directly in seed script for CommonJS compatibility
+const MEDICAL_CONDITIONS = [
+  'Hipertensión arterial', 'Diabetes mellitus tipo 2', 'Asma bronquial', 'Artritis reumatoide',
+  'Osteoporosis', 'Fibromialgia', 'Migraña crónica', 'Síndrome del intestino irritable',
+  'Apnea del sueño', 'Reflujo gastroesofágico', 'Hipotiroidismo', 'Colesterol alto',
+  'Enfermedad cardiovascular', 'Obesidad', 'Síndrome metabólico'
+];
+
+const ALLERGIES = [
+  'Polen de gramíneas', 'Ácaros del polvo', 'Pelo de animales', 'Frutos secos',
+  'Mariscos', 'Penicilina', 'Aspirina', 'Látex', 'Níquel', 'Perfumes',
+  'Alimentos con gluten', 'Lactosa', 'Huevos', 'Soja'
+];
+
+const MEDICATIONS = [
+  'Paracetamol', 'Ibuprofeno', 'Omeprazol', 'Simvastatina', 'Metformina',
+  'Enalapril', 'Amlodipino', 'Levotiroxina', 'Sertralina', 'Lorazepam',
+  'Diazepam', 'Alprazolam', 'Escitalopram', 'Venlafaxina', 'Quetiapina'
+];
+
+const SURGERIES = [
+  'Apendicectomía', 'Colecistectomía', 'Hernia inguinal', 'Cesárea',
+  'Artroscopia de rodilla', 'Cataratas', 'Amigdalectomía', 'Herniorrafia',
+  'Colectomía', 'Mastectomía', 'Prostatectomía', 'Histerectomía'
+];
+
+const MENTAL_HEALTH_DIAGNOSES = [
+  'Trastorno de ansiedad generalizada', 'Episodio depresivo mayor', 'Trastorno de pánico',
+  'Fobia social', 'Trastorno obsesivo-compulsivo', 'Trastorno de estrés postraumático',
+  'Trastorno bipolar', 'Trastorno límite de personalidad', 'Trastorno de la alimentación',
+  'Trastorno por déficit de atención', 'Trastorno del espectro autista', 'Esquizofrenia',
+  'Trastorno de adaptación', 'Trastorno de ansiedad por separación'
+];
+
+const MENTAL_HEALTH_TREATMENTS = [
+  'Terapia cognitivo-conductual', 'Terapia psicodinámica', 'Terapia humanística',
+  'Terapia sistémica familiar', 'Terapia de grupo', 'Mindfulness y meditación',
+  'EMDR', 'Terapia dialéctica conductual', 'Terapia de aceptación y compromiso',
+  'Psicoeducación', 'Terapia ocupacional', 'Arteterapia', 'Musicoterapia'
+];
+
+const MENTAL_HEALTH_STATUS = {
+  active: 'active',
+  stable: 'stable', 
+  improving: 'improving',
+  critical: 'critical'
+};
+
+const MENTAL_HEALTH_SEVERITY = {
+  mild: 'mild',
+  moderate: 'moderate',
+  severe: 'severe'
+};
+
 // Read the full base64 image from file
 const profileImagePath = path.join(__dirname, '../../profile-avatar-base64.txt');
 const profileImageBase64 = fs.readFileSync(profileImagePath, 'utf8').trim();
@@ -24,6 +78,13 @@ const Patient = mongoose.model('Patient', patientSchema);
 const Service = mongoose.model('Service', serviceSchema);
 const Room = mongoose.model('Room', roomSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
+
+// Helper function to get random items from an array
+function getRandomItems(array, count) {
+  if (count === 0) return [];
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.min(count, array.length));
+}
 
 async function seedData() {
   try {
@@ -480,91 +541,99 @@ async function seedData() {
           primaryProfessional: professionalId,
           assignedProfessionals: [professionalId],
           medicalHistory: {
-            conditions: [condition],
-            medications: Math.random() > 0.4 ? [
-              {
-                name: ['Sertralina', 'Lorazepam', 'Escitalopram', 'Alprazolam'][Math.floor(Math.random() * 4)],
-                dosage: ['25mg', '50mg', '10mg', '0.5mg'][Math.floor(Math.random() * 4)],
-                frequency: ['Una vez al día', 'Dos veces al día', 'Según necesidad'][Math.floor(Math.random() * 3)],
-                prescribedBy: 'Dr. García',
-                startDate: new Date(2024, Math.floor(Math.random() * 6), Math.floor(Math.random() * 28) + 1),
-                active: true,
-                notes: 'Medicación bien tolerada por el paciente'
-              }
-            ] : [],
-            allergies: Math.random() > 0.6 ? [
-              {
-                type: ['medication', 'food', 'environmental'][Math.floor(Math.random() * 3)],
-                allergen: ['Penicilina', 'Frutos secos', 'Polen', 'Ácaros', 'Mariscos', 'Aspirina'][Math.floor(Math.random() * 6)],
-                severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
-                reaction: ['Erupciones cutáneas', 'Dificultad respiratoria', 'Hinchazón', 'Picor', 'Urticaria'][Math.floor(Math.random() * 5)],
-                notes: Math.random() > 0.5 ? 'Paciente lleva pulsera de alerta médica' : undefined
-              },
-              ...(Math.random() > 0.8 ? [{
-                type: 'environmental',
-                allergen: 'Polvo doméstico',
-                severity: 'mild',
-                reaction: 'Estornudos y congestión nasal'
-              }] : [])
-            ] : [],
-            surgeries: Math.random() > 0.8 ? [{
-              procedure: ['Apendicectomía', 'Colecistectomía', 'Cirugía de rodilla', 'Cesárea'][Math.floor(Math.random() * 4)],
-              date: new Date(2018 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              hospital: ['Hospital Universitario', 'Clínica San Carlos', 'Hospital Gregorio Marañón'][Math.floor(Math.random() * 3)],
-              surgeon: ['Dr. Fernández', 'Dra. Sánchez', 'Dr. Moreno'][Math.floor(Math.random() * 3)],
-              notes: 'Cirugía sin complicaciones, recuperación normal'
-            }] : [],
-            hospitalizations: Math.random() > 0.9 ? [{
-              reason: ['Neumonía', 'Crisis de ansiedad severa', 'Síncope', 'Dolor torácico'][Math.floor(Math.random() * 4)],
-              admissionDate: new Date(2022 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              dischargeDate: new Date(2022 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 3),
-              hospital: ['Hospital La Paz', 'Hospital Clínico San Carlos', 'Hospital 12 de Octubre'][Math.floor(Math.random() * 3)],
-              notes: 'Evolución favorable, seguimiento ambulatorio'
-            }] : []
+            conditions: getRandomItems(MEDICAL_CONDITIONS, Math.floor(Math.random() * 3) + 1),
+            medications: getRandomItems(MEDICATIONS, Math.floor(Math.random() * 2) + 1),
+            allergies: getRandomItems(ALLERGIES, Math.floor(Math.random() * 2)),
+            surgeries: getRandomItems(SURGERIES, Math.floor(Math.random() * 2)),
+            notes: '<p>Historial médico sin complicaciones relevantes. Paciente colaborativo durante la evaluación inicial.</p>'
           },
           mentalHealthHistory: {
-            previousTreatments: Math.random() > 0.5 ? [
-              {
-                type: ['therapy', 'medication', 'hospitalization'][Math.floor(Math.random() * 3)],
-                provider: Math.random() > 0.5 ? ['Centro de Salud Mental', 'Psicólogo privado', 'Hospital Psiquiátrico'][Math.floor(Math.random() * 3)] : undefined,
-                startDate: new Date(2020 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-                endDate: Math.random() > 0.3 ? new Date(2021 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) : undefined,
-                reason: condition,
-                outcome: Math.random() > 0.5 ? ['Mejoría significativa', 'Mejoría parcial', 'Sin cambios'][Math.floor(Math.random() * 3)] : undefined,
-                notes: Math.random() > 0.5 ? 'Tratamiento previo documentado' : undefined
-              }
-            ] : [],
-            diagnoses: condition ? [{
-              condition: condition,
-              diagnosedBy: 'Dr. García López',
-              diagnosisDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-              icdCode: `F${Math.floor(Math.random() * 99).toString().padStart(2, '0')}.${Math.floor(Math.random() * 9)}`,
-              status: ['active', 'resolved', 'in-remission', 'chronic'][Math.floor(Math.random() * 4)],
-              severity: ['mild', 'moderate', 'severe'][Math.floor(Math.random() * 3)],
-              notes: 'Diagnóstico confirmado tras evaluación clínica'
-            }] : [],
-            riskFactors: Math.random() > 0.7 ? [{
-              factor: ['Estrés laboral', 'Problemas familiares', 'Duelo', 'Cambios vitales'][Math.floor(Math.random() * 4)],
-              level: ['low', 'moderate', 'high'][Math.floor(Math.random() * 3)],
-              notes: 'Evaluado durante entrevista inicial',
-              assessedDate: new Date(),
-              assessedBy: professionalId
-            }] : []
+            diagnoses: getRandomItems(MENTAL_HEALTH_DIAGNOSES, Math.floor(Math.random() * 2) + 1),
+            previousTreatments: getRandomItems(MENTAL_HEALTH_TREATMENTS, Math.floor(Math.random() * 3) + 1),
+            currentStatus: Object.values(MENTAL_HEALTH_STATUS)[Math.floor(Math.random() * Object.values(MENTAL_HEALTH_STATUS).length)],
+            severity: Object.values(MENTAL_HEALTH_SEVERITY)[Math.floor(Math.random() * Object.values(MENTAL_HEALTH_SEVERITY).length)],
+            notes: '<p>Evolución favorable con el tratamiento actual. Se observa mejoría en el estado de ánimo y reducción de síntomas ansiosos.</p>'
           },
           currentTreatment: {
-            treatmentPlan: `<h3>Plan de Tratamiento Individualizado</h3><p><strong>Objetivo principal:</strong> Tratamiento integral para ${condition.toLowerCase()}</p><ul><li>Sesiones semanales de terapia cognitivo-conductual</li><li>Técnicas de mindfulness y relajación</li><li>Reestructuración cognitiva</li><li>Exposición gradual (si aplica)</li></ul><p><em>Plan sujeto a revisión cada 4 semanas</em></p>`,
-            goals: [
-              `Reducir síntomas de ${condition.toLowerCase()}`,
-              'Mejorar calidad de vida',
-              'Desarrollar estrategias de afrontamiento',
-              ...(Math.random() > 0.5 ? ['Mejorar relaciones interpersonales', 'Incrementar autoestima'] : [])
-            ],
-            startDate: new Date(2024, Math.floor(Math.random() * 8), Math.floor(Math.random() * 28) + 1),
-            expectedDuration: ['3 meses', '6 meses', '1 año', 'Indefinido'][Math.floor(Math.random() * 4)],
-            frequency: ['Semanal', 'Quincenal', 'Mensual'][Math.floor(Math.random() * 3)],
-            notes: '<p><strong>Notas del tratamiento:</strong></p><ul><li>Paciente muestra buena adherencia al tratamiento</li><li>Respuesta positiva a técnicas de TCC</li><li>Requiere seguimiento de medicación</li></ul>'
-          },
-          clinicalNotes: `<h4>Observaciones Clínicas</h4><p><strong>Fecha de evaluación inicial:</strong> ${new Date().toLocaleDateString('es-ES')}</p><p><strong>Presentación clínica:</strong> Paciente presenta síntomas compatibles con ${condition.toLowerCase()}. Se observa:</p><ul><li>Estado de ánimo: ${['Deprimido', 'Ansioso', 'Estable', 'Variable'][Math.floor(Math.random() * 4)]}</li><li>Nivel de funcionamiento: ${['Alto', 'Moderado', 'Bajo'][Math.floor(Math.random() * 3)]}</li><li>Insight: ${['Bueno', 'Parcial', 'Limitado'][Math.floor(Math.random() * 3)]}</li></ul><p><strong>Evolución:</strong> ${Math.random() > 0.5 ? 'Evolución favorable con mejoría progresiva' : 'Evolución lenta pero constante'}. Se recomienda continuar con el plan terapéutico actual.</p><p><em>Próxima revisión programada para 4 semanas.</em></p>`
+            treatmentPlan: `<h3>Plan de Tratamiento Integral</h3>
+              <p><strong>Objetivos principales:</strong></p>
+              <ul>
+                <li>Reducir niveles de ansiedad mediante técnicas de relajación</li>
+                <li>Mejorar patrones de sueño y establecer rutinas saludables</li>
+                <li>Fortalecer estrategias de afrontamiento</li>
+                <li>Aumentar autoestima y confianza personal</li>
+              </ul>
+              <p><strong>Metodología:</strong> Terapia cognitivo-conductual combinada con técnicas de mindfulness</p>
+              <p><strong>Duración estimada:</strong> 6 meses con sesiones semanales</p>
+              <p><strong>Evaluación:</strong> Revisión mensual del progreso con escalas validadas</p>`,
+            goals: ['Reducir ansiedad', 'Mejorar sueño', 'Aumentar autoestima', 'Fortalecer relaciones'],
+            startDate: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
+            expectedDuration: ['3 meses', '6 meses', '1 año'][Math.floor(Math.random() * 3)],
+            frequency: ['weekly', 'biweekly'][Math.floor(Math.random() * 2)],
+            notes: '<p>Paciente muestra excelente adherencia al tratamiento. Se recomienda continuar con el plan establecido.</p>',
+            sessions: [
+              {
+                sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+                duration: 60,
+                type: 'individual',
+                status: 'completed',
+                professionalId: allProfessionals[0]._id,
+                notes: `<h3>Sesión de Evaluación Inicial</h3>
+                  <p><strong>Objetivos de la sesión:</strong></p>
+                  <ul>
+                    <li>Establecer rapport terapéutico</li>
+                    <li>Evaluar estado mental actual</li>
+                    <li>Identificar objetivos de tratamiento</li>
+                  </ul>
+                  <p><strong>Observaciones:</strong> Paciente colaborativo, muestra insight sobre su situación. Presenta síntomas de ansiedad moderada.</p>
+                  <p><strong>Intervenciones:</strong> Psicoeducación sobre ansiedad, introducción a técnicas de respiración.</p>`,
+                objectives: ['Establecer rapport', 'Evaluación inicial', 'Definir objetivos'],
+                homework: '<p>Practicar ejercicios de respiración diafragmática 10 minutos diarios</p>',
+                nextSessionPlan: '<p>Continuar con psicoeducación y comenzar técnicas de relajación progresiva</p>',
+                mood: {
+                  before: { level: 3, description: 'Ansioso y preocupado' },
+                  after: { level: 6, description: 'Más tranquilo y esperanzado' }
+                },
+                progress: {
+                  rating: 7,
+                  observations: 'Buena disposición al cambio, comprende los conceptos explicados'
+                },
+                createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              },
+              {
+                sessionId: `session_${Date.now() + 1}_${Math.random().toString(36).substr(2, 9)}`,
+                date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+                duration: 50,
+                type: 'individual',
+                status: 'completed',
+                professionalId: allProfessionals[0]._id,
+                notes: `<h3>Sesión de Seguimiento</h3>
+                  <p><strong>Revisión de tareas:</strong> Paciente completó ejercicios de respiración con buenos resultados.</p>
+                  <p><strong>Trabajo en sesión:</strong></p>
+                  <ul>
+                    <li>Identificación de pensamientos automáticos negativos</li>
+                    <li>Técnicas de reestructuración cognitiva</li>
+                    <li>Práctica de relajación muscular progresiva</li>
+                  </ul>
+                  <p><strong>Progreso observado:</strong> Reducción notable en síntomas de ansiedad, mejor calidad de sueño.</p>`,
+                objectives: ['Revisar tareas', 'Reestructuración cognitiva', 'Relajación muscular'],
+                homework: '<p>Registro de pensamientos automáticos durante situaciones de estrés. Continuar con ejercicios de respiración.</p>',
+                nextSessionPlan: '<p>Trabajar en exposición gradual a situaciones temidas</p>',
+                mood: {
+                  before: { level: 5, description: 'Estable, algo ansioso' },
+                  after: { level: 7, description: 'Relajado y motivado' }
+                },
+                progress: {
+                  rating: 8,
+                  observations: 'Excelente progreso, paciente muy comprometido con el proceso'
+                },
+                createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+                updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+              }
+            ]
+          }
         },
         episodes: [
           {
@@ -585,7 +654,7 @@ async function seedData() {
           }] : [])
         ],
         billing: {
-          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'cash',
+          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'medicationscash',
           preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
           stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
           billingNotes: ''
