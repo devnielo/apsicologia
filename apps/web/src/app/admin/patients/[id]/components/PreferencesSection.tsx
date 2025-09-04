@@ -22,6 +22,9 @@ interface PreferencesSectionProps {
   onSave: (section: string) => void;
   onCancel: () => void;
   setEditData: (data: any) => void;
+  validationErrors?: any;
+  showValidation?: boolean;
+  isCreating?: boolean;
 }
 
 export default function PreferencesSection({
@@ -31,7 +34,10 @@ export default function PreferencesSection({
   onEdit,
   onSave,
   onCancel,
-  setEditData
+  setEditData,
+  validationErrors = {},
+  showValidation = false,
+  isCreating = false
 }: PreferencesSectionProps) {
   // Fetch all professionals for dropdowns
   const { data: professionalsData } = useQuery({

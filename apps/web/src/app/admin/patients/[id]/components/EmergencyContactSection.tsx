@@ -13,6 +13,9 @@ interface EmergencyContactSectionProps {
   onSave: (section: string) => void;
   onCancel: () => void;
   setEditData: (data: any) => void;
+  validationErrors?: any;
+  showValidation?: boolean;
+  isCreating?: boolean;
 }
 
 export function EmergencyContactSection({
@@ -22,8 +25,25 @@ export function EmergencyContactSection({
   onEdit,
   onSave,
   onCancel,
-  setEditData
+  setEditData,
+  validationErrors = {},
+  showValidation = false,
+  isCreating = false
 }: EmergencyContactSectionProps) {
+  // Helper function to render required field indicator
+  const RequiredIndicator = () => (
+    <span className="text-red-500 ml-1">*</span>
+  );
+
+  // Helper function to render field error
+  const FieldError = ({ fieldName }: { fieldName: string }) => {
+    if (!showValidation || !validationErrors[fieldName]) return null;
+    return (
+      <div className="text-xs text-red-500 mt-1">
+        {validationErrors[fieldName]}
+      </div>
+    );
+  };
   return (
     <div className="pb-4 border-b border-border/30">
       <div className="flex items-center justify-between mb-3">
@@ -31,28 +51,41 @@ export function EmergencyContactSection({
           <AlertTriangle className="h-4 w-4 text-primary" />
           Contacto de Emergencia
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit('emergencyContact', patient.emergencyContact || {})}
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-        >
-          <Edit className="h-3 w-3" />
-        </Button>
+        {!isCreating && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit('emergencyContact', patient.emergencyContact || {})}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+        )}
       </div>
       <div className="px-1">
-        {editingSection === 'emergencyContact' ? (
+        {(editingSection === 'emergencyContact' || isCreating) ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="emergencyName" className="text-xs font-medium text-foreground">Nombre</Label>
+              <div className="space-y-1">
+                <Label htmlFor="emergencyName" className="text-xs font-medium text-foreground">
+                  Nombre<RequiredIndicator />
+                </Label>
                 <Input
                   id="emergencyName"
-                  value={editData.name || ''}
-                  onChange={(e) => setEditData({...editData, name: e.target.value})}
+                  value={isCreating ? (patient.emergencyContact?.name || '') : (editData.name || '')}
+                  onChange={(e) => {
+                    if (isCreating) {
+                      onEdit('emergencyContact', { name: e.target.value });
+                    } else {
+                      setEditData({...editData, name: e.target.value});
+                    }
+                  }}
                   placeholder="Nombre del contacto"
-                  className="mt-1 h-8 text-xs"
+                  className={`mt-1 h-8 text-xs ${
+                    showValidation && validationErrors.emergencyContactName ? 'border-red-500' : ''
+                  }`}
                 />
+                <FieldError fieldName="emergencyContactName" />
               </div>
               <div>
                 <Label htmlFor="emergencyRelationship" className="text-xs font-medium text-foreground">Relación</Label>

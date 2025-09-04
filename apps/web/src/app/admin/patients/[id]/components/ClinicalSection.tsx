@@ -30,6 +30,9 @@ interface ClinicalSectionProps {
   onSave: (section: string) => void;
   onCancel: () => void;
   setEditData: (data: any) => void;
+  validationErrors?: any;
+  showValidation?: boolean;
+  isCreating?: boolean;
 }
 
 export default function ClinicalSection({
@@ -39,7 +42,10 @@ export default function ClinicalSection({
   onEdit,
   onSave,
   onCancel,
-  setEditData
+  setEditData,
+  validationErrors = {},
+  showValidation = false,
+  isCreating = false
 }: ClinicalSectionProps) {
   const formatDate = (date: string | Date) => {
     if (!date) return 'No especificado';

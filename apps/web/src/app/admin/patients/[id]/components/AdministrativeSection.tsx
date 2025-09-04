@@ -20,6 +20,9 @@ interface AdministrativeSectionProps {
   onSave: (section: string) => void;
   onCancel: () => void;
   setEditData: (data: any) => void;
+  validationErrors?: any;
+  showValidation?: boolean;
+  isCreating?: boolean;
 }
 
 export function AdministrativeSection({
@@ -29,7 +32,10 @@ export function AdministrativeSection({
   onEdit,
   onSave,
   onCancel,
-  setEditData
+  setEditData,
+  validationErrors = {},
+  showValidation = false,
+  isCreating = false
 }: AdministrativeSectionProps) {
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('es-ES', {

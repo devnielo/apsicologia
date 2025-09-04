@@ -16,6 +16,9 @@ interface PersonalInfoSectionProps {
   onSave: (section: string) => void;
   onCancel: () => void;
   setEditData: (data: any) => void;
+  validationErrors?: any;
+  showValidation?: boolean;
+  isCreating?: boolean;
 }
 
 export function PersonalInfoSection({
@@ -25,7 +28,10 @@ export function PersonalInfoSection({
   onEdit,
   onSave,
   onCancel,
-  setEditData
+  setEditData,
+  validationErrors = {},
+  showValidation = false,
+  isCreating = false
 }: PersonalInfoSectionProps) {
   const fullName = `${patient.personalInfo?.firstName || ''} ${patient.personalInfo?.lastName || ''}`.trim();
 
@@ -61,6 +67,21 @@ export function PersonalInfoSection({
     return statusMap[status] || status;
   };
 
+  // Helper function to render required field indicator
+  const RequiredIndicator = () => (
+    <span className="text-red-500 ml-1">*</span>
+  );
+
+  // Helper function to render field error
+  const FieldError = ({ fieldName }: { fieldName: string }) => {
+    if (!showValidation || !validationErrors[fieldName]) return null;
+    return (
+      <div className="text-xs text-red-500 mt-1">
+        {validationErrors[fieldName]}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Información Personal */}
@@ -70,73 +91,133 @@ export function PersonalInfoSection({
             <User className="h-4 w-4 text-primary" />
             Información Personal
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit('personalInfo', {
-              firstName: patient.personalInfo?.firstName || '',
-              lastName: patient.personalInfo?.lastName || '',
-              dateOfBirth: patient.personalInfo?.dateOfBirth || '',
-              gender: patient.personalInfo?.gender || '',
-              maritalStatus: patient.personalInfo?.maritalStatus || '',
-              occupation: patient.personalInfo?.occupation || '',
-              idType: patient.personalInfo?.idType || '',
-              idNumber: patient.personalInfo?.idNumber || ''
-            })}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
+          {!isCreating && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit('personalInfo', {
+                firstName: patient.personalInfo?.firstName || '',
+                lastName: patient.personalInfo?.lastName || '',
+                dateOfBirth: patient.personalInfo?.dateOfBirth || '',
+                gender: patient.personalInfo?.gender || '',
+                maritalStatus: patient.personalInfo?.maritalStatus || '',
+                occupation: patient.personalInfo?.occupation || '',
+                idType: patient.personalInfo?.idType || '',
+                idNumber: patient.personalInfo?.idNumber || ''
+              })}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          )}
         </div>
         <div className="px-1">
-          {editingSection === 'personalInfo' ? (
+          {(editingSection === 'personalInfo' || isCreating) ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Nombre:</span>
-                  <Input
-                    id="firstName"
-                    value={editData.firstName ?? ''}
-                    onChange={(e) => setEditData({...editData, firstName: e.target.value})}
-                    className="h-9 text-sm max-w-[50%] text-left"
-                    placeholder="Introduce el nombre"
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Nombre<RequiredIndicator />
+                    </span>
+                    <Input
+                      id="firstName"
+                      value={isCreating ? (patient.personalInfo?.firstName || '') : (editData.firstName ?? '')}
+                      onChange={(e) => {
+                        if (isCreating) {
+                          onEdit('personalInfo', { firstName: e.target.value });
+                        } else {
+                          setEditData({...editData, firstName: e.target.value});
+                        }
+                      }}
+                      className={`h-9 text-sm max-w-[50%] text-left ${
+                        showValidation && validationErrors.firstName ? 'border-red-500' : ''
+                      }`}
+                      placeholder="Introduce el nombre"
+                    />
+                  </div>
+                  <FieldError fieldName="firstName" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Apellidos:</span>
-                  <Input
-                    id="lastName"
-                    value={editData.lastName ?? ''}
-                    onChange={(e) => setEditData({...editData, lastName: e.target.value})}
-                    className="h-9 text-sm max-w-[50%] text-left"
-                    placeholder="Introduce los apellidos"
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Apellidos<RequiredIndicator />
+                    </span>
+                    <Input
+                      id="lastName"
+                      value={isCreating ? (patient.personalInfo?.lastName || '') : (editData.lastName ?? '')}
+                      onChange={(e) => {
+                        if (isCreating) {
+                          onEdit('personalInfo', { lastName: e.target.value });
+                        } else {
+                          setEditData({...editData, lastName: e.target.value});
+                        }
+                      }}
+                      className={`h-9 text-sm max-w-[50%] text-left ${
+                        showValidation && validationErrors.lastName ? 'border-red-500' : ''
+                      }`}
+                      placeholder="Introduce los apellidos"
+                    />
+                  </div>
+                  <FieldError fieldName="lastName" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Nacimiento:</span>
-                  <DatePicker
-                    date={editData.dateOfBirth ? new Date(editData.dateOfBirth) : undefined}
-                    onDateChange={(date) => setEditData({...editData, dateOfBirth: date})}
-                    placeholder="Introduce la fecha de nacimiento"
-                    className="h-9 text-sm w-[140px]"
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Nacimiento<RequiredIndicator />
+                    </span>
+                    <DatePicker
+                      date={isCreating ? 
+                        (patient.personalInfo?.dateOfBirth ? new Date(patient.personalInfo.dateOfBirth) : undefined) :
+                        (editData.dateOfBirth ? new Date(editData.dateOfBirth) : undefined)
+                      }
+                      onDateChange={(date) => {
+                        if (isCreating) {
+                          onEdit('personalInfo', { dateOfBirth: date });
+                        } else {
+                          setEditData({...editData, dateOfBirth: date});
+                        }
+                      }}
+                      placeholder="Introduce la fecha de nacimiento"
+                      className={`h-9 text-sm w-[140px] ${
+                        showValidation && validationErrors.dateOfBirth ? 'border-red-500' : ''
+                      }`}
+                    />
+                  </div>
+                  <FieldError fieldName="dateOfBirth" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Género:</span>
-                  <Select value={editData.gender ?? ''} onValueChange={(value) => setEditData({...editData, gender: value})}>
-                    <SelectTrigger className="h-9 text-sm max-w-[50%]">
-                      <SelectValue placeholder="Introduce el género" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Masculino</SelectItem>
-                      <SelectItem value="female">Femenino</SelectItem>
-                      <SelectItem value="non-binary">No binario</SelectItem>
-                      <SelectItem value="other">Otro</SelectItem>
-                      <SelectItem value="prefer-not-to-say">Prefiere no decir</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Género<RequiredIndicator />
+                    </span>
+                    <Select 
+                      value={isCreating ? (patient.personalInfo?.gender || '') : (editData.gender ?? '')} 
+                      onValueChange={(value) => {
+                        if (isCreating) {
+                          onEdit('personalInfo', { gender: value });
+                        } else {
+                          setEditData({...editData, gender: value});
+                        }
+                      }}
+                    >
+                      <SelectTrigger className={`h-9 text-sm max-w-[50%] ${
+                        showValidation && validationErrors.gender ? 'border-red-500' : ''
+                      }`}>
+                        <SelectValue placeholder="Introduce el género" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Masculino</SelectItem>
+                        <SelectItem value="female">Femenino</SelectItem>
+                        <SelectItem value="non-binary">No binario</SelectItem>
+                        <SelectItem value="other">Otro</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefiere no decir</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <FieldError fieldName="gender" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -242,46 +323,74 @@ export function PersonalInfoSection({
             <Phone className="h-4 w-4 text-primary" />
             Información de Contacto
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit('contactInfo', {
-              email: patient.contactInfo?.email || '',
-              phone: patient.contactInfo?.phone || '',
-              street: patient.contactInfo?.address?.street || '',
-              city: patient.contactInfo?.address?.city || '',
-              postalCode: patient.contactInfo?.address?.postalCode || '',
-              country: patient.contactInfo?.address?.country || ''
-            })}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
+          {!isCreating && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit('contactInfo', {
+                email: patient.contactInfo?.email || '',
+                phone: patient.contactInfo?.phone || '',
+                street: patient.contactInfo?.address?.street || '',
+                city: patient.contactInfo?.address?.city || '',
+                postalCode: patient.contactInfo?.address?.postalCode || '',
+                country: patient.contactInfo?.address?.country || ''
+              })}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          )}
         </div>
         <div className="px-1">
-          {editingSection === 'contactInfo' ? (
+          {(editingSection === 'contactInfo' || isCreating) ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Email:</span>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={editData.email ?? ''}
-                    onChange={(e) => setEditData({...editData, email: e.target.value})}
-                    className="h-9 text-sm max-w-[50%] text-left"
-                    placeholder="Introduce el email"
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Email<RequiredIndicator />
+                    </span>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={isCreating ? (patient.contactInfo?.email || '') : (editData.email ?? '')}
+                      onChange={(e) => {
+                        if (isCreating) {
+                          onEdit('contactInfo', { email: e.target.value });
+                        } else {
+                          setEditData({...editData, email: e.target.value});
+                        }
+                      }}
+                      className={`h-9 text-sm max-w-[50%] text-left ${
+                        showValidation && validationErrors.email ? 'border-red-500' : ''
+                      }`}
+                      placeholder="Introduce el email"
+                    />
+                  </div>
+                  <FieldError fieldName="email" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Teléfono:</span>
-                  <Input
-                    id="phone"
-                    value={editData.phone ?? ''}
-                    onChange={(e) => setEditData({...editData, phone: e.target.value})}
-                    className="h-9 text-sm max-w-[50%] text-left"
-                    placeholder="Introduce el teléfono"
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Teléfono<RequiredIndicator />
+                    </span>
+                    <Input
+                      id="phone"
+                      value={isCreating ? (patient.contactInfo?.phone || '') : (editData.phone ?? '')}
+                      onChange={(e) => {
+                        if (isCreating) {
+                          onEdit('contactInfo', { phone: e.target.value });
+                        } else {
+                          setEditData({...editData, phone: e.target.value});
+                        }
+                      }}
+                      className={`h-9 text-sm max-w-[50%] text-left ${
+                        showValidation && validationErrors.phone ? 'border-red-500' : ''
+                      }`}
+                      placeholder="Introduce el teléfono"
+                    />
+                  </div>
+                  <FieldError fieldName="phone" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -289,8 +398,14 @@ export function PersonalInfoSection({
                   <span className="text-muted-foreground">Dirección:</span>
                   <Input
                     id="street"
-                    value={editData.street ?? ''}
-                    onChange={(e) => setEditData({...editData, street: e.target.value})}
+                    value={isCreating ? (patient.contactInfo?.address?.street || '') : (editData.street ?? '')}
+                    onChange={(e) => {
+                      if (isCreating) {
+                        onEdit('contactInfo', { street: e.target.value });
+                      } else {
+                        setEditData({...editData, street: e.target.value});
+                      }
+                    }}
                     className="h-9 text-sm max-w-[50%] text-left"
                     placeholder="Introduce la dirección"
                   />
