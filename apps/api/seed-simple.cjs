@@ -809,10 +809,8 @@ async function seedData() {
             ]
           }
         },
-        billing: {
-          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'cash',
-          preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
-          stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
+        payment: {
+          preferredMethod: Math.random() > 0.2 ? 'card' : 'cash',
           billingNotes: ''
         },
         preferences: {
@@ -861,7 +859,7 @@ async function seedData() {
           },
           dataSharing: {
             healthcareProfessionals: true,
-            insuranceProviders: false,
+            thirdPartyProviders: false,
             emergencyContacts: true,
             researchPurposes: Math.random() > 0.7,
             consentDate: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000)
