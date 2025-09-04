@@ -6,7 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
-import { Edit, Save, X, CreditCard, Tag, BarChart3, FileText, Clock, Plus, Trash2, Shield } from 'lucide-react';
+import { 
+  Edit, Save, X, CreditCard, Tag, BarChart3, FileText, Clock, Plus, Trash2, Shield, 
+  ExternalLink, Eye, Users, Calendar, AlertTriangle, Database, Activity, Settings,
+  FileCheck, UserCheck, Lock, History, Download, Upload
+} from 'lucide-react';
 
 interface AdministrativeSectionProps {
   patient: any;
@@ -27,14 +31,38 @@ export function AdministrativeSection({
   onCancel,
   setEditData
 }: AdministrativeSectionProps) {
-
   const formatDate = (date: string | Date) => {
-    if (!date) return 'No especificado';
     return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active': return 'default';
+      case 'inactive': return 'secondary';
+      case 'discharged': return 'outline';
+      case 'transferred': return 'secondary';
+      case 'deceased': return 'destructive';
+      case 'deleted': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      active: 'Activo',
+      inactive: 'Inactivo',
+      discharged: 'Alta médica',
+      transferred: 'Transferido',
+      deceased: 'Fallecido',
+      deleted: 'Eliminado'
+    };
+    return labels[status as keyof typeof labels] || status;
   };
 
   const addTag = () => {
@@ -55,262 +83,255 @@ export function AdministrativeSection({
 
   return (
     <div className="space-y-4">
-      {/* Facturación */}
+      {/* Acciones Administrativas */}
       <div className="pb-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary" />
-            Información de Facturación
+            <Settings className="h-4 w-4 text-primary" />
+            Acciones Administrativas
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit('billing', patient.billing || {})}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
         </div>
         <div className="px-1">
-          {editingSection === 'billing' ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Método de pago</Label>
-                  <Select 
-                    value={editData.preferredPaymentMethod || 'cash'} 
-                    onValueChange={(value) => setEditData({...editData, preferredPaymentMethod: value})}
-                  >
-                    <SelectTrigger className="h-8 mt-1 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Efectivo</SelectItem>
-                      <SelectItem value="card">Tarjeta</SelectItem>
-                      <SelectItem value="transfer">Transferencia</SelectItem>
-                      <SelectItem value="stripe">Stripe</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">ID Stripe</Label>
-                  <Input
-                    value={editData.stripeCustomerId || ''}
-                    onChange={(e) => setEditData({...editData, stripeCustomerId: e.target.value})}
-                    placeholder="cus_..."
-                    className="h-8 mt-1 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs font-medium text-foreground">Notas facturación</Label>
-                <RichTextEditor
-                  content={editData.billingNotes || ''}
-                  onChange={(content) => setEditData({...editData, billingNotes: content})}
-                  placeholder="Notas sobre facturación..."
-                  className="mt-1 min-h-[100px]"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('billing')} size="sm" className="h-7 text-xs">
-                  <Save className="h-3 w-3 mr-1" />
-                  Guardar
-                </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
-                  <X className="h-3 w-3 mr-1" />
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Método de pago:</span>
-                <span className="text-foreground font-medium">
-                  {patient.billing?.preferredPaymentMethod === 'cash' ? 'Efectivo' :
-                   patient.billing?.preferredPaymentMethod === 'card' ? 'Tarjeta' :
-                   patient.billing?.preferredPaymentMethod === 'transfer' ? 'Transferencia' :
-                   patient.billing?.preferredPaymentMethod === 'stripe' ? 'Stripe' : 'Efectivo'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">ID Stripe:</span>
-                <span className="text-foreground font-medium">{patient.billing?.stripeCustomerId || 'No configurado'}</span>
-              </div>
-              {patient.billing?.billingNotes && (
-                <div className="col-span-2">
-                  <span className="text-xs font-medium text-muted-foreground">Notas:</span>
-                  <div 
-                    className="text-sm text-foreground prose prose-sm max-w-none mt-1"
-                    dangerouslySetInnerHTML={{ __html: patient.billing.billingNotes }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button variant="outline" size="sm" className="justify-start h-8 text-xs">
+              <History className="h-3 w-3 mr-2" />
+              Ver Logs
+              <ExternalLink className="h-3 w-3 ml-auto" />
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start h-8 text-xs">
+              <Eye className="h-3 w-3 mr-2" />
+              Auditoría
+              <ExternalLink className="h-3 w-3 ml-auto" />
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start h-8 text-xs">
+              <Download className="h-3 w-3 mr-2" />
+              Exportar RGPD
+              <ExternalLink className="h-3 w-3 ml-auto" />
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start h-8 text-xs">
+              <Database className="h-3 w-3 mr-2" />
+              Backup Datos
+              <ExternalLink className="h-3 w-3 ml-auto" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Etiquetas */}
+      {/* Estado del Sistema */}
       <div className="pb-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Tag className="h-4 w-4 text-primary" />
-            Etiquetas
+            <Activity className="h-4 w-4 text-primary" />
+            Estado del Sistema
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit('tags', { tags: patient.tags || [] })}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
         </div>
         <div className="px-1">
-          {editingSection === 'tags' ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-foreground">Etiquetas del paciente</Label>
-                <Button onClick={addTag} size="sm" variant="outline" className="h-7 text-xs">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Agregar
-                </Button>
-              </div>
-              
-              <div className="space-y-2">
-                {(editData.tags || []).map((tag: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 p-2 border rounded-lg">
-                    <div className="flex-1 grid grid-cols-3 gap-2">
-                      <Input
-                        value={tag.name || ''}
-                        onChange={(e) => updateTag(index, 'name', e.target.value)}
-                        placeholder="Nombre"
-                        className="h-7 text-xs"
-                      />
-                      <Input
-                        type="color"
-                        value={tag.color || '#3b82f6'}
-                        onChange={(e) => updateTag(index, 'color', e.target.value)}
-                        className="h-7 w-12"
-                      />
-                      <Select 
-                        value={tag.category || 'general'} 
-                        onValueChange={(value) => updateTag(index, 'category', value)}
-                      >
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="general">General</SelectItem>
-                          <SelectItem value="clinical">Clínico</SelectItem>
-                          <SelectItem value="administrative">Admin</SelectItem>
-                          <SelectItem value="priority">Prioridad</SelectItem>
-                          <SelectItem value="risk">Riesgo</SelectItem>
-                        </SelectContent>
-                      </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Estado:</span>
+              <Badge variant={getStatusBadgeVariant(patient.status)} className="text-xs">
+                {getStatusLabel(patient.status)}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Versión:</span>
+              <span className="text-foreground font-mono text-xs">v{patient.version || 1}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Creado:</span>
+              <span className="text-foreground font-medium">{formatDate(patient.createdAt)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Actualizado:</span>
+              <span className="text-foreground font-medium">{formatDate(patient.updatedAt)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Creado por:</span>
+              <span className="text-foreground text-xs">{patient.createdBy?.firstName} {patient.createdBy?.lastName}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Modificado por:</span>
+              <span className="text-foreground text-xs">{patient.lastModifiedBy?.firstName} {patient.lastModifiedBy?.lastName}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RGPD y Cumplimiento */}
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            RGPD y Cumplimiento
+          </h3>
+        </div>
+        <div className="px-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Consentimiento RGPD:</span>
+              <Badge variant={patient.gdprConsent?.dataProcessing?.consented ? 'default' : 'destructive'} className="text-xs">
+                {patient.gdprConsent?.dataProcessing?.consented ? 'Otorgado' : 'Pendiente'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Fecha consentimiento:</span>
+              <span className="text-foreground text-xs">{patient.gdprConsent?.dataProcessing?.consentDate ? formatDate(patient.gdprConsent.dataProcessing.consentDate) : 'N/A'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Profesionales sanitarios:</span>
+              <Badge variant={patient.gdprConsent?.dataSharing?.healthcareProfessionals ? 'default' : 'secondary'} className="text-xs">
+                {patient.gdprConsent?.dataSharing?.healthcareProfessionals ? 'Autorizado' : 'No autorizado'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Marketing:</span>
+              <Badge variant={patient.gdprConsent?.marketingCommunications?.consented ? 'default' : 'secondary'} className="text-xs">
+                {patient.gdprConsent?.marketingCommunications?.consented ? 'Autorizado' : 'No autorizado'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Contactos emergencia:</span>
+              <Badge variant={patient.gdprConsent?.dataSharing?.emergencyContacts ? 'default' : 'secondary'} className="text-xs">
+                {patient.gdprConsent?.dataSharing?.emergencyContacts ? 'Autorizado' : 'No autorizado'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Investigación:</span>
+              <Badge variant={patient.gdprConsent?.dataSharing?.researchPurposes ? 'default' : 'secondary'} className="text-xs">
+                {patient.gdprConsent?.dataSharing?.researchPurposes ? 'Autorizado' : 'No autorizado'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Documentos de Consentimiento */}
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FileCheck className="h-4 w-4 text-primary" />
+            Documentos de Consentimiento
+          </h3>
+        </div>
+        <div className="px-1">
+          {patient.signedConsentDocuments?.length > 0 ? (
+            <div className="space-y-2">
+              {patient.signedConsentDocuments.map((doc: any, index: number) => (
+                <div key={index} className="p-2 border rounded">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {doc.documentType === 'informed_consent' ? 'Consentimiento Informado' :
+                         doc.documentType === 'privacy_policy' ? 'Política de Privacidad' :
+                         doc.documentType === 'data_processing' ? 'Protección de Datos' :
+                         doc.documentType === 'telehealth_consent' ? 'Telesalud' :
+                         doc.documentTitle}
+                      </Badge>
+                      <Badge variant={doc.isActive ? 'default' : 'secondary'} className="text-xs">
+                        {doc.isActive ? 'Activo' : 'Inactivo'}
+                      </Badge>
                     </div>
                     <Button
-                      onClick={() => removeTag(index)}
-                      size="sm"
                       variant="ghost"
-                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        // Generar enlace de descarga falso por ahora
+                        const downloadUrl = `/api/files/download/${doc.documentId}?token=fake_token_${Date.now()}`;
+                        window.open(downloadUrl, '_blank');
+                      }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Download className="h-3 w-3" />
                     </Button>
                   </div>
-                ))}
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button onClick={() => onSave('tags')} size="sm" className="h-7 text-xs">
-                  <Save className="h-3 w-3 mr-1" />
-                  Guardar
-                </Button>
-                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
-                  <X className="h-3 w-3 mr-1" />
-                  Cancelar
-                </Button>
-              </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span>Firmado: {doc.signedDate && new Date(doc.signedDate).toLocaleDateString('es-ES')}</span>
+                      <span>Versión: {doc.documentVersion}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Método: {doc.signatureMethod === 'digital' ? 'Digital' : doc.signatureMethod}</span>
+                      {doc.expirationDate && (
+                        <span>Expira: {new Date(doc.expirationDate).toLocaleDateString('es-ES')}</span>
+                      )}
+                    </div>
+                    {doc.notes && (
+                      <div className="text-xs text-foreground mt-1">
+                        {doc.notes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1">
-              {patient.tags?.length > 0 ? patient.tags.map((tag: any, index: number) => (
-                <Badge 
-                  key={index} 
-                  variant="secondary" 
-                  className="text-xs"
-                  style={{ backgroundColor: tag.color + '20', color: tag.color, borderColor: tag.color }}
-                >
-                  {tag.name}
-                </Badge>
-              )) : (
-                <>
-                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#3b82f620', color: '#3b82f6', borderColor: '#3b82f6' }}>Prioritario</Badge>
-                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#10b98120', color: '#10b981', borderColor: '#10b981' }}>Activo</Badge>
-                  <Badge variant="secondary" className="text-xs" style={{ backgroundColor: '#f59e0b20', color: '#f59e0b', borderColor: '#f59e0b' }}>Seguimiento</Badge>
-                </>
-              )}
+            <div className="space-y-2">
+              <div className="p-2 border rounded">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">Consentimiento Informado</Badge>
+                    <Badge variant="default" className="text-xs">Activo</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      const downloadUrl = `/api/files/download/consent_informed_${patient.id}?token=demo_token_${Date.now()}`;
+                      window.open(downloadUrl, '_blank');
+                    }}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex justify-between">
+                    <span>Firmado: {new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES')}</span>
+                    <span>Versión: 2.1</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Método: Digital</span>
+                    <span>Expira: {new Date(Date.now() + 350 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES')}</span>
+                  </div>
+                  <div className="text-xs text-foreground mt-1">
+                    Consentimiento firmado durante la primera consulta
+                  </div>
+                </div>
+              </div>
+              <div className="p-2 border rounded">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">Protección de Datos</Badge>
+                    <Badge variant="default" className="text-xs">Activo</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      const downloadUrl = `/api/files/download/gdpr_consent_${patient.id}?token=demo_token_${Date.now()}`;
+                      window.open(downloadUrl, '_blank');
+                    }}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex justify-between">
+                    <span>Firmado: {new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES')}</span>
+                    <span>Versión: 1.3</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Método: Digital</span>
+                    <span>Expira: {new Date(Date.now() + 730 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES')}</span>
+                  </div>
+                  <div className="text-xs text-foreground mt-1">
+                    Aceptación de política de privacidad actualizada GDPR
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Estadísticas */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            Estadísticas
-          </h3>
-        </div>
-        <div className="px-1">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="text-center">
-              <div className="text-sm font-bold text-blue-600">
-                {patient.statistics?.totalAppointments || 12}
-              </div>
-              <div className="text-xs text-muted-foreground">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-bold text-green-600">
-                {patient.statistics?.completedAppointments || 8}
-              </div>
-              <div className="text-xs text-muted-foreground">Completadas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-bold text-red-600">
-                {patient.statistics?.cancelledAppointments || 2}
-              </div>
-              <div className="text-xs text-muted-foreground">Canceladas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-bold text-orange-600">
-                {patient.statistics?.noShowAppointments || 1}
-              </div>
-              <div className="text-xs text-muted-foreground">No Show</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-bold text-purple-600">
-                €{patient.statistics?.totalPaidAmount || 480}
-              </div>
-              <div className="text-xs text-muted-foreground">Pagado</div>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t">
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-muted-foreground">Primera cita:</span>
-                <span className="ml-2 text-foreground">{formatDate(patient.statistics?.firstAppointment) || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Última cita:</span>
-                <span className="ml-2 text-foreground">{formatDate(patient.statistics?.lastAppointment) || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -473,95 +494,6 @@ export function AdministrativeSection({
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Auditoría */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            Información de Auditoría
-          </h3>
-        </div>
-        <div className="px-1">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Creado:</span>
-              <span className="text-foreground font-medium">{formatDate(patient.createdAt)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Actualizado:</span>
-              <span className="text-foreground font-medium">{formatDate(patient.updatedAt)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Estado:</span>
-              <Badge variant={patient.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                {patient.status === 'active' ? 'Activo' : 
-                 patient.status === 'inactive' ? 'Inactivo' : 
-                 patient.status === 'archived' ? 'Archivado' : patient.status || 'Activo'}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">ID Sistema:</span>
-              <span className="text-foreground font-mono text-xs">{patient.id?.toString().toUpperCase() || 'PAT-2024-001'}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Versión:</span>
-              <span className="text-foreground font-medium">{patient.__v !== undefined ? `v${patient.__v}` : 'v1'}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Sincronización:</span>
-              <span className="text-foreground font-medium">{formatDate(patient.updatedAt)}</span>
-            </div>
-            {patient.relationships?.length > 0 && (
-              <div>
-                <span className="text-muted-foreground">Relaciones:</span>
-                <div className="mt-1">
-                  {patient.relationships.map((rel: any, index: number) => (
-                    <Badge key={index} variant="outline" className="mr-1">
-                      {rel.type}: {rel.relatedPatientId}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {patient.referral && (
-              <div className="space-y-1">
-                <div>
-                  <span className="text-muted-foreground">Fuente de referencia:</span>
-                  <span className="ml-2 text-foreground capitalize">{patient.referral.source}</span>
-                </div>
-                {patient.referral.referringPerson && (
-                  <div>
-                    <span className="text-muted-foreground">Referido por:</span>
-                    <span className="ml-2 text-foreground">{patient.referral.referringPerson}</span>
-                  </div>
-                )}
-                {patient.referral.referringPhysician?.name && (
-                  <div>
-                    <span className="text-muted-foreground">Médico referente:</span>
-                    <span className="ml-2 text-foreground">{patient.referral.referringPhysician.name}</span>
-                    {patient.referral.referringPhysician.specialty && (
-                      <span className="text-muted-foreground"> ({patient.referral.referringPhysician.specialty})</span>
-                    )}
-                  </div>
-                )}
-                {patient.referral.referralReason && (
-                  <div>
-                    <span className="text-muted-foreground">Motivo:</span>
-                    <span className="ml-2 text-foreground">{patient.referral.referralReason}</span>
-                  </div>
-                )}
-                {patient.referral.referralDate && (
-                  <div>
-                    <span className="text-muted-foreground">Fecha de referencia:</span>
-                    <span className="ml-2 text-foreground">{formatDate(patient.referral.referralDate)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

@@ -848,26 +848,35 @@ async function seedData() {
             consented: true,
             consentDate: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000),
             consentMethod: 'digital',
-            consentVersion: '1.0',
+            consentVersion: '2.1',
             witnessedBy: professionalId,
-            notes: 'Consentimiento registrado durante el proceso de registro'
+            notes: 'Consentimiento registrado durante el proceso de registro inicial'
           },
           marketingCommunications: {
             consented: Math.random() > 0.4,
             consentDate: Math.random() > 0.4 ? new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000) : undefined,
+            withdrawnDate: Math.random() > 0.8 ? new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000) : undefined,
             method: 'digital'
           },
           dataSharing: {
             healthcareProfessionals: true,
-            thirdPartyProviders: false,
             emergencyContacts: true,
             researchPurposes: Math.random() > 0.7,
             consentDate: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000)
           },
           rightToErasure: {
-            requested: false
+            requested: false,
+            requestDate: undefined,
+            processedDate: undefined,
+            processedBy: undefined,
+            retentionReason: undefined,
+            notes: undefined
           },
-          dataPortability: {}
+          dataPortability: {
+            lastExportDate: Math.random() > 0.9 ? new Date(Date.now() - Math.floor(Math.random() * 180) * 24 * 60 * 60 * 1000) : undefined,
+            exportFormat: Math.random() > 0.9 ? 'JSON' : undefined,
+            exportedBy: Math.random() > 0.9 ? professionalId : undefined
+          }
         },
         
         // Signed Consent Documents (Global/Shared)
@@ -878,7 +887,9 @@ async function seedData() {
             documentTitle: 'Consentimiento Informado para Tratamiento Psicológico',
             signedDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000),
             signedBy: professionalId,
-            witnessedBy: Math.random() > 0.5 ? adminUser._id : undefined,
+            createdBy: professionalId,
+            lastModifiedBy: Math.random() > 0.3 ? professionalId : adminUser._id,
+            version: Math.floor(Math.random() * 3) + 1,
             signatureMethod: 'digital',
             documentVersion: '2.1',
             isActive: true,
@@ -950,8 +961,10 @@ async function seedData() {
           averageSessionRating: 0
         },
         createdBy: adminUser._id,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        lastModifiedBy: Math.random() > 0.5 ? adminUser._id : professionalId,
+        version: Math.floor(Math.random() * 3) + 1,
+        createdAt: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000)
       });
       
       await additionalPatient.save();
