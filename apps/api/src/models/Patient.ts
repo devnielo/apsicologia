@@ -49,8 +49,9 @@ export interface IPatientDocument extends Document {
   
   // Clinical Information
   clinicalInfo: {
-    // Assigned professionals
-    primaryProfessional?: mongoose.Types.ObjectId;
+    // Primary professional (main responsible professional)
+    primaryProfessional: mongoose.Types.ObjectId;
+    // Assigned professionals (multiple professionals can be assigned simultaneously)
     assignedProfessionals: mongoose.Types.ObjectId[];
     
     // Medical history
@@ -104,21 +105,6 @@ export interface IPatientDocument extends Document {
     };
   };
   
-  // Episodes and treatment cycles
-  episodes: {
-    episodeId: string;
-    title: string;
-    description?: string;
-    startDate: Date;
-    endDate?: Date;
-    status: 'active' | 'completed' | 'on-hold' | 'cancelled';
-    primaryProfessional: mongoose.Types.ObjectId;
-    treatmentType: string;
-    goals: string[];
-    outcome?: string;
-    notes?: string;
-    appointmentIds: mongoose.Types.ObjectId[];
-  }[];
   
   // Payment and billing configuration (ESTRUCTURA CORREGIDA - Coincide con el modelo Patient.ts backend)
   billing: {
@@ -147,7 +133,6 @@ export interface IPatientDocument extends Document {
         startTime: string; // HH:mm format
         endTime: string;
       }[];
-      preferredProfessionals: mongoose.Types.ObjectId[];
       sessionFormat: 'in-person' | 'video' | 'phone' | 'any';
       sessionDuration: number; // minutes
       bufferBetweenSessions?: number; // minutes
@@ -297,8 +282,6 @@ export interface IPatientDocument extends Document {
   // Instance methods
   calculateAge(): number;
   getFullName(): string;
-  addEpisode(episode: any): Promise<this>;
-  closeEpisode(episodeId: string, outcome?: string): Promise<this>;
   addTag(tag: string, category: string, addedBy: mongoose.Types.ObjectId): Promise<this>;
   removeTag(tagName: string): Promise<this>;
   exportData(): Promise<any>;
@@ -696,15 +679,8 @@ const PatientSchema = new Schema<IPatientDocument>(
     
     // Clinical Information
     clinicalInfo: {
-      primaryProfessional: {
-        type: Schema.Types.ObjectId,
-        ref: 'Professional',
-        index: true,
-      },
-      assignedProfessionals: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Professional',
-      }],
+      primaryProfessional: { type: Schema.Types.ObjectId, ref: 'Professional' },
+      assignedProfessionals: [{ type: Schema.Types.ObjectId, ref: 'Professional' }],
       medicalHistory: {
         conditions: [{
           type: String,
@@ -841,8 +817,6 @@ const PatientSchema = new Schema<IPatientDocument>(
       },
     },
     
-    // Episodes
-    episodes: [EpisodeSchema],
     
     // Payment and billing configuration
     billing: {
@@ -915,10 +889,6 @@ const PatientSchema = new Schema<IPatientDocument>(
         preferredProfessionals: [{
           type: Schema.Types.ObjectId,
           ref: 'Professional'
-        }],
-        preferredServices: [{
-          type: Schema.Types.ObjectId,
-          ref: 'Service'
         }],
         cancellationNotice: {
           type: Number,
@@ -1244,7 +1214,7 @@ PatientSchema.statics.findByProfessional = function(professionalId: string, stat
   const query: any = {
     $or: [
       { 'clinicalInfo.primaryProfessional': professionalId },
-      { 'clinicalInfo.assignedProfessionals': professionalId },
+      { 'clinicalInfo.assignedProfessionals': professionalId }
     ],
     deletedAt: null,
   };
@@ -1255,6 +1225,18 @@ PatientSchema.statics.findByProfessional = function(professionalId: string, stat
   
   return this.find(query).sort({ 'personalInfo.fullName': 1 });
 };
+
+PatientSchema.statics.findByAssignedProfessional = function(professionalId: string, status?: string) {
+  const query: any = {
+    'clinicalInfo.assignedProfessionals': professionalId,
+    deletedAt: null,
+  };
+  if (status) {
+    query.status = status;
+  }
+  return this.find(query).sort({ 'personalInfo.fullName': 1 });
+};
+
 
 PatientSchema.statics.searchPatients = function(searchTerm: string, limit?: number) {
   const regex = new RegExp(searchTerm, 'i');
@@ -1305,33 +1287,6 @@ PatientSchema.methods.getFullName = function(): string {
   return `${this.personalInfo.firstName} ${this.personalInfo.lastName}`.trim();
 };
 
-PatientSchema.methods.addEpisode = function(episode: any) {
-  // Generate unique episode ID
-  const episodeId = `EP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  const newEpisode = {
-    episodeId,
-    ...episode,
-    startDate: episode.startDate || new Date(),
-    status: 'active',
-    appointmentIds: [],
-  };
-  
-  this.episodes.push(newEpisode);
-  return this.save();
-};
-
-PatientSchema.methods.closeEpisode = function(episodeId: string, outcome?: string) {
-  const episode = this.episodes.find((ep: any) => ep.episodeId === episodeId);
-  if (episode) {
-    episode.status = 'completed';
-    episode.endDate = new Date();
-    if (outcome) {
-      episode.outcome = outcome;
-    }
-  }
-  return this.save();
-};
 
 PatientSchema.methods.addTag = function(tag: string, category: string, addedBy: mongoose.Types.ObjectId) {
   // Check if tag already exists

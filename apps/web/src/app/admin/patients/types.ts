@@ -173,6 +173,7 @@ export interface PatientFormData {
   };
   clinicalInfo?: {
     primaryProfessional?: string;
+    assignedProfessionals?: string[];
     referredBy?: string;
     referralReason?: string;
     presentingConcerns?: string[];

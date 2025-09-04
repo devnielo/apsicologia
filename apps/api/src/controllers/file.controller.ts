@@ -19,7 +19,7 @@ import sharp from 'sharp';
 const minioClient = new MinioClient({
   endPoint: config.MINIO_ENDPOINT || 'localhost',
   port: config.MINIO_PORT || 9000,
-  useSSL: config.MINIO_USE_SSL === true || config.MINIO_USE_SSL === 'true',
+  useSSL: config.MINIO_USE_SSL === 'true',
   accessKey: config.MINIO_ACCESS_KEY || 'minioadmin',
   secretKey: config.MINIO_SECRET_KEY || 'minioadmin',
 });
@@ -712,7 +712,7 @@ export class FileController {
 
       // Generate presigned URL (valid for 1 hour)
       const presignedUrl = await minioClient.presignedGetObject(
-        file.bucketName,
+        file.bucketName || 'apsicologia-files',
         objectPath,
         60 * 60 // 1 hour expiry
       );
@@ -804,7 +804,7 @@ export class FileController {
         status: 'success',
         changes: Object.keys(updateData).map(field => ({
           field,
-          oldValue: originalData[field],
+          oldValue: (originalData as any)[field],
           newValue: file.get(field),
           changeType: 'update',
         })),
@@ -873,11 +873,11 @@ export class FileController {
       if (permanent === 'true' && authUser.role === 'admin') {
         // Permanent deletion - remove from MinIO and database
         try {
-          await minioClient.removeObject(file.bucketName, file.storagePath);
+          await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.storagePath);
           
           // Remove thumbnail and optimized versions
           if (file.mediaMetadata?.thumbnailPath) {
-            await minioClient.removeObject(file.bucketName, file.mediaMetadata.thumbnailPath);
+            await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.mediaMetadata.thumbnailPath);
           }
         } catch (minioError) {
           logger.error('MinIO file removal error:', minioError);
@@ -1097,10 +1097,10 @@ export class FileController {
         try {
           if (permanent) {
             // Permanent deletion
-            await minioClient.removeObject(file.bucketName, file.storagePath);
+            await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.storagePath);
             
             if (file.mediaMetadata?.thumbnailPath) {
-              await minioClient.removeObject(file.bucketName, file.mediaMetadata.thumbnailPath);
+              await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.mediaMetadata.thumbnailPath);
             }
 
             await File.findByIdAndDelete(file._id);

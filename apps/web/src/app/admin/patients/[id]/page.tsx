@@ -19,7 +19,6 @@ import { PersonalInfoSection } from './components/PersonalInfoSection';
 import ClinicalSection from './components/ClinicalSection';
 import PreferencesSection from './components/PreferencesSection';
 import { AdministrativeSection } from './components/AdministrativeSection';
-import { EpisodesSection } from './components/EpisodesSection';
 import { SessionsSection } from './components/SessionsSection';
 
 interface PatientDetailsPageProps {
@@ -54,7 +53,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     APPOINTMENTS: 'appointments',
     PORTAL: 'portal',
     PRIVACY: 'privacy',
-    EPISODES: 'episodes',
     BILLING: 'billing',
     TAGS: 'tags',
     ADMINISTRATIVE_NOTES: 'administrativeNotes'
@@ -170,6 +168,16 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           };
           break;
           
+        case 'professionals':
+          structuredData = {
+            clinicalInfo: {
+              ...cleanObjectIdReferences(patient.clinicalInfo || {}),
+              primaryProfessional: editData.primaryProfessional || null,
+              assignedProfessionals: editData.assignedProfessionals || []
+            }
+          };
+          break;
+
         case SECTION_NAMES.COMMUNICATION:
           structuredData = {
             contactInfo: {
@@ -223,11 +231,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           };
           break;
           
-        case SECTION_NAMES.EPISODES:
-          structuredData = {
-            episodes: editData.episodes || patient.episodes || []
-          };
-          break;
           
         case SECTION_NAMES.BILLING:
           structuredData = {
@@ -435,16 +438,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                     Preferences
                   </button>
                   <button
-                    onClick={() => setActiveTab('episodes')}
-                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
-                      activeTab === 'episodes'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                    }`}
-                  >
-                    Episodios
-                  </button>
-                  <button
                     onClick={() => setActiveTab('sessions')}
                     className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
                       activeTab === 'sessions'
@@ -493,18 +486,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
 
               <TabsContent value="preferences" className="mt-2">
                 <PreferencesSection
-                  patient={patient}
-                  editingSection={editingSection}
-                  editData={editData}
-                  onEdit={handleEdit}
-                  onSave={handleSave}
-                  onCancel={handleCancel}
-                  setEditData={setEditData}
-                />
-              </TabsContent>
-
-              <TabsContent value="episodes" className="mt-2">
-                <EpisodesSection
                   patient={patient}
                   editingSection={editingSection}
                   editData={editData}

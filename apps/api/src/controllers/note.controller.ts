@@ -303,8 +303,7 @@ export class NoteController {
           });
         }
 
-        const hasAccess = (patient.clinicalInfo.assignedProfessionals?.includes(authUser.professionalId!) ?? false) ||
-                         (patient.clinicalInfo.primaryProfessional?.equals(authUser.professionalId!) ?? false);
+        const hasAccess = (patient.clinicalInfo.assignedProfessionals?.includes(authUser.professionalId!) ?? false);
         
         if (!hasAccess) {
           return res.status(403).json({

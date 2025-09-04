@@ -71,21 +71,29 @@ const genderConfig = {
 };
 
 // Helper functions
-const getProfessionalName = (professionalId: string | undefined): { firstName: string; fullName: string; avatar: string } => {
-  if (!professionalId) return { firstName: 'Sin asignar', fullName: 'Sin asignar', avatar: '' };
+const getProfessionalInfo = (professional: any): { firstName: string; fullName: string; avatar: string } => {
+  if (!professional) return { firstName: 'Sin asignar', fullName: 'Sin asignar', avatar: '' };
   
-  const lastChars = professionalId.slice(-4);
-  if (lastChars.includes('a') || lastChars.includes('e') || lastChars.includes('1')) {
-    return { firstName: 'María', fullName: 'Dr. María García López', avatar: 'MG' };
-  } else if (lastChars.includes('b') || lastChars.includes('2')) {
-    return { firstName: 'Carlos', fullName: 'Dr. Carlos Rodríguez Martín', avatar: 'CR' };
-  } else if (lastChars.includes('c') || lastChars.includes('3')) {
-    return { firstName: 'Elena', fullName: 'Dra. Elena Navarro Ruiz', avatar: 'EN' };
-  } else if (lastChars.includes('d') || lastChars.includes('4')) {
-    return { firstName: 'Roberto', fullName: 'Dr. Roberto Morales Vega', avatar: 'RM' };
-  } else {
-    return { firstName: 'Carmen', fullName: 'Dra. Carmen Jiménez Soto', avatar: 'CJ' };
+  // If professional is populated as an object, use its data
+  if (typeof professional === 'object' && professional.name) {
+    const name = professional.name;
+    const nameParts = name.split(' ');
+    
+    // Skip titles like "Dr.", "Dra." and get the actual first name
+    let firstName = nameParts[0];
+    if (firstName === 'Dr.' || firstName === 'Dra.') {
+      firstName = nameParts[1] || firstName;
+    }
+    
+    return { 
+      firstName, 
+      fullName: name, 
+      avatar: generateInitials(name) 
+    };
   }
+  
+  // If professional is just an ID string, return placeholder
+  return { firstName: 'Cargando...', fullName: 'Cargando...', avatar: '?' };
 };
 
 const formatDate = (date: Date | string | null | undefined) => {
@@ -254,12 +262,12 @@ export function usePatientColumns({ onDeletePatient }: UsePatientColumnsProps) {
       id: 'professional',
       header: 'Profesional',
       cell: ({ row }) => {
-        const professionalId = row.original.clinicalInfo?.primaryProfessional;
-        const professionalInfo = getProfessionalName(professionalId);
+        const primaryProfessional = row.original.clinicalInfo?.primaryProfessional;
+        const professionalInfo = getProfessionalInfo(primaryProfessional);
         
         return (
           <div className="space-y-1 min-w-[120px]">
-            {professionalId ? (
+            {primaryProfessional ? (
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6 ring-1 ring-primary/20">
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground font-semibold">

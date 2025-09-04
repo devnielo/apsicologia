@@ -5,6 +5,17 @@ import { authenticate } from '../middleware/auth.js';
 const router: Router = Router();
 
 /**
+ * @route   GET /api/v1/professionals/all
+ * @desc    Get all professionals (simple list for dropdowns)
+ * @access  Private (All authenticated users)
+ */
+router.get(
+  '/all',
+  authenticate,
+  ProfessionalController.getAllProfessionals
+);
+
+/**
  * @route   GET /api/v1/professionals
  * @desc    Get all professionals with pagination and filtering
  * @access  Private (Admin, Reception, Professional)

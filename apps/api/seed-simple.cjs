@@ -135,10 +135,10 @@ async function seedData() {
     
     // Drop indexes that might cause conflicts
     try {
-      await Patient.collection.dropIndex('episodes.episodeId_1');
-      console.log('🗑️ Dropped episodes.episodeId_1 index');
+      await Patient.collection.dropIndex('episodeId_1');
+      console.log('🗑️ Dropped episodeId_1 index');
     } catch (error) {
-      console.log('ℹ️ Index episodes.episodeId_1 does not exist or already dropped');
+      console.log('ℹ️ Index episodeId_1 does not exist or already dropped');
     }
 
     // Create professional 1
@@ -809,24 +809,6 @@ async function seedData() {
             ]
           }
         },
-        episodes: [
-          {
-            date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-            description: 'Paciente reporta episodio de ansiedad severa',
-            duration: '2 horas',
-            severity: 'severe',
-            impact: 'alta',
-            notes: 'Paciente requirió atención médica de emergencia'
-          },
-          ...(Math.random() > 0.7 ? [{
-            date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-            description: 'Paciente experimenta episodio de depresión',
-            duration: '3 días',
-            severity: 'moderate',
-            impact: 'media',
-            notes: 'Paciente requirió apoyo emocional de familiares y amigos'
-          }] : [])
-        ],
         billing: {
           paymentMethod: Math.random() > 0.2 ? 'stripe' : 'medicationscash',
           preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
@@ -850,7 +832,6 @@ async function seedData() {
               { day: 'thursday', startTime: '15:00', endTime: '18:00' },
               { day: 'friday', startTime: '09:00', endTime: '11:00' }
             ], Math.floor(Math.random() * 3) + 1),
-            preferredProfessionals: [professionalId],
             preferredServices: [], // Will be populated after services are created
             cancellationNotice: [24, 48, 72][Math.floor(Math.random() * 3)],
             waitingListOptIn: Math.random() > 0.4,

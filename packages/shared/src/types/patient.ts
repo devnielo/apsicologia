@@ -46,7 +46,7 @@ export interface IPatient extends ITimestamps, ISoftDelete {
   
   // Clinical Information
   clinicalInfo: {
-    primaryProfessional?: ObjectId;
+    primaryProfessional: ObjectId;
     assignedProfessionals: ObjectId[];
     medicalHistory: {
       conditions: string[];
@@ -162,7 +162,6 @@ export interface IPatient extends ITimestamps, ISoftDelete {
         endTime: string;
       }[];
       preferredProfessionals: ObjectId[];
-      preferredServices: ObjectId[];
       cancellationNotice: number;
       waitingListOptIn: boolean;
       notes?: string;

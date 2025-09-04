@@ -387,25 +387,17 @@ export class PatientController {
         }
       }
 
-      // Build sort
-      const sort: any = {};
-      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-      // Build query with optional population
+      // Build query
       let query = Patient.find(filter)
-        .sort(sort)
+        .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)
-        .limit(limitNum);
+        .limit(limitNum)
+        .populate('clinicalInfo.primaryProfessional', 'name specialties licenseNumber')
+        .populate('clinicalInfo.assignedProfessionals', 'name specialties');
 
-      // Add population based on include parameter
+      // Add additional population based on include parameter
       if (include) {
         const includeFields = include.split(',');
-        if (includeFields.includes('primaryProfessional')) {
-          query = query.populate('clinicalInfo.primaryProfessional', 'name specialties');
-        }
-        if (includeFields.includes('assignedProfessionals')) {
-          query = query.populate('clinicalInfo.assignedProfessionals', 'name specialties');
-        }
         if (includeFields.includes('userAccount')) {
           query = query.populate('userId', 'email lastLogin twoFactorEnabled');
         }
@@ -1069,8 +1061,9 @@ export class PatientController {
       }
 
       const patients = await searchResults
-        .select('personalInfo contactInfo clinicalInfo.primaryProfessional status')
+        .select('personalInfo contactInfo clinicalInfo.primaryProfessional clinicalInfo.assignedProfessionals status')
         .populate('clinicalInfo.primaryProfessional', 'name')
+        .populate('clinicalInfo.assignedProfessionals', 'name')
         .exec();
 
       res.status(200).json({
@@ -1111,7 +1104,6 @@ export class PatientController {
       // Check permissions for professionals
       if (authUser.role === 'professional') {
         const canAccess = 
-          authUser.professionalId?.toString() === patient.clinicalInfo.primaryProfessional?.toString() ||
           patient.clinicalInfo.assignedProfessionals.some((profId: any) => 
             profId.toString() === authUser.professionalId?.toString()
           );
@@ -1119,7 +1111,7 @@ export class PatientController {
         if (!canAccess) {
           return res.status(403).json({
             success: false,
-            message: 'Access denied: Cannot add tags to this patient',
+            message: 'Access denied: Cannot view this patient\'s statistics',
           });
         }
       }
@@ -1164,7 +1156,6 @@ export class PatientController {
       // Check permissions for professionals
       if (authUser.role === 'professional') {
         const canAccess = 
-          authUser.professionalId?.toString() === patient.clinicalInfo.primaryProfessional?.toString() ||
           patient.clinicalInfo.assignedProfessionals.some((profId: any) => 
             profId.toString() === authUser.professionalId?.toString()
           );
@@ -1172,7 +1163,7 @@ export class PatientController {
         if (!canAccess) {
           return res.status(403).json({
             success: false,
-            message: 'Access denied: Cannot remove tags from this patient',
+            message: 'Access denied: Cannot remove this patient\'s tag',
           });
         }
       }

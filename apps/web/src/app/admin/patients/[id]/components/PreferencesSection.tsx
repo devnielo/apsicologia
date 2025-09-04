@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Save, X, Plus, Trash2, FileText, Download, Eye, MessageCircle, Calendar, Monitor, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Edit, Save, X, Plus, Trash2, FileText, Download, Eye, MessageCircle, Calendar, Monitor, Shield, Users } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
 
 interface PreferencesSectionProps {
   patient: any;
@@ -31,6 +33,16 @@ export default function PreferencesSection({
   onCancel,
   setEditData
 }: PreferencesSectionProps) {
+  // Fetch all professionals for dropdowns
+  const { data: professionalsData } = useQuery({
+    queryKey: ['professionals', 'all'],
+    queryFn: async () => {
+      const response = await apiClient.get('/professionals');
+      return response.data.data;
+    }
+  });
+
+  const professionals = professionalsData || [];
   const formatDate = (date: string | Date) => {
     if (!date) return 'No especificado';
     return new Date(date).toLocaleDateString('es-ES', {
@@ -237,6 +249,160 @@ export default function PreferencesSection({
         </div>
       </div>
 
+      {/* Profesionales Asignados */}
+      <div className="pb-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            Profesionales Asignados
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit('professionals', {
+              primaryProfessional: patient.clinicalInfo?.primaryProfessional?.id || patient.clinicalInfo?.primaryProfessional?._id || patient.clinicalInfo?.primaryProfessional || '',
+              assignedProfessionals: patient.clinicalInfo?.assignedProfessionals?.map((prof: any) => 
+                typeof prof === 'object' ? (prof.id || prof._id) : prof
+              ) || []
+            })}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+        </div>
+        <div className="px-1">
+          {editingSection === 'professionals' ? (
+            <div className="space-y-4">
+              {/* Profesional Principal */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Profesional Principal</Label>
+                <Select
+                  value={editData?.primaryProfessional || 'none'}
+                  onValueChange={(value) => setEditData({ ...editData, primaryProfessional: value === 'none' ? '' : value })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Seleccionar profesional principal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin profesional principal</SelectItem>
+                    {professionals.map((professional: any) => (
+                      <SelectItem key={professional._id || professional.id} value={professional._id || professional.id}>
+                        {professional.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Profesionales Asignados */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Profesionales Asignados</Label>
+                <div className="space-y-2">
+                  {professionals.map((professional: any) => (
+                    <div key={professional._id || professional.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={professional._id || professional.id}
+                        checked={(editData?.assignedProfessionals || []).includes(professional._id || professional.id)}
+                        onCheckedChange={(checked) => {
+                          const currentProfessionals = editData?.assignedProfessionals || [];
+                          const professionalId = professional._id || professional.id;
+                          const newAssignedProfessionals = checked 
+                            ? [...currentProfessionals, professionalId]
+                            : currentProfessionals.filter((id: string) => id !== professionalId);
+                          
+                          setEditData({
+                            ...editData,
+                            assignedProfessionals: newAssignedProfessionals
+                          });
+                        }}
+                      />
+                      <Label htmlFor={professional._id || professional.id} className="text-sm">
+                        {professional.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => onSave('professionals')} size="sm" className="h-7 text-xs">
+                  <Save className="h-3 w-3 mr-1" />
+                  Guardar
+                </Button>
+                <Button onClick={onCancel} variant="outline" size="sm" className="h-7 text-xs">
+                  <X className="h-3 w-3 mr-1" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Show primaryProfessional first if it exists */}
+              {patient.clinicalInfo?.primaryProfessional && (
+                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        {patient.clinicalInfo.primaryProfessional.name}
+                      </span>
+                      <Badge variant="default" className="text-xs">
+                        Principal
+                      </Badge>
+                    </div>
+                    {patient.clinicalInfo.primaryProfessional.specialties && patient.clinicalInfo.primaryProfessional.specialties.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {patient.clinicalInfo.primaryProfessional.specialties.slice(0, 3).map((specialty: string, specIndex: number) => (
+                          <Badge key={specIndex} variant="outline" className="text-xs">
+                            {specialty}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Show assignedProfessionals */}
+              {patient.clinicalInfo?.assignedProfessionals && patient.clinicalInfo.assignedProfessionals.length > 0 ? (
+                <div className="space-y-2">
+                  {patient.clinicalInfo.assignedProfessionals.map((professional: any, index: number) => {
+                    // Skip if this is the same as primaryProfessional
+                    if (patient.clinicalInfo?.primaryProfessional && 
+                        professional.id === patient.clinicalInfo.primaryProfessional.id) {
+                      return null;
+                    }
+                    return (
+                      <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">
+                              {professional.name || `Profesional ${index + 1}`}
+                            </span>
+                          </div>
+                          {professional.specialties && professional.specialties.length > 0 && (
+                            <div className="flex gap-1 mt-1">
+                              {professional.specialties.slice(0, 3).map((specialty: string, specIndex: number) => (
+                                <Badge key={specIndex} variant="outline" className="text-xs">
+                                  {specialty}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !patient.clinicalInfo?.primaryProfessional && (
+                <div className="flex items-center justify-center p-4 border rounded-md bg-muted/30">
+                  <span className="text-sm text-muted-foreground">No hay profesionales asignados</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Citas */}
       <div className="pb-4 border-b border-border/30">
         <div className="flex items-center justify-between mb-3">
@@ -249,8 +415,6 @@ export default function PreferencesSection({
             size="sm"
             onClick={() => onEdit('appointments', {
               preferredTimes: patient.preferences?.appointmentPreferences?.preferredTimes || [],
-              preferredServices: patient.preferences?.appointmentPreferences?.preferredServices || [],
-              preferredProfessionals: patient.preferences?.appointmentPreferences?.preferredProfessionals || [],
               cancellationNotice: patient.preferences?.appointmentPreferences?.cancellationNotice || 24,
               waitingListOptIn: patient.preferences?.appointmentPreferences?.waitingListOptIn || false,
               notes: patient.preferences?.appointmentPreferences?.notes || ''
@@ -421,40 +585,6 @@ export default function PreferencesSection({
 
               <Separator />
 
-              {/* Servicios y Profesionales Preferidos */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">Servicios Preferidos</Label>
-                  {patient.preferences?.appointmentPreferences?.preferredServices?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {patient.preferences.appointmentPreferences.preferredServices.map((serviceId: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {serviceId}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Ninguno seleccionado</span>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">Profesionales Preferidos</Label>
-                  {patient.preferences?.appointmentPreferences?.preferredProfessionals?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {patient.preferences.appointmentPreferences.preferredProfessionals.map((professionalId: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {professionalId}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Ninguno asignado</span>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
 
               {/* Configuraciones */}
               <div className="grid grid-cols-2 gap-3">

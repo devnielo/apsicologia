@@ -674,6 +674,39 @@ const transformMedicalHistoryArrays = (data: any) => {
 
 **🔧 Frontend - PreferencesSection.tsx:**
 - ✅ **Sección de citas corregida:** Eliminada edición de duración y formato de sesión (ahora derivados del servicio)
+
+#### **14. Módulo de Profesionales Asignados - Sistema Completo de Gestión (✅ COMPLETADO - Septiembre 4, 2025)**
+
+**🎯 Objetivo Completado:** Implementación completa del sistema de asignación de profesionales con interfaz de edición, validación y persistencia en base de datos
+
+**🔧 Funcionalidades Implementadas:**
+- ✅ **Profesional Principal:** Dropdown para seleccionar profesional principal con opción "Sin profesional principal"
+- ✅ **Profesionales Asignados:** Sistema de checkboxes para selección múltiple de profesionales
+- ✅ **Interfaz de Edición:** Modo edición inline con botones Guardar/Cancelar
+- ✅ **Validación de Datos:** Manejo correcto de IDs tanto `_id` como `id` para compatibilidad
+- ✅ **Persistencia:** Guardado correcto en base de datos con estructura `clinicalInfo.primaryProfessional` y `clinicalInfo.assignedProfessionals`
+
+**🐛 Problemas Resueltos:**
+- ✅ **Select Component Error:** Corregido error de SelectItem con valor vacío usando `'none'` en lugar de `""`
+- ✅ **React Keys Warning:** Eliminado warning de keys únicas en mapeo de profesionales
+- ✅ **Datos No Persistían:** Corregida lógica de guardado en componente padre para incluir `primaryProfessional`
+- ✅ **Compatibilidad de IDs:** Soporte para ambos formatos `_id` e `id` en datos de profesionales
+
+**🔧 Eliminación de Servicios Preferidos:**
+- ✅ **Frontend:** Eliminada sección visual de servicios preferidos del PreferencesSection
+- ✅ **Backend:** Removido campo `preferredServices` del modelo Patient.ts
+- ✅ **Types:** Eliminado `preferredServices: ObjectId[]` de tipos TypeScript compartidos
+- ✅ **Limpieza Completa:** Todas las referencias eliminadas del proyecto
+
+**📊 Estructura Final:**
+```typescript
+{
+  clinicalInfo: {
+    primaryProfessional: "ObjectId_string" | null,
+    assignedProfessionals: ["ObjectId_1", "ObjectId_2", ...]
+  }
+}
+```
 - ✅ **Campos editables agregados:** Aviso de cancelación, lista de espera, notas y servicios preferidos
 - ✅ **Mapeo de datos actualizado:** Uso de `preferredServices` en lugar de campos obsoletos
 - ✅ **UI simplificada:** Interfaz de edición acorde al modelo backend actualizado

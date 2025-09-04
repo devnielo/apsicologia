@@ -115,6 +115,30 @@ interface AvailabilityRequest {
 
 export class ProfessionalController {
   /**
+   * Get all professionals (simple list for dropdowns)
+   */
+  static async getAllProfessionals(req: Request, res: Response, next: NextFunction) {
+    try {
+      const professionals = await Professional.find({})
+        .select('_id name email specialties')
+        .sort({ name: 1 });
+
+      console.log('Found professionals:', professionals.length);
+      
+      res.json({
+        success: true,
+        data: professionals
+      });
+    } catch (error) {
+      logger.error('Error getting all professionals:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener profesionales'
+      });
+    }
+  }
+
+  /**
    * Get all professionals with pagination and filtering
    */
   static async getProfessionals(req: Request, res: Response, next: NextFunction) {

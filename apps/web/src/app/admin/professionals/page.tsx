@@ -8,9 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProfessionalsTable } from './components/ProfessionalsTable';
-import { ProfessionalForm } from './components/ProfessionalForm';
-import { ProfessionalStats } from './components/ProfessionalStats';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export default function ProfessionalsPage() {

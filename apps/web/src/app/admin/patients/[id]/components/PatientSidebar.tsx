@@ -1,9 +1,13 @@
 'use client';
 
-// Removed Card imports for minimalist design
-import { Avatar, AvatarFallback, AvatarImage } from '../../../../../components/ui/avatar';
-import { Badge } from '../../../../../components/ui/badge';
-import { User, Mail, Phone, MapPin, Shield } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { User, Calendar, Clock, Phone, Mail, MapPin, Heart, AlertCircle } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 import { base64ToImageUrl } from '../../../../../lib/utils';
 
 interface PatientSidebarProps {
@@ -13,6 +17,42 @@ interface PatientSidebarProps {
 export function PatientSidebar({ patient }: PatientSidebarProps) {
   const fullName = `${patient.personalInfo?.firstName || ''} ${patient.personalInfo?.lastName || ''}`.trim();
   const age = patient.personalInfo?.dateOfBirth ? calculateAge(patient.personalInfo.dateOfBirth) : null;
+
+  // Fetch all professionals to get names
+  const { data: professionalsData } = useQuery({
+    queryKey: ['professionals', 'all'],
+    queryFn: async () => {
+      const response = await apiClient.get('/professionals/all');
+      return response.data.data;
+    }
+  });
+
+  const professionals = professionalsData || [];
+  
+  // Get primary professional info
+  const primaryProfessional = useMemo(() => {
+    // First check if primaryProfessional is populated as an object
+    if (patient.clinicalInfo?.primaryProfessional && typeof patient.clinicalInfo.primaryProfessional === 'object') {
+      return patient.clinicalInfo.primaryProfessional;
+    }
+    
+    // Then check if assignedProfessionals has populated objects
+    if (patient.clinicalInfo?.assignedProfessionals && patient.clinicalInfo.assignedProfessionals.length > 0) {
+      const firstAssigned = patient.clinicalInfo.assignedProfessionals[0];
+      if (typeof firstAssigned === 'object') {
+        return firstAssigned;
+      }
+      // If it's just an ID, try to find it in the professionals list
+      return professionals?.find((prof: any) => prof._id === firstAssigned) || null;
+    }
+    
+    // Fallback: if primaryProfessional is just an ID, look it up
+    if (patient.clinicalInfo?.primaryProfessional && typeof patient.clinicalInfo.primaryProfessional === 'string') {
+      return professionals?.find((prof: any) => prof._id === patient.clinicalInfo.primaryProfessional) || null;
+    }
+    
+    return null;
+  }, [patient.clinicalInfo?.primaryProfessional, patient.clinicalInfo?.assignedProfessionals, professionals]);
 
   function calculateAge(dateOfBirth: string | Date) {
     const today = new Date();
@@ -94,13 +134,18 @@ export function PatientSidebar({ patient }: PatientSidebarProps) {
 
       {/* Professional assigned */}
       <div className="pb-3 border-b border-border/30">
-        <h3 className="text-sm font-semibold text-foreground mb-3 px-1">Profesional Asignado</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-3 px-1">Profesional Principal</h3>
         <div className="flex items-center gap-2 text-sm px-1">
           <User className="h-4 w-4 text-primary" />
           <div className="flex-1">
             <div className="text-foreground">
-              {patient.clinicalInfo?.primaryProfessional?.name || 'No asignado'}
+              {primaryProfessional?.name || 'No asignado'}
             </div>
+            {primaryProfessional?.specialties && primaryProfessional.specialties.length > 0 && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {primaryProfessional.specialties[0]}
+              </div>
+            )}
           </div>
         </div>
       </div>
