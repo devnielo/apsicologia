@@ -331,11 +331,17 @@ const ProfessionalSchema = new Schema<IProfessionalDocument>(
     billingSettings: {
       defaultPaymentMethod: {
         type: String,
-        enum: ['cash', 'card', 'transfer', 'insurance'],
+        enum: ['cash', 'card', 'transfer'],
         default: 'cash',
       },
-      acceptsInsurance: { type: Boolean, default: false },
-      insuranceProviders: { type: [String], default: [] },
+      acceptsOnlinePayments: {
+        type: Boolean,
+        default: false,
+      },
+      paymentMethods: {
+        type: [String],
+        default: [],
+      },
       taxRate: { type: Number, min: 0, max: 100 }, // Percentage
     },
     

@@ -38,7 +38,6 @@ export interface IAppointment extends ITimestamps, ISoftDelete {
   currency: string;
   discount?: number;
   finalPrice: number;
-  insuranceCovered?: number;
   followUpRequired: boolean;
   followUpDate?: Date;
   attachments: ObjectId[]; // File references
@@ -59,7 +58,6 @@ export interface IAppointmentCreateInput {
   source?: AppointmentSource;
   price?: number;
   discount?: number;
-  insuranceCovered?: number;
   tags?: string[];
 }
 
@@ -77,7 +75,6 @@ export interface IAppointmentUpdateInput {
   publicNotes?: string;
   price?: number;
   discount?: number;
-  insuranceCovered?: number;
   followUpRequired?: boolean;
   followUpDate?: Date;
   tags?: string[];
@@ -155,7 +152,7 @@ export interface IAppointmentBookingRequest {
   acceptTerms: boolean;
   acceptPrivacy: boolean;
   marketingConsent?: boolean;
-  paymentMethod?: 'online' | 'cash' | 'card' | 'insurance';
+  paymentMethod?: 'online' | 'cash' | 'card';
   couponCode?: string;
 }
 

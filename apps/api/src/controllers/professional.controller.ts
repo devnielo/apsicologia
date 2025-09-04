@@ -66,9 +66,9 @@ interface CreateProfessionalRequest {
 
   // Billing
   billingSettings?: {
-    defaultPaymentMethod?: 'cash' | 'card' | 'transfer' | 'insurance';
-    acceptsInsurance?: boolean;
-    insuranceProviders?: string[];
+    defaultPaymentMethod?: 'cash' | 'card' | 'transfer';
+    acceptsOnlinePayments?: boolean;
+    paymentMethods?: string[];
     taxRate?: number;
   };
 
@@ -490,8 +490,8 @@ export class ProfessionalController {
         contactInfo: professionalData.contactInfo || {},
         billingSettings: {
           defaultPaymentMethod: professionalData.billingSettings?.defaultPaymentMethod || 'cash',
-          acceptsInsurance: professionalData.billingSettings?.acceptsInsurance || false,
-          insuranceProviders: professionalData.billingSettings?.insuranceProviders || [],
+          acceptsOnlinePayments: professionalData.billingSettings?.acceptsOnlinePayments || false,
+          paymentMethods: professionalData.billingSettings?.paymentMethods || [],
           taxRate: professionalData.billingSettings?.taxRate,
         },
         status: professionalData.status || 'active',

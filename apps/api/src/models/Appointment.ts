@@ -40,9 +40,6 @@ export interface IAppointmentDocument extends Document {
     basePrice: number;
     discountAmount: number;
     discountReason?: string;
-    insuranceAmount: number;
-    insuranceProvider?: string;
-    copayAmount: number;
     totalAmount: number;
     currency: string;
   };
@@ -162,7 +159,6 @@ export interface IAppointmentDocument extends Document {
     hipaaCompliant: boolean;
     documentationComplete: boolean;
     billingCoded: boolean;
-    insuranceClaimed: boolean;
   };
   
   // Metadata
@@ -230,20 +226,6 @@ const PricingSchema = new Schema({
   discountReason: {
     type: String,
     trim: true,
-  },
-  insuranceAmount: {
-    type: Number,
-    default: 0,
-    min: [0, 'Insurance amount cannot be negative'],
-  },
-  insuranceProvider: {
-    type: String,
-    trim: true,
-  },
-  copayAmount: {
-    type: Number,
-    default: 0,
-    min: [0, 'Copay amount cannot be negative'],
   },
   totalAmount: {
     type: Number,
@@ -614,7 +596,6 @@ const AppointmentSchema = new Schema<IAppointmentDocument>(
       hipaaCompliant: { type: Boolean, default: false },
       documentationComplete: { type: Boolean, default: false },
       billingCoded: { type: Boolean, default: false },
-      insuranceClaimed: { type: Boolean, default: false },
     },
     
     // Metadata

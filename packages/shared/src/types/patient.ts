@@ -193,7 +193,7 @@ export interface IPatient extends ITimestamps, ISoftDelete {
     };
     dataSharing: {
       healthcareProfessionals: boolean;
-      insuranceProviders: boolean;
+      thirdPartyProviders: boolean;
       emergencyContacts: boolean;
       researchPurposes?: boolean;
       consentDate: Date;
@@ -257,7 +257,7 @@ export interface IPatient extends ITimestamps, ISoftDelete {
   
   // Referral
   referral: {
-    source?: 'self' | 'physician' | 'family' | 'friend' | 'insurance' | 'online' | 'other';
+    source?: 'self' | 'physician' | 'family' | 'friend' | 'online' | 'other';
     referringPhysician?: {
       name: string;
       specialty?: string;
@@ -326,7 +326,6 @@ export interface IPatientCreateInput {
   allergies?: string[];
   medicalHistory?: string;
   currentMedications?: string[];
-  insuranceInfo?: IInsuranceInfo;
   referredBy?: string;
   assignedProfessionalIds?: ObjectId[];
   language?: string;
@@ -347,7 +346,6 @@ export interface IPatientUpdateInput {
   allergies?: string[];
   medicalHistory?: string;
   currentMedications?: string[];
-  insuranceInfo?: IInsuranceInfo;
   referredBy?: string;
   status?: 'active' | 'inactive' | 'archived';
   assignedProfessionalIds?: ObjectId[];
@@ -366,7 +364,6 @@ export interface IPatientSearchInput {
     max?: number;
   };
   gender?: ('male' | 'female' | 'other' | 'prefer_not_to_say')[];
-  hasInsurance?: boolean;
   lastAppointmentFrom?: Date;
   lastAppointmentTo?: Date;
 }

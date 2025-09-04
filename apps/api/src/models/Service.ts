@@ -27,10 +27,11 @@ export interface IServiceDocument extends Document {
   priceDetails: {
     basePrice: number;
     discountedPrice?: number;
-    insuranceCoverage?: {
-      providerId: string;
-      coveragePercentage: number;
-      copayAmount?: number;
+    discounts?: {
+      name: string;
+      percentage: number;
+      validFrom?: Date;
+      validUntil?: Date;
     }[];
   };
   
@@ -76,21 +77,23 @@ export interface IServiceDocument extends Document {
   updatedAt: Date;
 }
 
-const InsuranceCoverageSchema = new Schema({
-  providerId: {
+const DiscountSchema = new Schema({
+  name: {
     type: String,
     required: true,
     trim: true,
   },
-  coveragePercentage: {
+  percentage: {
     type: Number,
     required: true,
-    min: [0, 'Coverage percentage cannot be negative'],
-    max: [100, 'Coverage percentage cannot exceed 100%'],
+    min: [0, 'Discount percentage cannot be negative'],
+    max: [100, 'Discount percentage cannot exceed 100%'],
   },
-  copayAmount: {
-    type: Number,
-    min: [0, 'Copay amount cannot be negative'],
+  validFrom: {
+    type: Date,
+  },
+  validUntil: {
+    type: Date,
   },
 }, { _id: false });
 
@@ -195,8 +198,8 @@ const ServiceSchema = new Schema<IServiceDocument>(
           message: 'Discounted price must be less than or equal to base price',
         },
       },
-      insuranceCoverage: {
-        type: [InsuranceCoverageSchema],
+      discounts: {
+        type: [DiscountSchema],
         default: [],
       },
     },
@@ -433,17 +436,17 @@ ServiceSchema.methods.removeTag = function(tag: string) {
 };
 
 ServiceSchema.methods.calculatePrice = function(
-  insuranceProviderId?: string,
-  discountPercentage?: number
+  discountName?: string,
+  additionalDiscountPercentage?: number
 ): { 
   originalPrice: number;
   finalPrice: number;
-  insuranceDiscount?: number;
+  serviceDiscount?: number;
   additionalDiscount?: number;
   breakdown: string;
 } {
   let finalPrice = this.priceDetails.discountedPrice || this.priceDetails.basePrice;
-  let insuranceDiscount = 0;
+  let serviceDiscount = 0;
   let additionalDiscount = 0;
   const breakdown: string[] = [`Base: ${this.priceDetails.basePrice}${this.currency}`];
   
@@ -453,35 +456,36 @@ ServiceSchema.methods.calculatePrice = function(
     breakdown.push(`Service discount: -${discount}${this.currency}`);
   }
   
-  // Apply insurance coverage
-  if (insuranceProviderId) {
-    const coverage = this.priceDetails.insuranceCoverage.find(
-      (c: any) => c.providerId === insuranceProviderId
+  // Apply named discount from service discounts
+  if (discountName) {
+    const discount = this.priceDetails.discounts?.find(
+      (d: any) => d.name === discountName
     );
     
-    if (coverage) {
-      insuranceDiscount = (finalPrice * coverage.coveragePercentage) / 100;
-      finalPrice -= insuranceDiscount;
-      breakdown.push(`Insurance (${coverage.coveragePercentage}%): -${insuranceDiscount}${this.currency}`);
+    if (discount) {
+      const now = new Date();
+      const isValid = (!discount.validFrom || discount.validFrom <= now) && 
+                     (!discount.validUntil || discount.validUntil >= now);
       
-      if (coverage.copayAmount) {
-        finalPrice += coverage.copayAmount;
-        breakdown.push(`Copay: +${coverage.copayAmount}${this.currency}`);
+      if (isValid) {
+        serviceDiscount = (finalPrice * discount.percentage) / 100;
+        finalPrice -= serviceDiscount;
+        breakdown.push(`${discount.name} (${discount.percentage}%): -${serviceDiscount}${this.currency}`);
       }
     }
   }
   
   // Apply additional discount
-  if (discountPercentage && discountPercentage > 0) {
-    additionalDiscount = (finalPrice * discountPercentage) / 100;
+  if (additionalDiscountPercentage && additionalDiscountPercentage > 0) {
+    additionalDiscount = (finalPrice * additionalDiscountPercentage) / 100;
     finalPrice -= additionalDiscount;
-    breakdown.push(`Additional discount (${discountPercentage}%): -${additionalDiscount}${this.currency}`);
+    breakdown.push(`Additional discount (${additionalDiscountPercentage}%): -${additionalDiscount}${this.currency}`);
   }
   
   return {
     originalPrice: this.priceDetails.basePrice,
     finalPrice: Math.max(0, Math.round(finalPrice * 100) / 100), // Ensure no negative prices and round to 2 decimals
-    insuranceDiscount,
+    serviceDiscount,
     additionalDiscount,
     breakdown: breakdown.join(', '),
   };

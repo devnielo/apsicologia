@@ -89,6 +89,12 @@ interface CreatePatientRequest {
     paymentMethod?: 'insurance' | 'self-pay' | 'sliding-scale' | 'pro-bono';
   };
   
+  // Payment Information
+  payment?: {
+    preferredMethod?: 'cash' | 'card' | 'transfer' | 'online';
+    billingNotes?: string;
+  };
+  
   // Preferences
   preferences?: {
     language?: string;
@@ -125,7 +131,7 @@ interface CreatePatientRequest {
     };
     dataSharing?: {
       healthcareProfessionals?: boolean;
-      insuranceProviders?: boolean;
+      thirdPartyProviders?: boolean;
       emergencyContacts?: boolean;
       researchPurposes?: boolean;
       consentDate?: string;
@@ -134,7 +140,7 @@ interface CreatePatientRequest {
   
   // Referral Information
   referral?: {
-    source?: 'self' | 'physician' | 'family' | 'friend' | 'insurance' | 'online' | 'other';
+    source?: 'self' | 'physician' | 'family' | 'friend' | 'online' | 'other';
     referringPhysician?: {
       name: string;
       specialty?: string;
@@ -172,7 +178,6 @@ interface PatientQuery {
   gender?: string | string[];
   contact?: string; // For searching in phone and email
   language?: string;
-  hasInsurance?: string; // "true" or "false"
   paymentMethod?: string | string[];
   dateFrom?: string; // ISO date
   dateTo?: string; // ISO date
@@ -201,7 +206,6 @@ export class PatientController {
         gender,
         contact,
         language,
-        hasInsurance,
         paymentMethod,
         dateFrom,
         dateTo,
@@ -329,17 +333,14 @@ export class PatientController {
       
       if (language) filter['preferences.language'] = language;
       
-      if (hasInsurance) {
-        filter['insurance.hasInsurance'] = hasInsurance === 'true';
-      }
       
       if (paymentMethod) {
         if (Array.isArray(paymentMethod)) {
-          filter['insurance.paymentMethod'] = { $in: paymentMethod };
+          filter['payment.preferredMethod'] = { $in: paymentMethod };
         } else if (typeof paymentMethod === 'string' && paymentMethod.includes(',')) {
-          filter['insurance.paymentMethod'] = { $in: paymentMethod.split(',') };
+          filter['payment.preferredMethod'] = { $in: paymentMethod.split(',') };
         } else {
-          filter['insurance.paymentMethod'] = paymentMethod;
+          filter['payment.preferredMethod'] = paymentMethod;
         }
       }
       
@@ -623,9 +624,8 @@ export class PatientController {
             startDate: new Date(),
           },
         },
-        insurance: patientData.insurance || {
-          hasInsurance: false,
-          paymentMethod: 'self-pay',
+        payment: patientData.payment || {
+          preferredMethod: 'cash',
         },
         preferences: {
           language: patientData.preferences?.language || 'es',
@@ -665,7 +665,7 @@ export class PatientController {
           },
           dataSharing: {
             healthcareProfessionals: patientData.gdprConsent.dataSharing?.healthcareProfessionals ?? true,
-            insuranceProviders: patientData.gdprConsent.dataSharing?.insuranceProviders ?? false,
+            thirdPartyProviders: patientData.gdprConsent.dataSharing?.thirdPartyProviders ?? false,
             emergencyContacts: patientData.gdprConsent.dataSharing?.emergencyContacts ?? true,
             researchPurposes: patientData.gdprConsent.dataSharing?.researchPurposes ?? false,
             consentDate: patientData.gdprConsent.dataSharing?.consentDate ?
@@ -693,15 +693,6 @@ export class PatientController {
         createdBy: authUser._id,
       };
 
-      // Convert insurance dates if provided
-      if (patientData.insurance?.primaryInsurance) {
-        patientPayload.insurance.primaryInsurance = {
-          ...patientData.insurance.primaryInsurance,
-          effectiveDate: new Date(patientData.insurance.primaryInsurance.effectiveDate),
-          expirationDate: patientData.insurance.primaryInsurance.expirationDate ?
-            new Date(patientData.insurance.primaryInsurance.expirationDate) : undefined,
-        };
-      }
 
       // Create patient
       const patient = new Patient(patientPayload);
@@ -1444,7 +1435,7 @@ export class PatientController {
         ]),
         Patient.aggregate([
           { $match: matchFilter },
-          { $group: { _id: '$insurance.paymentMethod', count: { $sum: 1 } } },
+          { $group: { _id: '$payment.preferredMethod', count: { $sum: 1 } } },
         ]),
         Patient.aggregate([
           { $match: matchFilter },

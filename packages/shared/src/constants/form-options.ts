@@ -123,10 +123,10 @@ export const EMERGENCY_CONTACT_RELATIONSHIP_OPTIONS = [
 ] as const;
 
 export const PAYMENT_METHOD_OPTIONS = [
-  { value: 'insurance', label: 'Seguro' },
-  { value: 'self-pay', label: 'Pago particular' },
-  { value: 'sliding-scale', label: 'Tarifa reducida' },
-  { value: 'pro-bono', label: 'Pro bono' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'online', label: 'Pago online' },
 ] as const;
 
 export const PATIENT_STATUS_OPTIONS = [

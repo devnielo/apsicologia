@@ -719,7 +719,7 @@ export default function PreferencesSection({
               marketingConsented: patient.gdprConsent?.marketingCommunications?.consented || false,
               marketingMethod: patient.gdprConsent?.marketingCommunications?.method || 'digital',
               dataSharingHealthcare: patient.gdprConsent?.dataSharing?.healthcareProfessionals || false,
-              dataSharingInsurance: patient.gdprConsent?.dataSharing?.insuranceProviders || false,
+              dataSharingThirdParty: patient.gdprConsent?.dataSharing?.thirdPartyProviders || false,
               dataSharingEmergency: patient.gdprConsent?.dataSharing?.emergencyContacts || false,
               dataSharingResearch: patient.gdprConsent?.dataSharing?.researchPurposes || false,
               rightToErasureRequested: patient.gdprConsent?.rightToErasure?.requested || false,
@@ -976,9 +976,9 @@ export default function PreferencesSection({
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Seguros:</span>
-                      <Badge variant={patient.gdprConsent?.dataSharing?.insuranceProviders ? "default" : "secondary"} className="text-xs">
-                        {patient.gdprConsent?.dataSharing?.insuranceProviders ? 'Permitido' : 'Denegado'}
+                      <span className="text-xs text-muted-foreground">Terceros:</span>
+                      <Badge variant={patient.gdprConsent?.dataSharing?.thirdPartyProviders ? "default" : "secondary"} className="text-xs">
+                        {patient.gdprConsent?.dataSharing?.thirdPartyProviders ? 'Permitido' : 'Denegado'}
                       </Badge>
                     </div>
                   </div>

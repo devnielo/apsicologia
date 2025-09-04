@@ -32,7 +32,7 @@ interface CreateInvoiceRequest {
     internal?: string;
     customer?: string;
     payment?: string;
-    insurance?: string;
+    discount?: string;
   };
   currency?: string;
 }

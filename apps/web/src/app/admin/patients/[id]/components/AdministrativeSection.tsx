@@ -88,30 +88,9 @@ export function AdministrativeSection({
                       <SelectItem value="cash">Efectivo</SelectItem>
                       <SelectItem value="card">Tarjeta</SelectItem>
                       <SelectItem value="transfer">Transferencia</SelectItem>
-                      <SelectItem value="insurance">Seguro</SelectItem>
+                      <SelectItem value="stripe">Stripe</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Compañía seguro</Label>
-                  <Input
-                    value={editData.insuranceCompany || ''}
-                    onChange={(e) => setEditData({...editData, insuranceCompany: e.target.value})}
-                    placeholder="Compañía"
-                    className="h-8 mt-1 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-foreground">Número póliza</Label>
-                  <Input
-                    value={editData.insurancePolicyNumber || ''}
-                    onChange={(e) => setEditData({...editData, insurancePolicyNumber: e.target.value})}
-                    placeholder="Número"
-                    className="h-8 mt-1 text-xs"
-                  />
                 </div>
                 <div>
                   <Label className="text-xs font-medium text-foreground">ID Stripe</Label>
@@ -149,19 +128,16 @@ export function AdministrativeSection({
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Método de pago:</span>
-                <span className="text-foreground font-medium">{patient.billing?.preferredPaymentMethod || 'Efectivo'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Compañía seguro:</span>
-                <span className="text-foreground font-medium">{patient.billing?.insuranceCompany || 'Sanitas'}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Número póliza:</span>
-                <span className="text-foreground font-medium">{patient.billing?.insurancePolicyNumber || 'POL-2024-789456'}</span>
+                <span className="text-foreground font-medium">
+                  {patient.billing?.preferredPaymentMethod === 'cash' ? 'Efectivo' :
+                   patient.billing?.preferredPaymentMethod === 'card' ? 'Tarjeta' :
+                   patient.billing?.preferredPaymentMethod === 'transfer' ? 'Transferencia' :
+                   patient.billing?.preferredPaymentMethod === 'stripe' ? 'Stripe' : 'Efectivo'}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">ID Stripe:</span>
-                <span className="text-foreground font-medium">{patient.billing?.stripeCustomerId || 'cus_OkwlMjKlmnop123'}</span>
+                <span className="text-foreground font-medium">{patient.billing?.stripeCustomerId || 'No configurado'}</span>
               </div>
               {patient.billing?.billingNotes && (
                 <div className="col-span-2">
@@ -481,7 +457,7 @@ export function AdministrativeSection({
                       <span className="text-xs text-muted-foreground">20/08/2024</span>
                     </div>
                     <div className="prose prose-xs max-w-none text-foreground">
-                      <p>Configuración de método de pago establecida. Seguro médico verificado y activo.</p>
+                      <p>Configuración de método de pago establecida. Sistema de facturación configurado correctamente.</p>
                     </div>
                   </div>
                   <div className="p-2 border rounded">

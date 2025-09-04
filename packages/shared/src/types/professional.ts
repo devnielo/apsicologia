@@ -33,8 +33,8 @@ export interface IProfessional extends ITimestamps, ISoftDelete {
   };
   consultationFee?: number;
   currency: string;
-  acceptsInsurance: boolean;
-  insuranceProviders?: string[];
+  acceptsOnlinePayments: boolean;
+  paymentMethods?: string[];
   rating?: number;
   totalReviews: number;
   totalAppointments: number;
@@ -60,8 +60,8 @@ export interface IProfessionalCreateInput {
   languages?: string[];
   consultationFee?: number;
   currency?: string;
-  acceptsInsurance?: boolean;
-  insuranceProviders?: string[];
+  acceptsOnlinePayments?: boolean;
+  paymentMethods?: string[];
 }
 
 export interface IProfessionalUpdateInput {
@@ -92,8 +92,8 @@ export interface IProfessionalUpdateInput {
     twitter?: string;
   };
   consultationFee?: number;
-  acceptsInsurance?: boolean;
-  insuranceProviders?: string[];
+  acceptsOnlinePayments?: boolean;
+  paymentMethods?: string[];
 }
 
 export interface IProfessionalPublic {
@@ -110,7 +110,7 @@ export interface IProfessionalPublic {
   telehealthEnabled: boolean;
   consultationFee?: number;
   currency: string;
-  acceptsInsurance: boolean;
+  acceptsOnlinePayments: boolean;
   isActive: boolean;
 }
 

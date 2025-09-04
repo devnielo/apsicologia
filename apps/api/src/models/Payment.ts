@@ -541,7 +541,7 @@ const PaymentSchema = new Schema<IPaymentDocument>(
     // Payment method and processing
     method: {
       type: String,
-      enum: ['cash', 'card', 'transfer', 'check', 'online', 'insurance', 'paypal', 'stripe'],
+      enum: ['cash', 'card', 'bank_transfer', 'stripe', 'paypal'],
       required: true,
       index: true,
     },

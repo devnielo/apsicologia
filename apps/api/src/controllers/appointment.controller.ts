@@ -28,8 +28,6 @@ interface CreateAppointmentRequest {
     basePrice?: number;
     discountAmount?: number;
     discountReason?: string;
-    insuranceAmount?: number;
-    insuranceProvider?: string;
     copayAmount?: number;
   };
   virtualMeeting?: {
@@ -641,14 +639,12 @@ export class AppointmentController {
         basePrice: appointmentData.pricing?.basePrice || service.price,
         discountAmount: appointmentData.pricing?.discountAmount || 0,
         discountReason: appointmentData.pricing?.discountReason,
-        insuranceAmount: appointmentData.pricing?.insuranceAmount || 0,
-        insuranceProvider: appointmentData.pricing?.insuranceProvider,
         copayAmount: appointmentData.pricing?.copayAmount || 0,
         totalAmount: 0,
         currency: 'EUR',
       };
 
-      pricing.totalAmount = pricing.basePrice - pricing.discountAmount - pricing.insuranceAmount + pricing.copayAmount;
+      pricing.totalAmount = pricing.basePrice - pricing.discountAmount + pricing.copayAmount;
 
       // Prepare patient info snapshot
       const patientInfo = {
@@ -719,7 +715,6 @@ export class AppointmentController {
           hipaaCompliant: false,
           documentationComplete: false,
           billingCoded: false,
-          insuranceClaimed: false,
         },
         attachments: [],
       });

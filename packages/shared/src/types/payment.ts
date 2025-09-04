@@ -7,7 +7,7 @@ export interface IPayment extends ITimestamps {
   patientId: ObjectId;
   amount: number;
   currency: string;
-  method: 'cash' | 'card' | 'bank_transfer' | 'stripe' | 'paypal' | 'insurance';
+  method: 'cash' | 'card' | 'bank_transfer' | 'stripe' | 'paypal';
   status: PaymentStatus;
   transactionId?: string;
   reference?: string;
@@ -24,7 +24,7 @@ export interface IPaymentCreateInput {
   invoiceId: ObjectId;
   appointmentId?: ObjectId;
   amount: number;
-  method: 'cash' | 'card' | 'bank_transfer' | 'stripe' | 'paypal' | 'insurance';
+  method: 'cash' | 'card' | 'bank_transfer' | 'stripe' | 'paypal';
   reference?: string;
   notes?: string;
 }

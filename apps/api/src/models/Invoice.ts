@@ -84,7 +84,7 @@ export interface IInvoiceDocument extends Document {
   
   // Payment information
   payment: {
-    method?: 'cash' | 'card' | 'transfer' | 'check' | 'online' | 'insurance';
+    method?: 'cash' | 'card' | 'transfer' | 'check' | 'online' | 'discount';
     reference?: string;
     paidAt?: Date;
     paidAmount?: number;
@@ -97,21 +97,13 @@ export interface IInvoiceDocument extends Document {
     }[];
   };
   
-  // Insurance and third-party billing
-  insurance?: {
-    providerId: string;
-    providerName: string;
-    policyNumber: string;
-    groupNumber?: string;
-    coveragePercentage: number;
-    copayAmount: number;
-    deductibleAmount: number;
-    authorizationNumber?: string;
-    claimedAmount: number;
-    approvedAmount?: number;
-    claimStatus: 'pending' | 'approved' | 'denied' | 'partial';
-    claimDate?: Date;
-    claimReference?: string;
+  // Discount information
+  discount?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+    reason?: string;
+    appliedBy?: string;
+    appliedAt?: Date;
   };
   
   // Notes and communication
@@ -119,7 +111,7 @@ export interface IInvoiceDocument extends Document {
     internal?: string;
     customer?: string;
     payment?: string;
-    insurance?: string;
+    discount?: string;
   };
   
   // PDF and document management
@@ -434,7 +426,7 @@ const PartialPaymentSchema = new Schema({
   method: {
     type: String,
     required: true,
-    enum: ['cash', 'card', 'transfer', 'check', 'online', 'insurance'],
+    enum: ['cash', 'card', 'transfer', 'check', 'online', 'discount'],
   },
   reference: {
     type: String,
@@ -607,7 +599,7 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
     payment: {
       method: {
         type: String,
-        enum: ['cash', 'card', 'transfer', 'check', 'online', 'insurance'],
+        enum: ['cash', 'card', 'transfer', 'check', 'online', 'discount'],
       },
       reference: {
         type: String,
@@ -626,60 +618,29 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
       },
     },
     
-    // Insurance information
-    insurance: {
-      providerId: {
+    // Discount information
+    discount: {
+      type: {
+        type: String,
+        enum: ['percentage', 'fixed'],
+        required: true,
+      },
+      value: {
+        type: Number,
+        required: true,
+        min: [0, 'Discount value cannot be negative'],
+      },
+      reason: {
         type: String,
         trim: true,
       },
-      providerName: {
+      appliedBy: {
         type: String,
         trim: true,
       },
-      policyNumber: {
-        type: String,
-        trim: true,
-      },
-      groupNumber: {
-        type: String,
-        trim: true,
-      },
-      coveragePercentage: {
-        type: Number,
-        min: [0, 'Coverage percentage cannot be negative'],
-        max: [100, 'Coverage percentage cannot exceed 100%'],
-      },
-      copayAmount: {
-        type: Number,
-        min: [0, 'Copay amount cannot be negative'],
-      },
-      deductibleAmount: {
-        type: Number,
-        min: [0, 'Deductible amount cannot be negative'],
-      },
-      authorizationNumber: {
-        type: String,
-        trim: true,
-      },
-      claimedAmount: {
-        type: Number,
-        min: [0, 'Claimed amount cannot be negative'],
-      },
-      approvedAmount: {
-        type: Number,
-        min: [0, 'Approved amount cannot be negative'],
-      },
-      claimStatus: {
-        type: String,
-        enum: ['pending', 'approved', 'denied', 'partial'],
-        default: 'pending',
-      },
-      claimDate: {
+      appliedAt: {
         type: Date,
-      },
-      claimReference: {
-        type: String,
-        trim: true,
+        default: Date.now,
       },
     },
     
@@ -700,10 +661,10 @@ const InvoiceSchema = new Schema<IInvoiceDocument>(
         trim: true,
         maxlength: [1000, 'Payment notes cannot exceed 1000 characters'],
       },
-      insurance: {
+      discount: {
         type: String,
         trim: true,
-        maxlength: [1000, 'Insurance notes cannot exceed 1000 characters'],
+        maxlength: [1000, 'Discount notes cannot exceed 1000 characters'],
       },
     },
     

@@ -332,7 +332,7 @@ async function seedData() {
         isPubliclyBookable: true,
         priceDetails: {
           basePrice: 70,
-          insuranceCoverage: []
+          discounts: []
         },
         settings: {
           maxAdvanceBookingDays: 30,
@@ -378,7 +378,7 @@ async function seedData() {
         isPubliclyBookable: false, // Not publicly bookable, needs professional approval
         priceDetails: {
           basePrice: 80,
-          insuranceCoverage: []
+          discounts: []
         },
         settings: {
           maxAdvanceBookingDays: 15,
@@ -810,7 +810,7 @@ async function seedData() {
           }
         },
         billing: {
-          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'medicationscash',
+          paymentMethod: Math.random() > 0.2 ? 'stripe' : 'cash',
           preferredPaymentMethod: Math.random() > 0.2 ? 'card' : 'cash',
           stripeCustomerId: Math.random() > 0.2 ? `cus_${Math.random().toString(36).substring(7)}` : undefined,
           billingNotes: ''
@@ -1098,8 +1098,7 @@ async function seedData() {
             consentSignedAt: i === 0 ? appointmentDate : undefined,
             hipaaCompliant: true,
             documentationComplete: status === 'completed',
-            billingCoded: status === 'completed',
-            insuranceClaimed: false
+            billingCoded: status === 'completed'
           },
           
           metadata: {
