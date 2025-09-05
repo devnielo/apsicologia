@@ -22,6 +22,10 @@
       "import": "./dist/utils/index.js",
       "types": "./dist/utils/index.d.ts"
     },
+    "./utils/availability": {
+      "import": "./dist/utils/availability.js",
+      "types": "./dist/utils/availability.d.ts"
+    },
     "./constants": {
       "import": "./dist/constants/index.js",
       "types": "./dist/constants/index.d.ts"

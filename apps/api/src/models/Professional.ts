@@ -110,17 +110,17 @@ const WeeklyAvailabilitySchema = new Schema({
   },
   startTime: {
     type: String,
-    required: true,
+    required: function(this: any) { return this.isAvailable; },
     validate: {
-      validator: (v: string) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
+      validator: (v: string) => !v || /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
       message: 'Invalid time format. Use HH:MM',
     },
   },
   endTime: {
     type: String,
-    required: true,
+    required: function(this: any) { return this.isAvailable; },
     validate: {
-      validator: (v: string) => /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
+      validator: (v: string) => !v || /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v),
       message: 'Invalid time format. Use HH:MM',
     },
   },
@@ -350,7 +350,7 @@ const ProfessionalSchema = new Schema<IProfessionalDocument>(
       totalPatients: { type: Number, default: 0 },
       activePatients: { type: Number, default: 0 },
       totalAppointments: { type: Number, default: 0 },
-      averageRating: { type: Number, min: 1, max: 5 },
+      averageRating: { type: Number, min: 0, max: 5 },
       completionRate: { type: Number, min: 0, max: 100 }, // Percentage
     },
     

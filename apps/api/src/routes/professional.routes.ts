@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import ProfessionalController from '../controllers/professional.controller.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 
 const router: Router = Router();
 
@@ -18,12 +18,13 @@ router.get(
 /**
  * @route   GET /api/v1/professionals
  * @desc    Get all professionals with pagination and filtering
- * @access  Private (Admin, Reception, Professional)
+ * @access  Private (Admin, Reception only)
  * @query   page, limit, search, specialty, status, acceptingPatients, serviceId, roomId, sortBy, sortOrder, include
  */
 router.get(
   '/',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.getProfessionals
 );
 
@@ -61,82 +62,89 @@ router.get(
 router.post(
   '/',
   authenticate,
+  authorize('admin'),
   ProfessionalController.createProfessional
 );
 
 /**
  * @route   PUT /api/v1/professionals/:professionalId
  * @desc    Update professional information
- * @access  Private (Admin, Professional self with restrictions)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId
  * @body    Partial professional data
  */
 router.put(
   '/:professionalId',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.updateProfessional
 );
 
 /**
  * @route   POST /api/v1/professionals/:professionalId/services
  * @desc    Add service to professional
- * @access  Private (Admin, Professional self)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId
  * @body    { serviceId }
  */
 router.post(
   '/:professionalId/services',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.addService
 );
 
 /**
  * @route   DELETE /api/v1/professionals/:professionalId/services/:serviceId
  * @desc    Remove service from professional
- * @access  Private (Admin, Professional self)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId, serviceId
  */
 router.delete(
   '/:professionalId/services/:serviceId',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.removeService
 );
 
 /**
  * @route   POST /api/v1/professionals/:professionalId/vacations
  * @desc    Add vacation/absence period
- * @access  Private (Admin, Reception, Professional self)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId
  * @body    { startDate, endDate, reason?, isRecurring?, recurrencePattern? }
  */
 router.post(
   '/:professionalId/vacations',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.addVacation
 );
 
 /**
  * @route   DELETE /api/v1/professionals/:professionalId/vacations/:vacationId
  * @desc    Remove vacation/absence period
- * @access  Private (Admin, Reception, Professional self)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId, vacationId
  */
 router.delete(
   '/:professionalId/vacations/:vacationId',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.removeVacation
 );
 
 /**
  * @route   PUT /api/v1/professionals/:professionalId/availability
  * @desc    Update availability schedule
- * @access  Private (Admin, Reception, Professional self)
+ * @access  Private (Admin, Reception only)
  * @params  professionalId
  * @body    { weeklyAvailability }
  */
 router.put(
   '/:professionalId/availability',
   authenticate,
+  authorize('admin', 'reception'),
   ProfessionalController.updateAvailability
 );
 
@@ -162,6 +170,7 @@ router.get(
 router.delete(
   '/:professionalId',
   authenticate,
+  authorize('admin'),
   ProfessionalController.deactivateProfessional
 );
 

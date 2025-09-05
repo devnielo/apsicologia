@@ -44,7 +44,7 @@ const recentAppointments = [
   {
     id: "#001",
     patient: "María González",
-    professional: "Dr. Ana Martínez",
+    professional: "Ana Martínez",
     service: "Terapia Individual",
     date: "2024-01-15",
     time: "10:00",
@@ -66,7 +66,7 @@ const recentAppointments = [
   {
     id: "#003",
     patient: "Ana López",
-    professional: "Dr. Miguel Torres",
+    professional: "Miguel Torres",
     service: "Terapia Familiar",
     date: "2024-01-15",
     time: "16:00",
@@ -439,42 +439,6 @@ export default function Dashboard() {
                     Nuevo Profesional
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-
-            {/* Today's Schedule */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Agenda de Hoy</CardTitle>
-                <CardDescription>Próximas citas programadas</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">10:00 - María González</div>
-                      <div className="text-xs text-gray-500">Terapia Individual</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">14:30 - Carlos Rodríguez</div>
-                      <div className="text-xs text-gray-500">Evaluación Psicológica</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">16:00 - Ana López</div>
-                      <div className="text-xs text-gray-500">Terapia Familiar</div>
-                    </div>
-                  </div>
-                </div>
-                
                 <Link href="/appointments" className="block">
                   <Button variant="ghost" className="w-full text-sm">
                     Ver Agenda Completa

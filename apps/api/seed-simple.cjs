@@ -141,6 +141,25 @@ async function seedData() {
       console.log('ℹ️ Index episodeId_1 does not exist or already dropped');
     }
 
+    // Create reception user for admin access
+    let receptionUser = await User.findOne({ email: 'recepcion@arribapsicologia.com' });
+    if (!receptionUser) {
+      const hashedReceptionPassword = await bcrypt.hash('Reception2024!', 12);
+      receptionUser = new User({
+        email: 'recepcion@arribapsicologia.com',
+        passwordHash: hashedReceptionPassword,
+        name: 'Recepción Principal',
+        phone: '+34600000001',
+        role: 'reception',
+        profileImage: profileImageBase64,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      await receptionUser.save();
+      console.log('✅ Created reception user: Recepción Principal');
+    }
+
     // Create professional 1
     let user1 = await User.findOne({ email: 'maria.garcia@arribapsicologia.com' });
     if (!user1) {
@@ -172,29 +191,43 @@ async function seedData() {
          licenseNumber: 'PSI-2015-001',
          specialties: ['Terapia Cognitivo-Conductual', 'Trastornos de Ansiedad', 'Depresión'],
          bio: 'Doctora en Psicología Clínica con 8 años de experiencia',
-         title: 'Dra.',
+         title: 'Psicóloga',
          yearsOfExperience: 8,
          services: [],
          defaultServiceDuration: 60,
          weeklyAvailability: [
-           { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
-           { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', isAvailable: true },
-           { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', isAvailable: true },
-           { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', isAvailable: true },
-           { dayOfWeek: 5, startTime: '09:00', endTime: '17:00', isAvailable: true }
-         ],
-         bufferMinutes: 15,
-         timezone: 'Europe/Madrid',
-         assignedRooms: [],
+          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', isAvailable: true },
+          { dayOfWeek: 5, startTime: '09:00', endTime: '17:00', isAvailable: true }
+        ],
          vacations: [],
-         settings: {
-           allowOnlineBooking: true,
-           requireApproval: false,
-           notificationPreferences: {
-             email: true,
-             sms: false,
-             push: true
-           }
+         breaks: [],
+         timezone: 'Europe/Madrid',
+         bufferMinutes: 15,
+         telehealthEnabled: true,
+         isActive: true,
+         status: 'active',
+         isAcceptingNewPatients: true,
+         color: '#3B82F6',
+         languages: ['es'],
+         currency: 'EUR',
+         acceptsOnlinePayments: true,
+         paymentMethods: ['cash', 'card'],
+         totalReviews: 0,
+         totalAppointments: 0,
+         completionRate: 0,
+         stats: {
+           totalPatients: 0,
+           activePatients: 0,
+           totalAppointments: 0,
+           completedAppointments: 0,
+           cancelledAppointments: 0,
+           noShowAppointments: 0,
+           averageRating: 0,
+           totalReviews: 0,
+           completionRate: 0
          },
          createdAt: new Date(),
          updatedAt: new Date()
@@ -238,29 +271,43 @@ async function seedData() {
          licenseNumber: 'PSI-2018-002',
          specialties: ['Psicología Infantil', 'Terapia Familiar', 'TDAH'],
          bio: 'Doctor en Psicología con 12 años de experiencia especializado en terapia infantil y familiar',
-         title: 'Dr.',
+         title: 'Psicólogo',
          yearsOfExperience: 12,
          services: [],
          defaultServiceDuration: 60,
          weeklyAvailability: [
-           { dayOfWeek: 1, startTime: '10:00', endTime: '18:00', isAvailable: true },
-           { dayOfWeek: 2, startTime: '10:00', endTime: '18:00', isAvailable: true },
-           { dayOfWeek: 3, startTime: '10:00', endTime: '18:00', isAvailable: true },
-           { dayOfWeek: 4, startTime: '10:00', endTime: '18:00', isAvailable: true },
-           { dayOfWeek: 5, startTime: '10:00', endTime: '16:00', isAvailable: true }
-         ],
-         bufferMinutes: 10,
-         timezone: 'Europe/Madrid',
-         assignedRooms: [],
+          { dayOfWeek: 1, startTime: '10:00', endTime: '18:00', isAvailable: true },
+          { dayOfWeek: 2, startTime: '10:00', endTime: '18:00', isAvailable: true },
+          { dayOfWeek: 3, startTime: '10:00', endTime: '18:00', isAvailable: true },
+          { dayOfWeek: 4, startTime: '10:00', endTime: '18:00', isAvailable: true },
+          { dayOfWeek: 5, startTime: '10:00', endTime: '16:00', isAvailable: true }
+        ],
          vacations: [],
-         settings: {
-           allowOnlineBooking: true,
-           requireApproval: true,
-           notificationPreferences: {
-             email: true,
-             sms: true,
-             push: true
-           }
+         breaks: [],
+         timezone: 'Europe/Madrid',
+         bufferMinutes: 10,
+         telehealthEnabled: true,
+         isActive: true,
+         status: 'active',
+         isAcceptingNewPatients: true,
+         color: '#10B981',
+         languages: ['es'],
+         currency: 'EUR',
+         acceptsOnlinePayments: true,
+         paymentMethods: ['cash', 'card', 'transfer'],
+         totalReviews: 0,
+         totalAppointments: 0,
+         completionRate: 0,
+         stats: {
+           totalPatients: 0,
+           activePatients: 0,
+           totalAppointments: 0,
+           completedAppointments: 0,
+           cancelledAppointments: 0,
+           noShowAppointments: 0,
+           averageRating: 0,
+           totalReviews: 0,
+           completionRate: 0
          },
          createdAt: new Date(),
          updatedAt: new Date()
@@ -464,9 +511,9 @@ async function seedData() {
 
     // Crear 3 profesionales adicionales primero
     const professionalNames = [
-      { firstName: 'Elena', lastName: 'Navarro Ruiz', title: 'Dra.', specialties: ['Terapia de Pareja', 'Sexología', 'Mediación Familiar'], experience: 15 },
-      { firstName: 'Roberto', lastName: 'Morales Vega', title: 'Dr.', specialties: ['Neuropsicología', 'Rehabilitación Cognitiva', 'Demencias'], experience: 10 },
-      { firstName: 'Carmen', lastName: 'Jiménez Soto', title: 'Dra.', specialties: ['Psicología Forense', 'Evaluación Pericial', 'Victimología'], experience: 18 },
+      { firstName: 'Elena', lastName: 'Navarro Ruiz', title: 'Psicóloga', specialties: ['Terapia de Pareja', 'Sexología', 'Mediación Familiar'], experience: 15 },
+      { firstName: 'Roberto', lastName: 'Morales Vega', title: 'Psicólogo', specialties: ['Neuropsicología', 'Rehabilitación Cognitiva', 'Demencias'], experience: 10 },
+      { firstName: 'Carmen', lastName: 'Jiménez Soto', title: 'Psicóloga', specialties: ['Psicología Forense', 'Evaluación Pericial', 'Victimología'], experience: 18 },
     ];
 
     const additionalProfessionals = [];
@@ -496,7 +543,7 @@ async function seedData() {
         phone: profUser.phone,
         licenseNumber: `PSI-${2020 + i}-00${i + 3}`,
         specialties: prof.specialties,
-        bio: `${prof.title} en Psicología con ${prof.experience} años de experiencia`,
+        bio: `${prof.title} con ${prof.experience} años de experiencia`,
         title: prof.title,
         yearsOfExperience: prof.experience,
         services: [],

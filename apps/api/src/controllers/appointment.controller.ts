@@ -920,8 +920,8 @@ export class AppointmentController {
         userAgent: req.get('User-Agent'),
         status: 'success',
         changes: Object.keys(originalData).map(field => {
-          const oldValue = originalData[field];
-          const newValue = appointment.toObject()[field];
+          const oldValue = (originalData as any)[field];
+          const newValue = (appointment.toObject() as any)[field];
           if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
             return {
               field,

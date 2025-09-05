@@ -421,7 +421,7 @@ export class InvoiceController {
           },
           {
             field: 'totalAmount',
-            newValue: invoice.totals.totalAmount,
+            newValue: invoice.totals.total,
             changeType: 'create',
           },
           {
@@ -840,7 +840,7 @@ export class InvoiceController {
         status: 'success',
         changes: Object.keys(updateData).map(field => ({
           field,
-          oldValue: originalData[field],
+          oldValue: (originalData as any)[field],
           newValue: invoice.get(field),
           changeType: 'update',
         })),

@@ -525,15 +525,24 @@ export class ProfessionalController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            name: professional.name,
-            email: professional.email,
-            title: professional.title,
-            specialties: professional.specialties,
-            userAccountCreated: !!userAccount,
+        changes: [
+          {
+            field: 'name',
+            newValue: (professional as any).name,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'email',
+            newValue: (professional as any).email,
+            changeType: 'create',
+          },
+          {
+            field: 'specialties',
+            newValue: (professional as any).specialties,
+            changeType: 'create',
+          },
+        ],
+        afterState: professional.toObject(),
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',
@@ -613,6 +622,46 @@ export class ProfessionalController {
       // Store original data for audit log
       const originalData = professional.toObject();
 
+      // Validate and sanitize weeklyAvailability data using shared utilities
+      if (updateData.weeklyAvailability) {
+        logger.info('Processing weeklyAvailability update', { 
+          originalData: updateData.weeklyAvailability,
+          professionalId: professional._id 
+        });
+        
+        const { validateAvailabilityData } = await import('@apsicologia/shared/utils/availability');
+        
+        try {
+          const validationResult = validateAvailabilityData(updateData.weeklyAvailability);
+          logger.info('Validation result', { 
+            isValid: validationResult.isValid,
+            errors: validationResult.errors,
+            sanitizedData: validationResult.data
+          });
+          
+          if (!validationResult.isValid) {
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid availability data',
+              errors: validationResult.errors
+            });
+          }
+          
+          // Data is already validated and sanitized by the utility
+          updateData.weeklyAvailability = validationResult.data;
+          logger.info('Updated weeklyAvailability in updateData', { 
+            newWeeklyAvailability: updateData.weeklyAvailability 
+          });
+        } catch (error) {
+          logger.error('Error validating availability data', { error });
+          return res.status(400).json({
+            success: false,
+            message: 'Error validating availability data',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
       // Apply updates (restrict certain fields based on role)
       if (authUser.role === 'professional') {
         // Professionals can only update certain fields
@@ -628,13 +677,37 @@ export class ProfessionalController {
           }
         });
         
+        logger.info('Applying filtered updates for professional', { 
+          filteredUpdateData,
+          originalWeeklyAvailability: professional.weeklyAvailability,
+          newWeeklyAvailability: filteredUpdateData.weeklyAvailability
+        });
+        
         Object.assign(professional, filteredUpdateData);
       } else {
         // Admin can update everything
+        logger.info('Applying full updates for admin', { 
+          updateData,
+          originalWeeklyAvailability: professional.weeklyAvailability,
+          newWeeklyAvailability: updateData.weeklyAvailability
+        });
         Object.assign(professional, updateData);
       }
 
+      logger.info('Professional before save', { 
+        weeklyAvailability: professional.weeklyAvailability 
+      });
+
+      // Mark weeklyAvailability as modified to ensure Mongoose detects changes
+      if (updateData.weeklyAvailability) {
+        professional.markModified('weeklyAvailability');
+      }
+
       await professional.save();
+      
+      logger.info('Professional after save', { 
+        weeklyAvailability: professional.weeklyAvailability 
+      });
 
       // Log professional update
       await AuditLog.create({
@@ -647,11 +720,14 @@ export class ProfessionalController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: professional.toObject(),
-          fieldsChanged: Object.keys(updateData),
-        },
+        changes: Object.keys(updateData).map(field => ({
+          field,
+          oldValue: (originalData as any)[field],
+          newValue: (professional.toObject() as any)[field],
+          changeType: 'update' as const,
+        })),
+        beforeState: originalData,
+        afterState: professional.toObject(),
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -1015,19 +1091,18 @@ export class ProfessionalController {
       if (!canViewStats) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied: Cannot view these statistics',
+          message: 'Access denied: Cannot view professional statistics',
         });
       }
 
-      // Build filter
+      // Build match filter for professional aggregation
       const matchFilter: any = {};
       if (professionalId) {
         matchFilter._id = new Types.ObjectId(professionalId as string);
-      } else if (authUser.role === 'professional') {
+      }
+      if (authUser.role === 'professional') {
         matchFilter._id = new Types.ObjectId(authUser.professionalId!);
       }
-
-      matchFilter.isActive = true;
 
       const [
         professionalStats,
@@ -1183,11 +1258,26 @@ export class ProfessionalController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          status: { from: 'active', to: 'inactive' },
-          isActive: { from: true, to: false },
-          deletedAt: { from: null, to: new Date() },
-        },
+        changes: [
+          {
+            field: 'status',
+            oldValue: 'active',
+            newValue: 'inactive',
+            changeType: 'update',
+          },
+          {
+            field: 'isActive',
+            oldValue: true,
+            newValue: false,
+            changeType: 'update',
+          },
+          {
+            field: 'deletedAt',
+            oldValue: null,
+            newValue: new Date(),
+            changeType: 'update',
+          },
+        ],
         security: {
           riskLevel: 'high',
           authMethod: 'jwt',

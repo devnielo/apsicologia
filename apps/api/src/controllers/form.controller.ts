@@ -261,7 +261,7 @@ export class FormController {
         status: 'success',
         changes: Object.keys(updateData).map(field => ({
           field,
-          oldValue: originalData[field],
+          oldValue: (originalData as any)[field],
           newValue: form.get(field),
           changeType: 'update',
         })),
@@ -459,7 +459,7 @@ export class FormController {
           },
           {
             field: 'submittedAt',
-            newValue: formResponse.submittedAt,
+            newValue: formResponse.createdAt,
             changeType: 'create',
           },
         ],

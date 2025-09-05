@@ -593,19 +593,19 @@ async function seedDatabase() {
       await user.save();
 
       createdProfessionals.push(professional);
-      logger.info(`Created professional: ${professional.personalInfo.firstName} ${professional.personalInfo.lastName}`);
+      logger.info(`Created professional: ${profData.profile.name}`);
     }
 
     // Create patients and their users
     const createdPatients = [];
-    for (const patientData of patientData) {
+    for (const patientDataItem of patientData) {
       // Create user for patient
       const hashedPassword = await bcrypt.hash('Patient2024!', env.BCRYPT_ROUNDS);
       const user = new User({
-        email: patientData.contactInfo.email,
+        email: patientDataItem.contactInfo.email,
         passwordHash: hashedPassword,
-        name: `${patientData.personalInfo.firstName} ${patientData.personalInfo.lastName}`,
-        phone: patientData.contactInfo.phone,
+        name: `${patientDataItem.personalInfo.firstName} ${patientDataItem.personalInfo.lastName}`,
+        phone: patientDataItem.contactInfo.phone,
         role: 'patient',
         isActive: true,
       });
@@ -613,10 +613,10 @@ async function seedDatabase() {
 
       // Assign professionals to patients
       const assignedProfessionals = [createdProfessionals[0]._id]; // Assign to first professional
-      patientData.clinicalInfo.assignedProfessionals = assignedProfessionals;
+      patientDataItem.clinicalInfo.assignedProfessionals = assignedProfessionals;
 
       // Create patient
-      const patient = new Patient(patientData);
+      const patient = new Patient(patientDataItem);
       await patient.save();
 
       // Link user to patient
@@ -629,8 +629,8 @@ async function seedDatabase() {
 
     // Create services
     const createdServices = [];
-    for (const serviceData of serviceData) {
-      const service = new Service(serviceData);
+    for (const serviceDataItem of serviceData) {
+      const service = new Service(serviceDataItem);
       await service.save();
       createdServices.push(service);
       logger.info(`Created service: ${service.name}`);
@@ -638,8 +638,8 @@ async function seedDatabase() {
 
     // Create rooms
     const createdRooms = [];
-    for (const roomData of roomData) {
-      const room = new Room(roomData);
+    for (const roomDataItem of roomData) {
+      const room = new Room(roomDataItem);
       await room.save();
       createdRooms.push(room);
       logger.info(`Created room: ${room.name}`);

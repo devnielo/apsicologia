@@ -26,6 +26,7 @@
       "@/types/*": ["./src/types/*"],
       "@/utils/*": ["./src/utils/*"],
       "@/app/*": ["./src/app/*"],
+      "@shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [

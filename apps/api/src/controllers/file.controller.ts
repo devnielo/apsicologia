@@ -19,7 +19,7 @@ import sharp from 'sharp';
 const minioClient = new MinioClient({
   endPoint: config.MINIO_ENDPOINT || 'localhost',
   port: config.MINIO_PORT || 9000,
-  useSSL: config.MINIO_USE_SSL === 'true',
+  useSSL: config.MINIO_USE_SSL || false,
   accessKey: config.MINIO_ACCESS_KEY || 'minioadmin',
   secretKey: config.MINIO_SECRET_KEY || 'minioadmin',
 });

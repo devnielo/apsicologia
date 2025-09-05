@@ -202,3 +202,38 @@ export const TREATMENT_FREQUENCY_LABELS = {
   [TREATMENT_FREQUENCY.MONTHLY]: 'Mensual',
   [TREATMENT_FREQUENCY.AS_NEEDED]: 'Según necesidad',
 } as const;
+
+// Professional specialties
+export const PROFESSIONAL_SPECIALTIES = [
+  'Psicología Clínica',
+  'Psicología Infantil',
+  'Psicología de Pareja',
+  'Psicología Familiar',
+  'Neuropsicología',
+  'Psicología Forense',
+  'Psicología Educativa',
+  'Psicología del Deporte',
+  'Psicología Organizacional',
+  'Terapia Cognitivo-Conductual',
+  'Terapia Humanista',
+  'Terapia Sistémica',
+  'EMDR',
+  'Mindfulness',
+  'Terapia Gestalt',
+  'Psicoanálisis',
+  'Terapia Breve',
+  'Terapia de Grupo',
+  'Arteterapia',
+  'Musicoterapia',
+] as const;
+
+// Professional status options
+export const PROFESSIONAL_STATUS_OPTIONS = [
+  { value: 'active', label: 'Activo' },
+  { value: 'inactive', label: 'Inactivo' },
+  { value: 'on_leave', label: 'De baja' },
+  { value: 'suspended', label: 'Suspendido' },
+] as const;
+
+export type ProfessionalSpecialty = typeof PROFESSIONAL_SPECIALTIES[number];
+export type ProfessionalStatusOption = typeof PROFESSIONAL_STATUS_OPTIONS[number]['value'];

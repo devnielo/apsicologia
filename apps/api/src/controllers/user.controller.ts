@@ -461,8 +461,9 @@ export class UserController {
 
       let message: string;
       let action: string;
+      const isPermanentDelete = permanent === 'true';
 
-      if (permanent === 'true') {
+      if (isPermanentDelete) {
         // Check if user has related data that would prevent deletion
         // This is where you'd check for appointments, payments, etc.
         // For now, we'll just mark as deleted

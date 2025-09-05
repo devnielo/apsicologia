@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { useDebounce } from '../../../hooks/useDebounce';
+import { useDebounce } from '@/hooks/use-debounce';
 
 // Types
 interface PatientsFilters {

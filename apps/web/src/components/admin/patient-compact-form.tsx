@@ -185,7 +185,7 @@ export function PatientCompactForm({
         marketingConsented: patient.gdprConsent?.marketingCommunications?.consented || false,
       },
       status: patient.status || 'active',
-      tags: Array.isArray(patient.tags) ? patient.tags.filter(tag => typeof tag === 'string') : [],
+      tags: Array.isArray(patient.tags) ? patient.tags.filter((tag: any) => typeof tag === 'string') : [],
       adminNotes: patient.administrativeNotes?.[0]?.content || '',
     } : {
       personalInfo: {

@@ -27,9 +27,17 @@ export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
-  // Check if user is already logged in
+  // Ensure we're on the client side before accessing browser APIs
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Check if user is already logged in - only on client side
+  useEffect(() => {
+    if (!isClient) return;
+    
     const token = document.cookie
       .split('; ')
       .find(row => row.startsWith('auth-token='))
@@ -53,7 +61,7 @@ export default function LoginPage() {
         document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       }
     }
-  }, [router]);
+  }, [router, isClient]);
 
   const {
     register,
@@ -70,30 +78,32 @@ export default function LoginPage() {
       
       // Esperar un momento para que el contexto actualice el localStorage
       setTimeout(() => {
-        // Get user data from localStorage to determine redirect
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          // Redirect based on user role
-          switch (user.role) {
-            case 'admin':
-              router.push('/admin/dashboard');
-              break;
-            case 'professional':
-              router.push('/dashboard');
-              break;
-            case 'reception':
-              router.push('/dashboard');
-              break;
-            case 'patient':
-              router.push('/dashboard');
-              break;
-            default:
-              router.push('/dashboard');
+        if (typeof window !== 'undefined') {
+          // Get user data from localStorage to determine redirect
+          const userData = localStorage.getItem('user');
+          if (userData) {
+            const user = JSON.parse(userData);
+            // Redirect based on user role
+            switch (user.role) {
+              case 'admin':
+                router.push('/admin/dashboard');
+                break;
+              case 'professional':
+                router.push('/dashboard');
+                break;
+              case 'reception':
+                router.push('/dashboard');
+                break;
+              case 'patient':
+                router.push('/dashboard');
+                break;
+              default:
+                router.push('/dashboard');
+            }
+          } else {
+            // Fallback if no user data
+            router.push('/dashboard');
           }
-        } else {
-          // Fallback if no user data
-          router.push('/dashboard');
         }
       }, 100); // Pequeño delay para asegurar que el localStorage se actualice
     } catch (error: any) {
@@ -148,7 +158,7 @@ export default function LoginPage() {
                 type="email"
                 id="email"
                 className="medical-input"
-                placeholder="admin@arribapsicologia.com"
+                placeholder="Tu correo electrónico"
                 disabled={isSubmitting}
               />
               {errors.email && (
@@ -167,8 +177,9 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   className="medical-input pr-10"
-                  placeholder="••••••••"
+                  placeholder="Tu contraseña"
                   disabled={isSubmitting}
+                  autoComplete="on"
                 />
                 <button
                   type="button"

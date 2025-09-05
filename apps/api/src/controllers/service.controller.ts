@@ -479,7 +479,20 @@ export class ServiceController {
 
       // Update settings
       if (updateData.settings) {
-        service.settings = { ...service.settings, ...updateData.settings };
+        const updatedSettings = { ...service.settings };
+        Object.keys(updateData.settings).forEach(key => {
+          if (key === 'intakeFormId' && updateData.settings![key as keyof typeof updateData.settings]) {
+            const value = updateData.settings![key as keyof typeof updateData.settings];
+            if (typeof value === 'string') {
+              updatedSettings.intakeFormId = new Types.ObjectId(value);
+            } else if (value && typeof value === 'object' && 'toString' in value) {
+              updatedSettings.intakeFormId = value as Types.ObjectId;
+            }
+          } else {
+            (updatedSettings as any)[key] = updateData.settings![key as keyof typeof updateData.settings];
+          }
+        });
+        service.settings = updatedSettings;
       }
 
       // Update preparation
@@ -573,8 +586,17 @@ export class ServiceController {
         });
       }
 
-      await service.addProfessional(new Types.ObjectId(professionalId));
-      await professional.addService(new Types.ObjectId(serviceId));
+      // Add professional to service
+      if (!service.availableTo.includes(new Types.ObjectId(professionalId))) {
+        service.availableTo.push(new Types.ObjectId(professionalId));
+        await service.save();
+      }
+      
+      // Add service to professional
+      if (!professional.services.includes(new Types.ObjectId(serviceId))) {
+        professional.services.push(new Types.ObjectId(serviceId));
+        await professional.save();
+      }
 
       res.status(200).json({
         success: true,
@@ -615,8 +637,13 @@ export class ServiceController {
         });
       }
 
-      await service.removeProfessional(new Types.ObjectId(professionalId));
-      await professional.removeService(new Types.ObjectId(serviceId));
+      // Remove professional from service
+      service.availableTo = service.availableTo.filter(id => !id.equals(new Types.ObjectId(professionalId)));
+      await service.save();
+      
+      // Remove service from professional
+      professional.services = professional.services.filter(id => !id.equals(new Types.ObjectId(serviceId)));
+      await professional.save();
 
       res.status(200).json({
         success: true,
@@ -768,7 +795,10 @@ export class ServiceController {
         });
       }
 
-      await service.softDelete();
+      // Soft delete - mark as inactive and set deletedAt
+      service.isActive = false;
+      service.deletedAt = new Date();
+      await service.save();
 
       // Log service deletion
       await AuditLog.create({

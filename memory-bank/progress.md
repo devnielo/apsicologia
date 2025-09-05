@@ -675,6 +675,122 @@ const transformMedicalHistoryArrays = (data: any) => {
 **🔧 Frontend - PreferencesSection.tsx:**
 - ✅ **Sección de citas corregida:** Eliminada edición de duración y formato de sesión (ahora derivados del servicio)
 
+#### **14. Professional Availability Data Handling - Sistema de Disponibilidad de Profesionales (✅ COMPLETADO - Septiembre 5, 2025)**
+
+**🎯 Objetivo Completado:** Resolución completa de problemas con el manejo de datos de disponibilidad de profesionales, incluyendo soporte para jornadas partidas (split shifts), persistencia de datos y corrección de errores de UI
+
+**🔍 Problemas Identificados y Resueltos:**
+
+**1. Transformación de Datos para Jornadas Partidas:**
+- ✅ **Problema:** La función `transformFrontendToBackend` solo procesaba el primer time slot de cada día, ignorando jornadas partidas
+- ✅ **Causa raíz:** Línea 72 usaba `day.timeSlots[0]` descartando slots adicionales
+- ✅ **Solución:** Refactorización completa para procesar todos los time slots de cada día
+- ✅ **Resultado:** Soporte completo para múltiples horarios por día (ej: 10:00-13:00 y 14:00-21:30)
+
+**2. Agrupamiento de Datos Backend a Frontend:**
+- ✅ **Problema:** `transformBackendToFrontend` no agrupaba correctamente múltiples entradas del mismo día
+- ✅ **Solución:** Implementación de Map para agrupar por `dayOfWeek` y reconstruir `timeSlots`
+- ✅ **Mejora:** Ordenamiento automático de time slots por hora de inicio
+
+**3. Persistencia de Datos en MongoDB:**
+- ✅ **Problema:** Backend devolvía 304 Not Modified, datos no se guardaban
+- ✅ **Causa:** Mongoose no detectaba cambios en arrays modificados con `Object.assign()`
+- ✅ **Solución:** Agregado `professional.markModified('weeklyAvailability')` antes del save
+- ✅ **Resultado:** Persistencia correcta de cambios en base de datos
+
+**4. Exportación de Módulos Shared:**
+- ✅ **Problema:** Error `Package subpath './utils/availability' is not defined by "exports"`
+- ✅ **Solución:** Agregada exportación específica en `package.json` del shared package
+- ✅ **Configuración:** `"./utils/availability": {"import": "./dist/utils/availability.js"}`
+
+**5. Corrección de UI - React Keys Duplicadas:**
+- ✅ **Problema:** Warning de React por keys duplicadas en jornadas partidas
+- ✅ **Solución:** Cambio de `key={dayAvailability.dayOfWeek}` a `key={dayAvailability.dayOfWeek}-${dayIndex}`
+- ✅ **Resultado:** Eliminación de warnings y renderizado correcto
+
+**6. Auto-reload de Datos en Modo Edición:**
+- ✅ **Problema:** Al eliminar todos los horarios, se recargaban automáticamente desde backend
+- ✅ **Causa:** useEffect con fallback que recargaba `professional.weeklyAvailability` en modo edición
+- ✅ **Solución:** Eliminación del fallback, respeto completo del `editData` incluso si está vacío
+- ✅ **Resultado:** Modo edición mantiene estado vacío hasta cambios explícitos
+
+**7. Visualización de Jornadas Partidas:**
+- ✅ **Problema:** Split shifts se mostraban como días separados en lugar de agrupados
+- ✅ **Causa:** Función `convertBackendToFrontend` local procesaba días individualmente
+- ✅ **Solución:** Uso directo de `transformBackendToFrontend` shared que maneja agrupamiento
+- ✅ **Resultado:** Visualización correcta de múltiples time slots por día
+
+**🔧 Funciones Implementadas:**
+
+**transformFrontendToBackend() - Refactorizada:**
+```typescript
+export function transformFrontendToBackend(frontendData: FrontendAvailability[]): BackendAvailability[] {
+  const result: BackendAvailability[] = [];
+  
+  frontendData.forEach(day => {
+    // Process each time slot for the day (supports split shifts)
+    day.timeSlots.forEach(slot => {
+      result.push({
+        dayOfWeek: day.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: true
+      });
+    });
+  });
+  
+  return result;
+}
+```
+
+**transformBackendToFrontend() - Mejorada:**
+```typescript
+export function transformBackendToFrontend(backendData: BackendAvailability[]): FrontendAvailability[] {
+  // Group backend data by dayOfWeek
+  const dayGroups = new Map<number, BackendAvailability[]>();
+  
+  backendData.forEach(day => {
+    if (!dayGroups.has(day.dayOfWeek)) {
+      dayGroups.set(day.dayOfWeek, []);
+    }
+    dayGroups.get(day.dayOfWeek)!.push(day);
+  });
+
+  // Transform each day group with sorted time slots
+  const result: FrontendAvailability[] = [];
+  dayGroups.forEach((dayEntries, dayOfWeek) => {
+    const timeSlots = dayEntries
+      .filter(entry => entry.isAvailable && entry.startTime && entry.endTime)
+      .map(entry => ({ startTime: entry.startTime, endTime: entry.endTime }))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    
+    result.push({ dayOfWeek, timeSlots });
+  });
+  
+  return result.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+}
+```
+
+**📊 Casos de Uso Soportados:**
+- ✅ **Horario simple:** Lunes 09:00-17:00
+- ✅ **Jornada partida:** Lunes 10:00-13:00 y 14:00-21:30
+- ✅ **Múltiples días:** Diferentes horarios por día de la semana
+- ✅ **Días sin disponibilidad:** Manejo correcto de días vacíos
+- ✅ **Edición dinámica:** Agregar/eliminar time slots en tiempo real
+
+**🧪 Testing Completado:**
+- ✅ **Transformación de datos:** Frontend ↔ Backend bidireccional
+- ✅ **Persistencia:** Guardado correcto en MongoDB
+- ✅ **UI/UX:** Visualización y edición sin errores
+- ✅ **Jornadas partidas:** Múltiples horarios por día funcionando
+- ✅ **Validación:** Rangos de tiempo y formatos correctos
+
+**📈 Resultado Final:**
+- ✅ **Sistema robusto:** Manejo completo de disponibilidades complejas
+- ✅ **UX mejorada:** Edición intuitiva sin recargas automáticas
+- ✅ **Código limpio:** Funciones shared reutilizables y bien documentadas
+- ✅ **Escalabilidad:** Soporte para patrones de disponibilidad complejos
+
 #### **14. Sistema de Creación de Pacientes con Validación Completa (✅ COMPLETADO - Septiembre 4, 2025)**
 
 **🎯 Objetivo Completado:** Implementación completa del formulario de creación de pacientes con validación robusta, campos obligatorios marcados visualmente, y experiencia de usuario consistente con la página de detalles

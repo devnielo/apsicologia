@@ -17,6 +17,8 @@ export interface IProfessional extends ITimestamps, ISoftDelete {
   bufferMinutes: number; // Time between appointments
   telehealthEnabled: boolean;
   isActive: boolean;
+  status: 'active' | 'inactive' | 'on_leave' | 'suspended';
+  isAcceptingNewPatients: boolean;
   color: string; // For calendar display
   avatar?: string;
   phone?: string;
@@ -39,6 +41,18 @@ export interface IProfessional extends ITimestamps, ISoftDelete {
   totalReviews: number;
   totalAppointments: number;
   completionRate: number;
+  stats: {
+    totalPatients: number;
+    activePatients: number;
+    totalAppointments: number;
+    completedAppointments: number;
+    cancelledAppointments: number;
+    noShowAppointments: number;
+    averageRating?: number;
+    totalReviews: number;
+    completionRate?: number;
+    totalRevenue?: number;
+  };
 }
 
 export interface IProfessionalCreateInput {
