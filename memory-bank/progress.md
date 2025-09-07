@@ -1,6 +1,6 @@
 # Progress Log - apsicologia Platform
 
-**Última actualización:** 2 de septiembre, 2025 - 12:36 PM
+**Última actualización:** 7 de septiembre, 2025 - 09:15 AM
 
 ## 🎯 Estado Actual: SISTEMA COMPLETO FRONTEND + BACKEND OPERATIVO
 
@@ -974,3 +974,69 @@ El sistema de gestión de sesiones ahora está completamente refactorizado sigui
 - Preparado para testing end-to-end y producción
 
 **¡El módulo de sesiones está perfeccionado y listo para uso clínico! 🚀**
+
+#### **15. Corrección de RoomsSection - Display y Cancel Button (✅ COMPLETADO - Septiembre 7, 2025)**
+
+**🎯 Objetivo Completado:** Resolución completa de problemas en el componente RoomsSection donde las salas asignadas no se mostraban correctamente y el botón cancelar no funcionaba
+
+**🔍 Problemas Identificados y Resueltos:**
+
+**1. Problema de Display de Salas:**
+- ✅ **Problema:** Las salas asignadas no se mostraban a pesar de estar presentes en los datos
+- ✅ **Causa raíz:** Inconsistencia en el manejo de IDs - MongoDB devuelve `_id` pero el componente solo buscaba `id`
+- ✅ **Solución:** Actualización de todas las referencias para soportar tanto `room._id` como `room.id`
+- ✅ **Impacto:** Compatibilidad completa con datos de MongoDB y respuestas de API
+
+**2. Problema del Botón Cancelar:**
+- ✅ **Problema:** El botón cancelar no salía del modo edición correctamente
+- ✅ **Causa:** Llamaba `onEdit(originalData)` en lugar de `onEdit(null)` para cancelar
+- ✅ **Solución:** Implementación de función `handleCancel()` que llama `onEdit(null)` siguiendo el patrón de ProfessionalInfoSection
+- ✅ **Resultado:** Cancelación correcta que sale del modo edición
+
+**🔧 Cambios Técnicos Implementados:**
+
+**Manejo Consistente de IDs:**
+```typescript
+// Antes: Solo buscaba room.id
+assignedRooms: professional?.assignedRooms?.map((room: any) => room.id || room) || []
+
+// Después: Soporte completo para ambos formatos
+assignedRooms: professional?.assignedRooms?.map((room: any) => room._id || room.id || room) || []
+```
+
+**Función handleCancel Corregida:**
+```typescript
+const handleCancel = () => {
+  setLocalData({
+    assignedRooms: professional?.assignedRooms?.map((room: any) => room.id || room) || [],
+    defaultRoom: professional?.defaultRoom?.id || professional?.defaultRoom || ''
+  });
+  onEdit(null); // Clave: null para salir del modo edición
+};
+```
+
+**UI Alineada con ProfessionalInfoSection:**
+- ✅ **Botones ghost:** Estilo consistente con otros componentes
+- ✅ **Iconos sin texto:** Botones compactos solo con iconos
+- ✅ **Colores contextuales:** Verde para guardar, gris para cancelar
+
+**🔧 Funciones Actualizadas:**
+- ✅ **getRoomById():** Busca por `_id` o `id` para compatibilidad completa
+- ✅ **getAssignedRoomsData():** Manejo robusto de IDs en modo vista/edición
+- ✅ **handleRoomToggle():** Soporte para ambos formatos de ID
+- ✅ **Checkboxes y SelectItems:** Uso consistente de `room._id || room.id`
+
+**🧪 Testing Completado:**
+- ✅ **Display de salas:** Las salas asignadas ahora se muestran correctamente
+- ✅ **Botón cancelar:** Sale correctamente del modo edición
+- ✅ **Edición de salas:** Agregar/quitar salas funciona sin errores
+- ✅ **Sala predeterminada:** Selección y visualización operativa
+- ✅ **Compatibilidad:** Funciona con datos de MongoDB y respuestas API
+
+**📊 Resultado Final:**
+- ✅ **RoomsSection completamente funcional:** Display y edición sin errores
+- ✅ **Patrón consistente:** Alineado con ProfessionalInfoSection para mantenibilidad
+- ✅ **Compatibilidad de datos:** Soporte robusto para diferentes formatos de ID
+- ✅ **UX mejorada:** Cancelación intuitiva y visualización correcta de datos
+
+**🎯 Estado:** RoomsSection ahora funciona perfectamente con el patrón establecido del resto de la aplicación

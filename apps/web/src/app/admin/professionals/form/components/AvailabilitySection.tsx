@@ -1,18 +1,12 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Save, Edit, X, Plus, Trash2, Clock, Calendar, CalendarDays } from 'lucide-react';
+import { Save, Edit, X, Plus, Trash2, Clock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import type { IProfessional } from '@shared/types/professional';
 import { transformBackendToFrontend } from '@shared/utils/availability';
 
@@ -29,14 +23,6 @@ interface WeeklyAvailability {
   timeSlots?: TimeSlot[];
 }
 
-interface Vacation {
-  startDate: Date;
-  endDate: Date;
-  reason?: string;
-  isRecurring?: boolean;
-  recurrencePattern?: string;
-}
-
 interface AvailabilitySectionProps {
   professional: IProfessional;
   isEditing: boolean;
@@ -45,6 +31,7 @@ interface AvailabilitySectionProps {
   onSave: (data: any) => void;
   validationErrors: string[];
   showValidation: boolean;
+  isCreateMode?: boolean;
 }
 
 const DAYS_OF_WEEK = [
@@ -83,6 +70,7 @@ export function AvailabilitySection({
   onSave,
   validationErrors,
   showValidation,
+  isCreateMode = false
 }: AvailabilitySectionProps) {
 
   const [localData, setLocalData] = useState<any[]>(() => {
@@ -93,39 +81,10 @@ export function AvailabilitySection({
     return convertBackendToFrontend(data);
   });
 
-  // Vacations state
-  const [localVacations, setLocalVacations] = useState<Vacation[]>(() => {
-    if (isEditing && editData?.vacations) {
-      return editData.vacations.map((v: any) => ({
-        ...v,
-        startDate: new Date(v.startDate),
-        endDate: new Date(v.endDate)
-      }));
-    }
-    return professional?.vacations?.map((v: any) => ({
-      ...v,
-      startDate: new Date(v.startDate),
-      endDate: new Date(v.endDate)
-    })) || [];
-  });
-
-  const [newVacation, setNewVacation] = useState<Partial<Vacation>>({
-    startDate: new Date(),
-    endDate: new Date(),
-    reason: '',
-    isRecurring: false,
-    recurrencePattern: ''
-  });
-
   const handleLocalChange = useCallback((updatedAvailability: any[]) => {
     setLocalData(updatedAvailability);
-    onEdit({ weeklyAvailability: updatedAvailability, vacations: localVacations });
-  }, [onEdit, localVacations]);
-
-  const handleVacationsChange = useCallback((updatedVacations: Vacation[]) => {
-    setLocalVacations(updatedVacations);
-    onEdit({ weeklyAvailability: localData, vacations: updatedVacations });
-  }, [onEdit, localData]);
+    onEdit(updatedAvailability);
+  }, [onEdit]);
 
   // Update localData when professional data or editing state changes
   useEffect(() => {
@@ -146,16 +105,9 @@ export function AvailabilitySection({
   }, [professional?.weeklyAvailability, isEditing, editData]);
 
   const handleEdit = () => {
-    const initialAvailability = convertBackendToFrontend(professional.weeklyAvailability || []);
-    const initialVacations = professional?.vacations?.map((v: any) => ({
-      ...v,
-      startDate: new Date(v.startDate),
-      endDate: new Date(v.endDate)
-    })) || [];
-    
-    setLocalData(initialAvailability);
-    setLocalVacations(initialVacations);
-    onEdit({ weeklyAvailability: initialAvailability, vacations: initialVacations });
+    const initialData = convertBackendToFrontend(professional.weeklyAvailability || []);
+    setLocalData(initialData);
+    onEdit(initialData);
   };
 
   const handleAddDay = useCallback((dayOfWeek: number) => {
@@ -226,44 +178,8 @@ export function AvailabilitySection({
   }, [localData, handleLocalChange]);
 
   const handleSave = useCallback(() => {
-    onSave({ weeklyAvailability: localData, vacations: localVacations });
-  }, [localData, localVacations, onSave]);
-
-  // Vacation handlers
-  const addVacation = () => {
-    if (newVacation.startDate && newVacation.endDate) {
-      const vacation: Vacation = {
-        startDate: newVacation.startDate,
-        endDate: newVacation.endDate,
-        reason: newVacation.reason || '',
-        isRecurring: newVacation.isRecurring || false,
-        recurrencePattern: newVacation.recurrencePattern || ''
-      };
-      
-      const updatedVacations = [...localVacations, vacation];
-      handleVacationsChange(updatedVacations);
-      
-      // Reset form
-      setNewVacation({
-        startDate: new Date(),
-        endDate: new Date(),
-        reason: '',
-        isRecurring: false,
-        recurrencePattern: ''
-      });
-    }
-  };
-
-  const removeVacation = (index: number) => {
-    const updatedVacations = localVacations.filter((_, i) => i !== index);
-    handleVacationsChange(updatedVacations);
-  };
-
-  const formatDateRange = (startDate: Date, endDate: Date) => {
-    const start = format(startDate, 'dd MMM yyyy', { locale: es });
-    const end = format(endDate, 'dd MMM yyyy', { locale: es });
-    return `${start} - ${end}`;
-  };
+    onSave(localData);
+  }, [localData, onSave]);
 
   const getDayLabel = (dayOfWeek: number) => {
     return DAYS_OF_WEEK.find(d => d.value === dayOfWeek)?.label || `Día ${dayOfWeek}`;
@@ -317,16 +233,9 @@ export function AvailabilitySection({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  // Reset to original data
-                  const originalAvailability = professional.weeklyAvailability || [];
-                  const originalVacations = professional?.vacations?.map((v: any) => ({
-                    ...v,
-                    startDate: new Date(v.startDate),
-                    endDate: new Date(v.endDate)
-                  })) || [];
-                  
-                  setLocalData(originalAvailability);
-                  setLocalVacations(originalVacations);
+                  // Reset to original availability data
+                  const originalData = professional.weeklyAvailability || [];
+                  setLocalData(originalData);
                   onEdit(null);
                 }}
                 className="text-muted-foreground hover:text-foreground"
@@ -499,166 +408,6 @@ export function AvailabilitySection({
           </div>
         )}
 
-      </div>
-
-      {/* Vacaciones y Ausencias */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            Vacaciones y Ausencias
-          </h3>
-        </div>
-
-        {/* Add New Vacation Form */}
-        {isEditing && (
-          <div className="p-4 border border-dashed border-border rounded-lg space-y-4 mb-4">
-            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Plus className="h-4 w-4 text-primary" />
-              Agregar Período de Vacaciones
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Start Date */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Fecha de Inicio</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {newVacation.startDate ? format(newVacation.startDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar fecha'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={newVacation.startDate}
-                      onSelect={(date) => setNewVacation(prev => ({ ...prev, startDate: date || new Date() }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* End Date */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Fecha de Fin</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {newVacation.endDate ? format(newVacation.endDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar fecha'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={newVacation.endDate}
-                      onSelect={(date) => setNewVacation(prev => ({ ...prev, endDate: date || new Date() }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Reason */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Motivo (Opcional)</Label>
-              <Textarea
-                placeholder="Vacaciones anuales, formación, etc."
-                value={newVacation.reason || ''}
-                onChange={(e) => setNewVacation(prev => ({ ...prev, reason: e.target.value }))}
-                className="resize-none"
-                rows={2}
-              />
-            </div>
-
-            {/* Recurring */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">¿Es recurrente?</Label>
-                <p className="text-xs text-muted-foreground">
-                  Se repetirá automáticamente cada año
-                </p>
-              </div>
-              <Switch
-                checked={newVacation.isRecurring || false}
-                onCheckedChange={(checked) => setNewVacation(prev => ({ ...prev, isRecurring: checked }))}
-              />
-            </div>
-
-            <Button
-              onClick={addVacation}
-              disabled={!newVacation.startDate || !newVacation.endDate}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Vacaciones
-            </Button>
-          </div>
-        )}
-
-        {/* Vacations List */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-foreground">
-            Períodos Programados ({localVacations.length})
-          </h4>
-          
-          {localVacations.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-border rounded-lg">
-              <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No hay vacaciones programadas
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {localVacations.map((vacation, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg bg-background"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CalendarDays className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">
-                        {formatDateRange(vacation.startDate, vacation.endDate)}
-                      </span>
-                      {vacation.isRecurring && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                          Recurrente
-                        </span>
-                      )}
-                    </div>
-                    {vacation.reason && (
-                      <p className="text-sm text-muted-foreground ml-6">
-                        {vacation.reason}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {isEditing && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeVacation(index)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -64,22 +64,24 @@ const profileImageBase64 = fs.readFileSync(profileImagePath, 'utf8').trim();
 // Simple connection
 const MONGODB_URI = 'mongodb://admin:password123@localhost:27017/apsicologia?authSource=admin';
 
-// Simple schemas
+// Import actual models for Professional to ensure proper schema validation
+// Use dynamic import for ES modules and fallback to simple schemas for others
+let Professional, Room;
+
+// Simple schemas for most models
 const userSchema = new mongoose.Schema({}, { strict: false });
-const professionalSchema = new mongoose.Schema({}, { strict: false });
 const patientSchema = new mongoose.Schema({}, { strict: false });
 const serviceSchema = new mongoose.Schema({}, { strict: false });
-const roomSchema = new mongoose.Schema({}, { strict: false });
 const appointmentSchema = new mongoose.Schema({}, { strict: false });
 const fileSchema = new mongoose.Schema({}, { strict: false });
 
 const User = mongoose.model('User', userSchema);
-const Professional = mongoose.model('Professional', professionalSchema);
 const Patient = mongoose.model('Patient', patientSchema);
 const Service = mongoose.model('Service', serviceSchema);
-const Room = mongoose.model('Room', roomSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 const File = mongoose.model('File', fileSchema);
+
+// We'll import Professional and Room models dynamically in the seedData function
 
 // Helper function to get random items from an array
 function getRandomItems(array, count) {
@@ -93,6 +95,22 @@ async function seedData() {
     console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
+
+    // Import Professional and Room models dynamically
+    try {
+      const professionalModule = await import('./src/models/Professional.js');
+      const roomModule = await import('./src/models/Room.js');
+      Professional = professionalModule.Professional;
+      Room = roomModule.Room;
+      console.log('✅ Imported Professional and Room models');
+    } catch (error) {
+      console.log('⚠️ Could not import ES modules, using fallback schemas');
+      // Fallback to simple schemas if import fails
+      const professionalSchema = new mongoose.Schema({}, { strict: false });
+      const roomSchema = new mongoose.Schema({}, { strict: false });
+      Professional = mongoose.model('Professional', professionalSchema);
+      Room = mongoose.model('Room', roomSchema);
+    }
 
     // First check and update admin user before clearing data
     let adminUser = await User.findOne({ email: 'admin@arribapsicologia.com' });
@@ -193,7 +211,7 @@ async function seedData() {
          bio: 'Doctora en Psicología Clínica con 8 años de experiencia',
          title: 'Psicóloga',
          yearsOfExperience: 8,
-         services: [],
+         services: [], // Will be updated after services are created
          defaultServiceDuration: 60,
          weeklyAvailability: [
           { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
@@ -273,7 +291,7 @@ async function seedData() {
          bio: 'Doctor en Psicología con 12 años de experiencia especializado en terapia infantil y familiar',
          title: 'Psicólogo',
          yearsOfExperience: 12,
-         services: [],
+         services: [], // Will be updated after services are created
          defaultServiceDuration: 60,
          weeklyAvailability: [
           { dayOfWeek: 1, startTime: '10:00', endTime: '18:00', isAvailable: true },
@@ -366,12 +384,13 @@ async function seedData() {
       {
         name: 'Terapia Online',
         description: 'Sesión de terapia psicológica mediante videollamada',
-        durationMinutes: 50,
+        durationMinutes: 55,
         price: 70,
         currency: 'EUR',
         color: '#3B82F6',
         category: 'Terapia',
         tags: ['online', 'videollamada', 'virtual'],
+        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop&crop=center',
         isActive: true,
         isOnlineAvailable: true,
         requiresApproval: false,
@@ -382,42 +401,29 @@ async function seedData() {
           discounts: []
         },
         settings: {
-          maxAdvanceBookingDays: 30,
-          minAdvanceBookingHours: 24,
-          allowSameDayBooking: false,
           bufferBefore: 5,
           bufferAfter: 5,
-          maxConcurrentBookings: 1,
-          requiresIntake: false
-        },
-        preparation: {
-          instructions: 'Asegúrese de tener una conexión estable a internet y un lugar privado',
-          requiredDocuments: [],
-          recommendedDuration: 5
-        },
-        followUp: {
-          instructions: 'Se enviará el enlace de la próxima sesión por email',
-          scheduledTasks: ['Seguimiento de objetivos'],
-          recommendedGap: 7
-        },
-        stats: {
-          totalBookings: 0,
-          completedBookings: 0,
-          cancelledBookings: 0,
-          totalRevenue: 0
-        },
-        createdAt: new Date(),
-        updatedAt: new Date()
+          allowCancellation: true,
+          cancellationDeadlineHours: 24,
+          allowRescheduling: true,
+          rescheduleDeadlineHours: 12,
+          maxAdvanceBookingDays: 90,
+          requiresConfirmation: false,
+          autoConfirm: true,
+          sendReminders: true,
+          reminderTimes: [24, 2] // hours before appointment
+        }
       },
       {
-        name: 'Terapia Presencial',
-        description: 'Sesión de terapia psicológica en consulta física (casos excepcionales)',
-        durationMinutes: 50,
+        name: 'Terapia Presencial - Alicante',
+        description: 'Sesión de terapia psicológica en consulta física en Alicante',
+        durationMinutes: 55,
         price: 80,
         currency: 'EUR',
         color: '#10B981',
         category: 'Terapia',
-        tags: ['presencial', 'consulta', 'fisica'],
+        tags: ['presencial', 'consulta', 'alicante', 'fisica'],
+        imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=300&fit=crop&crop=center',
         isActive: true,
         isOnlineAvailable: false,
         requiresApproval: true, // Requires approval as it's exceptional
@@ -428,38 +434,26 @@ async function seedData() {
           discounts: []
         },
         settings: {
-          maxAdvanceBookingDays: 15,
-          minAdvanceBookingHours: 48,
-          allowSameDayBooking: false,
-          bufferBefore: 10,
-          bufferAfter: 10,
-          maxConcurrentBookings: 1,
-          requiresIntake: true
-        },
-        preparation: {
-          instructions: 'Por favor, llegue 10 minutos antes de su cita. Uso de mascarilla obligatorio.',
-          requiredDocuments: ['DNI', 'Justificación para sesión presencial'],
-          recommendedDuration: 10
-        },
-        followUp: {
-          instructions: 'Se priorizará el retorno a modalidad online para próximas sesiones',
-          scheduledTasks: ['Evaluación necesidad presencial', 'Seguimiento de objetivos'],
-          recommendedGap: 7
-        },
-        stats: {
-          totalBookings: 0,
-          completedBookings: 0,
-          cancelledBookings: 0,
-          totalRevenue: 0
-        },
-        createdAt: new Date(),
-        updatedAt: new Date()
+          bufferBefore: 5,
+          bufferAfter: 5,
+          allowCancellation: true,
+          cancellationDeadlineHours: 48, // Longer cancellation deadline for in-person
+          allowRescheduling: true,
+          rescheduleDeadlineHours: 24,
+          maxAdvanceBookingDays: 60,
+          requiresConfirmation: true,
+          autoConfirm: false,
+          sendReminders: true,
+          reminderTimes: [48, 24, 2] // More reminders for in-person
+        }
       }
     ];
 
+    const createdServices = [];
     for (const serviceData of services) {
       const service = new Service(serviceData);
       await service.save();
+      createdServices.push(service);
       console.log(`💼 Created service: ${service.name}`);
     }
 
@@ -503,11 +497,30 @@ async function seedData() {
       }
     ];
 
+    const createdRooms = [];
     for (const roomData of rooms) {
       const room = new Room(roomData);
       await room.save();
+      createdRooms.push(room);
       console.log(`🏢 Created room: ${room.name}`);
     }
+
+    // Assign services and rooms to professionals after they are created
+    console.log('\n📋 Assigning services and rooms to professionals...');
+    
+    // Assign both services and rooms to professional1 (María García)
+    professional1.services = createdServices.map(service => service._id);
+    professional1.assignedRooms = [createdRooms[0]._id, createdRooms[2]._id]; // Consulta 1 + Sala Virtual
+    professional1.defaultRoom = createdRooms[0]._id; // Consulta 1 as default
+    await professional1.save();
+    console.log(`✅ Assigned ${createdServices.length} services and ${professional1.assignedRooms.length} rooms to ${professional1.name}`);
+
+    // Assign both services and rooms to professional2 (Carlos Rodríguez) 
+    professional2.services = createdServices.map(service => service._id);
+    professional2.assignedRooms = [createdRooms[1]._id, createdRooms[2]._id]; // Consulta 2 + Sala Virtual
+    professional2.defaultRoom = createdRooms[1]._id; // Consulta 2 as default
+    await professional2.save();
+    console.log(`✅ Assigned ${createdServices.length} services and ${professional2.assignedRooms.length} rooms to ${professional2.name}`);
 
     // Crear 3 profesionales adicionales primero
     const professionalNames = [
@@ -541,12 +554,12 @@ async function seedData() {
         name: `${prof.title} ${prof.firstName} ${prof.lastName}`,
         email: email,
         phone: profUser.phone,
-        licenseNumber: `PSI-${2020 + i}-00${i + 3}`,
+        licenseNumber: `PSI-${2020 + i}-00${3 + i}`,
         specialties: prof.specialties,
         bio: `${prof.title} con ${prof.experience} años de experiencia`,
         title: prof.title,
         yearsOfExperience: prof.experience,
-        services: [],
+        services: createdServices.map(service => service._id),
         defaultServiceDuration: 60,
         weeklyAvailability: [
           { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
@@ -557,7 +570,8 @@ async function seedData() {
         ],
         bufferMinutes: Math.floor(Math.random() * 10) + 10,
         timezone: 'Europe/Madrid',
-        assignedRooms: [],
+        assignedRooms: [createdRooms[Math.floor(Math.random() * 2)]._id, createdRooms[2]._id], // Random physical room + virtual room
+        defaultRoom: createdRooms[Math.floor(Math.random() * 2)]._id, // Random physical room as default
         vacations: [],
         settings: {
           allowOnlineBooking: Math.random() > 0.5,

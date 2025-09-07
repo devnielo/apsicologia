@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Calendar, Clock, Phone, Mail, MapPin, Award, Users, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { User, Calendar, Clock, Phone, Mail, MapPin, Award, Users, Star, Camera, Upload, X } from 'lucide-react';
 import { base64ToImageUrl } from '../../../../../lib/utils';
 
 interface ProfessionalSidebarProps {
   professional: any;
+  onProfilePictureUpdate?: (base64Image: string) => void;
 }
 
 function calculateYearsOfExperience(startDate: string): number {
@@ -16,9 +19,11 @@ function calculateYearsOfExperience(startDate: string): number {
   return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365));
 }
 
-export function ProfessionalSidebar({ professional }: ProfessionalSidebarProps) {
+export function ProfessionalSidebar({ professional, onProfilePictureUpdate }: ProfessionalSidebarProps) {
   const fullName = professional?.name || 'Profesional';
   const yearsOfExperience = professional?.yearsOfExperience || 0;
+  const [isEditingPhoto, setIsEditingPhoto] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const generateInitials = (name: string) => {
     return name
@@ -59,19 +64,112 @@ export function ProfessionalSidebar({ professional }: ProfessionalSidebarProps) 
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona un archivo de imagen válido');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo es demasiado grande. Máximo 5MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setPreviewImage(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSavePhoto = () => {
+    if (previewImage && onProfilePictureUpdate) {
+      onProfilePictureUpdate(previewImage);
+      setIsEditingPhoto(false);
+      setPreviewImage(null);
+    }
+  };
+
+  const handleCancelPhoto = () => {
+    setIsEditingPhoto(false);
+    setPreviewImage(null);
+  };
+
   return (
     <div className="w-80 space-y-4">
       {/* Professional Avatar and Basic Info */}
       <div className="text-center p-3 border-b border-border/30">
-        <Avatar className="h-16 w-16 mx-auto mb-3">
-          <AvatarImage 
-            src={professional?.profileImage ? base64ToImageUrl(professional.profileImage) : undefined} 
-            alt={fullName}
-          />
-          <AvatarFallback className="text-sm bg-primary/10 text-primary">
-            {generateInitials(fullName)}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative inline-block mb-3">
+          <Avatar className="h-16 w-16">
+            <AvatarImage 
+              src={previewImage || (professional?.avatar ? base64ToImageUrl(professional.avatar) : undefined)} 
+              alt={fullName}
+            />
+            <AvatarFallback className="text-sm bg-primary/10 text-primary">
+              {generateInitials(fullName)}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Photo Edit Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full p-0 bg-background border-2 border-background shadow-sm hover:bg-muted"
+            onClick={() => setIsEditingPhoto(true)}
+          >
+            <Camera className="h-3 w-3" />
+          </Button>
+        </div>
+        
+        {/* Photo Upload Modal */}
+        {isEditingPhoto && (
+          <div className="mb-3 p-3 border rounded-lg bg-muted/50">
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Actualizar foto de perfil</div>
+              
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="text-xs"
+              />
+              
+              {previewImage && (
+                <div className="flex justify-center">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={previewImage} alt="Preview" />
+                    <AvatarFallback>{generateInitials(fullName)}</AvatarFallback>
+                  </Avatar>
+                </div>
+              )}
+              
+              <div className="flex gap-2 justify-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelPhoto}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSavePhoto}
+                  disabled={!previewImage}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <h2 className="text-base font-semibold text-foreground mb-1">{fullName}</h2>
         <p className="text-sm text-muted-foreground mb-2">

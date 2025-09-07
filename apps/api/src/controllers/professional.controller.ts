@@ -57,12 +57,9 @@ interface CreateProfessionalRequest {
   };
 
   // Contact Information
-  contactInfo?: {
-    website?: string;
-    linkedin?: string;
-    twitter?: string;
-    instagram?: string;
-  };
+  phone?: string;
+  email?: string;
+  address?: string;
 
   // Billing
   billingSettings?: {
@@ -208,7 +205,7 @@ export class ProfessionalController {
         .skip(skip)
         .limit(limitNum)
         .populate('userId', 'email lastLogin twoFactorEnabled')
-        .populate('services', 'name description duration price')
+        .populate('services', 'name description durationMinutes price category imageUrl')
         .populate('assignedRooms', 'name type location capacity')
         .populate('defaultRoom', 'name type location');
 
@@ -261,7 +258,7 @@ export class ProfessionalController {
         isActive: true 
       })
         .populate('userId', 'email lastLogin twoFactorEnabled preferences')
-        .populate('services', 'name description duration price category')
+        .populate('services', 'name description durationMinutes price category imageUrl')
         .populate('assignedRooms', 'name type location capacity equipment')
         .populate('defaultRoom', 'name type location capacity equipment')
         .exec();
@@ -293,7 +290,9 @@ export class ProfessionalController {
           assignedRooms: professional.assignedRooms,
           status: professional.status,
           isAcceptingNewPatients: professional.isAcceptingNewPatients,
-          contactInfo: professional.contactInfo,
+          phone: professional.phone,
+          email: professional.email,
+          address: professional.address,
         };
       }
 
@@ -487,7 +486,9 @@ export class ProfessionalController {
             sms2h: professionalData.settings?.reminderSettings?.sms2h ?? false,
           },
         },
-        contactInfo: professionalData.contactInfo || {},
+        phone: professionalData.phone || '',
+        email: professionalData.email || '',
+        address: professionalData.address || '',
         billingSettings: {
           defaultPaymentMethod: professionalData.billingSettings?.defaultPaymentMethod || 'cash',
           acceptsOnlinePayments: professionalData.billingSettings?.acceptsOnlinePayments || false,
@@ -662,11 +663,19 @@ export class ProfessionalController {
         }
       }
 
+      // Handle assignedServices update
+      if (updateData.assignedServices) {
+        professional.assignedServices = updateData.assignedServices;
+        // Also update the services array for backward compatibility
+        professional.services = updateData.assignedServices.map((as: any) => as.serviceId);
+        delete updateData.assignedServices; // Remove to avoid double assignment
+      }
+
       // Apply updates (restrict certain fields based on role)
       if (authUser.role === 'professional') {
         // Professionals can only update certain fields
         const allowedFields = [
-          'bio', 'contactInfo', 'settings', 'weeklyAvailability',
+          'bio', 'phone', 'email', 'address', 'settings', 'weeklyAvailability',
           'isAcceptingNewPatients', 'maxPatientsPerDay'
         ];
         
@@ -751,7 +760,8 @@ export class ProfessionalController {
 
       // Populate and return updated professional
       await professional.populate([
-        { path: 'services', select: 'name description duration price' },
+        { path: 'services', select: 'name description durationMinutes price category imageUrl' },
+        { path: 'assignedServices.serviceId', select: 'name description durationMinutes price category imageUrl' },
         { path: 'assignedRooms', select: 'name type location' }
       ]);
 

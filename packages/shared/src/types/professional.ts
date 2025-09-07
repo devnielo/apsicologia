@@ -9,6 +9,11 @@ export interface IProfessional extends ITimestamps, ISoftDelete {
   specialties: string[];
   licenseNumber?: string;
   services: ObjectId[];
+  assignedServices?: {
+    serviceId: ObjectId;
+    customPrice?: number;
+    isActive: boolean;
+  }[];
   rooms: ObjectId[];
   weeklyAvailability: IWeeklyAvailability[];
   vacations: IDateRange[];
@@ -28,11 +33,6 @@ export interface IProfessional extends ITimestamps, ISoftDelete {
   yearsOfExperience?: number;
   education?: string[];
   certifications?: string[];
-  socialLinks?: {
-    website?: string;
-    linkedin?: string;
-    twitter?: string;
-  };
   consultationFee?: number;
   currency: string;
   acceptsOnlinePayments: boolean;
@@ -100,11 +100,6 @@ export interface IProfessionalUpdateInput {
   yearsOfExperience?: number;
   education?: string[];
   certifications?: string[];
-  socialLinks?: {
-    website?: string;
-    linkedin?: string;
-    twitter?: string;
-  };
   consultationFee?: number;
   acceptsOnlinePayments?: boolean;
   paymentMethods?: string[];

@@ -15,20 +15,28 @@ import type { IProfessional } from '@shared/types/professional';
 
 // Import section components
 import { ProfessionalSidebar } from './components/ProfessionalSidebar';
+import { StatsSection } from './components/StatsSection';
+// Import unified form components that support both create and edit modes
 import { ProfessionalInfoSection } from './components/ProfessionalInfoSection';
 import { AvailabilitySection } from './components/AvailabilitySection';
-import { ServicesSection } from './components/ServicesSection';
-import { StatsSection } from './components/StatsSection';
+import { ServicesSection } from '../form/components/ServicesSection';
+import { BillingSection } from '../form/components/BillingSection';
+import { RoomsSection } from './components/RoomsSection';
+import { ProfilePictureSection } from '../form/components/ProfilePictureSection';
+import { ScheduleSection } from '../form/components/ScheduleSection';
 
 type ValidationErrors = Record<string, string[]>;
 
 // Section names constants
 const SECTION_NAMES = {
   BASIC_INFO: 'basic_info',
-  CONTACT_INFO: 'contact_info',
   PROFESSIONAL_INFO: 'professional_info',
   AVAILABILITY: 'availability',
   SERVICES: 'services',
+  BILLING: 'billing',
+  ROOMS: 'rooms',
+  PROFILE_PICTURE: 'profile_picture',
+  SCHEDULE: 'schedule',
   SETTINGS: 'settings'
 } as const;
 
@@ -41,7 +49,16 @@ export default function ProfessionalDetailsPage() {
   const queryClient = useQueryClient();
   
   const [editingSection, setEditingSection] = useState<SectionName | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<{
+    personalInfo: any;
+    availability: any;
+    services: any[];
+    [key: string]: any;
+  }>({
+    personalInfo: {},
+    availability: [],
+    services: [],
+  });
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showValidation, setShowValidation] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
@@ -73,9 +90,14 @@ export default function ProfessionalDetailsPage() {
       // Extract the professional data from the API response
       const updatedProfessional = responseData.data?.professional || responseData.data;
       queryClient.setQueryData(['professional', params.id], updatedProfessional);
+      queryClient.invalidateQueries({ queryKey: ['professional', params.id] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
       setEditingSection(null);
-      setEditData({});
+      setEditData({
+        personalInfo: {},
+        availability: [],
+        services: [],
+      });
       setValidationErrors([]);
       setShowValidation(false);
       toast({
@@ -97,7 +119,11 @@ export default function ProfessionalDetailsPage() {
     if (initialData === null) {
       // Cancel editing
       setEditingSection(null);
-      setEditData({});
+      setEditData({
+        personalInfo: {},
+        availability: [],
+        services: [],
+      });
       setValidationErrors([]);
       setShowValidation(false);
     } else {
@@ -146,18 +172,13 @@ export default function ProfessionalDetailsPage() {
           };
           break;
           
-        case SECTION_NAMES.CONTACT_INFO:
-          structuredData = {
-            email: data.email,
-            phone: data.phone,
-            address: data.address
-          };
-          break;
           
         case SECTION_NAMES.PROFESSIONAL_INFO:
           structuredData = {
             bio: data.bio,
-            contactInfo: data.contactInfo || {},
+            phone: data.phone,
+            email: data.email,
+            address: data.address,
             settings: data.settings || {},
             weeklyAvailability: data.weeklyAvailability || [],
             isAcceptingNewPatients: data.isAcceptingNewPatients,
@@ -169,23 +190,25 @@ export default function ProfessionalDetailsPage() {
           // Transform frontend format to backend format using shared utilities
           const { transformFrontendToBackend } = await import('@shared/utils/availability');
           
-          // Ensure data is in the correct format for transformation
+          // Handle both availability and vacations data
           let availabilityData = [];
-          if (Array.isArray(data)) {
-            availabilityData = data;
-          } else if (data && Array.isArray(data.weeklyAvailability)) {
+          let vacationsData = [];
+          
+          if (data && data.weeklyAvailability) {
             availabilityData = data.weeklyAvailability;
-          } else if (data && typeof data === 'object') {
-            // If data is an object with availability properties, extract them
-            availabilityData = Object.values(data).filter(item => 
-              item && typeof item === 'object' && 'dayOfWeek' in item
-            );
+          } else if (Array.isArray(data)) {
+            availabilityData = data;
+          }
+          
+          if (data && data.vacations) {
+            vacationsData = data.vacations;
           }
           
           const transformedAvailability = transformFrontendToBackend(availabilityData);
 
           structuredData = {
             weeklyAvailability: transformedAvailability,
+            vacations: vacationsData,
             timeZone: (data && data.timeZone) || 'Europe/Madrid',
             bufferTime: (data && data.bufferTime) || 10
           };
@@ -197,9 +220,34 @@ export default function ProfessionalDetailsPage() {
           };
           break;
           
+        case SECTION_NAMES.BILLING:
+          structuredData = {
+            consultationFee: data.consultationFee || 0,
+            currency: data.currency || 'EUR',
+            acceptsOnlinePayments: data.acceptsOnlinePayments || false,
+            paymentMethods: data.paymentMethods || []
+          };
+          break;
+          
+          
+        case SECTION_NAMES.SCHEDULE:
+          structuredData = {
+            maxPatientsPerDay: data.maxPatientsPerDay || 8,
+            bufferMinutes: data.breakBetweenSessions || 15,
+            weeklyAvailability: data.weeklySchedule || []
+          };
+          break;
+          
+        case SECTION_NAMES.PROFILE_PICTURE:
+          structuredData = {
+            avatar: data.profilePicture || null
+          };
+          break;
+          
         case SECTION_NAMES.SETTINGS:
           structuredData = {
-            ...data
+            ...editData,
+            settings: data.settings || {}
           };
           break;
           
@@ -216,7 +264,11 @@ export default function ProfessionalDetailsPage() {
       });
       
       setEditingSection(null);
-      setEditData({});
+      setEditData({
+        personalInfo: {},
+        availability: [],
+        services: [],
+      });
       setValidationErrors([]);
       setShowValidation(false);
       
@@ -236,7 +288,11 @@ export default function ProfessionalDetailsPage() {
 
   const handleCancel = () => {
     setEditingSection(null);
-    setEditData({});
+    setEditData({
+      personalInfo: {},
+      availability: [],
+      services: [],
+    });
     setValidationErrors([]);
     setShowValidation(false);
   };
@@ -292,7 +348,10 @@ export default function ProfessionalDetailsPage() {
           </Button>
         </div>
         <div className="flex-1 overflow-hidden p-4">
-          <ProfessionalSidebar professional={professionalData} />
+          <ProfessionalSidebar 
+            professional={professionalData} 
+            onProfilePictureUpdate={(base64Image) => handleSave(SECTION_NAMES.PROFILE_PICTURE, { avatar: base64Image })}
+          />
         </div>
       </div>
 
@@ -328,10 +387,10 @@ export default function ProfessionalDetailsPage() {
           <div className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <div className="border-b border-border/30 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-                <div className="flex space-x-8 px-1">
+                <div className="flex space-x-6 px-1 overflow-x-auto">
                   <button
                     onClick={() => setActiveTab('info')}
-                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
                       activeTab === 'info'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -341,7 +400,7 @@ export default function ProfessionalDetailsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('availability')}
-                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
                       activeTab === 'availability'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -351,7 +410,7 @@ export default function ProfessionalDetailsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('services')}
-                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
                       activeTab === 'services'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -360,8 +419,28 @@ export default function ProfessionalDetailsPage() {
                     Servicios
                   </button>
                   <button
+                    onClick={() => setActiveTab('billing')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
+                      activeTab === 'billing'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Facturación
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('rooms')}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
+                      activeTab === 'rooms'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    }`}
+                  >
+                    Salas
+                  </button>
+                  <button
                     onClick={() => setActiveTab('stats')}
-                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 ${
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
                       activeTab === 'stats'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -376,7 +455,7 @@ export default function ProfessionalDetailsPage() {
                 <ProfessionalInfoSection
                   professional={professionalData}
                   isEditing={editingSection === SECTION_NAMES.BASIC_INFO}
-                  editData={editData}
+                  editData={editingSection === SECTION_NAMES.BASIC_INFO ? editData : professionalData}
                   onEdit={(data) => handleEdit(SECTION_NAMES.BASIC_INFO, data)}
                   onSave={(data) => handleSave(SECTION_NAMES.BASIC_INFO, data)}
                   validationErrors={validationErrors}
@@ -390,7 +469,7 @@ export default function ProfessionalDetailsPage() {
                   isEditing={editingSection === SECTION_NAMES.AVAILABILITY}
                   editData={editingSection === SECTION_NAMES.AVAILABILITY ? editData : professionalData?.weeklyAvailability || []}
                   onEdit={(data) => handleEdit(SECTION_NAMES.AVAILABILITY, data)}
-                  onSave={(data) => handleSave(SECTION_NAMES.AVAILABILITY, { weeklyAvailability: data })}
+                  onSave={(data) => handleSave(SECTION_NAMES.AVAILABILITY, data)}
                   validationErrors={validationErrors}
                   showValidation={showValidation}
                 />
@@ -405,8 +484,37 @@ export default function ProfessionalDetailsPage() {
                   onSave={(data) => handleSave(SECTION_NAMES.SERVICES, { assignedServices: data })}
                   validationErrors={validationErrors}
                   showValidation={showValidation}
+                  isCreateMode={false}
                 />
               </TabsContent>
+
+
+              <TabsContent value="billing" className="mt-2">
+                <BillingSection
+                  professional={professionalData}
+                  isEditing={editingSection === SECTION_NAMES.BILLING}
+                  editData={editingSection === SECTION_NAMES.BILLING ? editData as any : { consultationFee: professionalData?.consultationFee || 0, currency: professionalData?.currency || 'EUR', acceptsOnlinePayments: professionalData?.acceptsOnlinePayments || false, paymentMethods: professionalData?.paymentMethods || [], defaultPaymentMethod: 'cash', acceptsInsurance: false, insuranceProviders: [] }}
+                  onEdit={(data) => handleEdit(SECTION_NAMES.BILLING, data)}
+                  onSave={(data) => handleSave(SECTION_NAMES.BILLING, { billingSettings: data })}
+                  validationErrors={validationErrors}
+                  showValidation={showValidation}
+                  isCreateMode={false}
+                />
+              </TabsContent>
+
+              <TabsContent value="rooms" className="mt-2">
+                <RoomsSection
+                  professional={professionalData}
+                  isEditing={editingSection === SECTION_NAMES.ROOMS}
+                  editData={editingSection === SECTION_NAMES.ROOMS ? editData as any : { assignedRooms: professionalData?.rooms?.map((room: any) => room?.id || room) || [], defaultRoom: null }}
+                  onEdit={(data) => handleEdit(SECTION_NAMES.ROOMS, data)}
+                  onSave={(data) => handleSave(SECTION_NAMES.ROOMS, data)}
+                  validationErrors={validationErrors}
+                  showValidation={showValidation}
+                />
+              </TabsContent>
+
+
 
               <TabsContent value="stats" className="mt-2">
                 <StatsSection

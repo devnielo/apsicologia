@@ -18,6 +18,11 @@ export interface IProfessionalDocument extends Document {
   
   // Services and pricing
   services: mongoose.Types.ObjectId[];
+  assignedServices: Array<{
+    serviceId: mongoose.Types.ObjectId;
+    customPrice?: number;
+    isActive: boolean;
+  }>;
   defaultServiceDuration: number; // minutes
   
   // Availability settings
@@ -62,13 +67,6 @@ export interface IProfessionalDocument extends Document {
     };
   };
   
-  // Contact and social
-  contactInfo: {
-    website?: string;
-    linkedin?: string;
-    twitter?: string;
-    instagram?: string;
-  };
   
   // Professional status
   status: 'active' | 'inactive' | 'on_leave' | 'suspended';
@@ -229,8 +227,22 @@ const ProfessionalSchema = new Schema<IProfessionalDocument>(
       type: [Schema.Types.ObjectId],
       ref: 'Service',
       default: [],
-      index: true,
     },
+    assignedServices: [{
+      serviceId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Service',
+        required: true
+      },
+      customPrice: {
+        type: Number,
+        min: 0
+      },
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    }],
     defaultServiceDuration: {
       type: Number,
       default: 50, // 50 minutes default session
@@ -301,13 +313,6 @@ const ProfessionalSchema = new Schema<IProfessionalDocument>(
       },
     },
     
-    // Contact and social
-    contactInfo: {
-      website: { type: String, trim: true },
-      linkedin: { type: String, trim: true },
-      twitter: { type: String, trim: true },
-      instagram: { type: String, trim: true },
-    },
     
     // Professional status
     status: {

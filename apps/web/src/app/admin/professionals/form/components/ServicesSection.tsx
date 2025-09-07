@@ -29,6 +29,7 @@ interface ServicesSectionProps {
   onSave: (data: ProfessionalService[]) => void;
   validationErrors: string[];
   showValidation: boolean;
+  isCreateMode?: boolean;
 }
 
 export function ServicesSection({
@@ -39,6 +40,7 @@ export function ServicesSection({
   onSave,
   validationErrors,
   showValidation,
+  isCreateMode = false
 }: ServicesSectionProps) {
   const [localData, setLocalData] = useState<ProfessionalService[]>(() => {
     if (isEditing && Array.isArray(editData) && editData.length > 0) {
