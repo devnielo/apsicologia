@@ -85,14 +85,18 @@ export function ProfessionalInfoSection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Información Profesional */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="flex items-center justify-between py-4 border-b border-border/30">
+        <div>
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
             <User className="h-4 w-4 text-primary" />
             Información Profesional
           </h3>
+          <p className="text-sm text-muted-foreground">
+            Información general del profesional, como nombre, título, email, teléfono, etc.
+          </p>
+        </div>
           {!isEditing ? (
             <Button
               variant="ghost"
@@ -116,17 +120,19 @@ export function ProfessionalInfoSection({
               }}
               className="text-muted-foreground hover:text-foreground"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
             </Button>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
                 className="text-green-600 hover:text-green-700"
               >
-                <Save className="h-4 w-4" />
+                <Save className="h-4 w-4 mr-1" />
+                Guardar
               </Button>
               <Button
                 variant="ghost"
@@ -137,14 +143,15 @@ export function ProfessionalInfoSection({
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-1" />
+                Cancelar
               </Button>
             </div>
           )}
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div className="space-y-1">
             <Label htmlFor="name">
               Nombre Completo <span className="text-red-500">*</span>
             </Label>
@@ -153,7 +160,7 @@ export function ProfessionalInfoSection({
                 id="name"
                 value={localData.name || ''}
                 onChange={(e) => handleLocalChange('name', e.target.value)}
-                className={getFieldError('name') ? 'border-red-500' : ''}
+                className={`h-8 text-sm ${getFieldError('name') ? 'border-red-500' : ''}`}
               />
             ) : (
               <p className="text-sm py-2">{professional?.name || 'No especificado'}</p>
@@ -163,7 +170,7 @@ export function ProfessionalInfoSection({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="title">
               Título Profesional
             </Label>
@@ -173,13 +180,14 @@ export function ProfessionalInfoSection({
                 value={localData.title || ''}
                 onChange={(e) => handleLocalChange('title', e.target.value)}
                 placeholder="ej. Psicólogo Clínico"
+                className="h-8 text-sm"
               />
             ) : (
               <p className="text-sm py-2">{professional?.title || 'No especificado'}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="email">
               Email <span className="text-red-500">*</span>
             </Label>
@@ -189,7 +197,7 @@ export function ProfessionalInfoSection({
                 type="email"
                 value={localData.email || ''}
                 onChange={(e) => handleLocalChange('email', e.target.value)}
-                className={getFieldError('email') ? 'border-red-500' : ''}
+                className={`h-8 text-sm ${getFieldError('email') ? 'border-red-500' : ''}`}
               />
             ) : (
               <p className="text-sm py-2">{professional?.email || 'No especificado'}</p>
@@ -199,7 +207,7 @@ export function ProfessionalInfoSection({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="phone">Teléfono</Label>
             {isEditing ? (
               <Input
@@ -207,13 +215,14 @@ export function ProfessionalInfoSection({
                 value={localData.phone || ''}
                 onChange={(e) => handleLocalChange('phone', e.target.value)}
                 placeholder="ej. +34 600 123 456"
+                className="h-8 text-sm"
               />
             ) : (
               <p className="text-sm py-2">{professional?.phone || 'No especificado'}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="yearsOfExperience">Años de Experiencia</Label>
             {isEditing ? (
               <Input
@@ -223,6 +232,7 @@ export function ProfessionalInfoSection({
                 max="50"
                 value={localData.yearsOfExperience || ''}
                 onChange={(e) => handleLocalChange('yearsOfExperience', parseInt(e.target.value) || 0)}
+                className="h-8 text-sm"
               />
             ) : (
               <p className="text-sm py-2">
@@ -234,7 +244,7 @@ export function ProfessionalInfoSection({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="licenseNumber">Número de Licencia</Label>
             {isEditing ? (
               <Input
@@ -242,20 +252,21 @@ export function ProfessionalInfoSection({
                 value={localData.licenseNumber || ''}
                 onChange={(e) => handleLocalChange('licenseNumber', e.target.value)}
                 placeholder="ej. COL-12345"
+                className="h-8 text-sm"
               />
             ) : (
               <p className="text-sm py-2">{professional?.licenseNumber || 'No especificado'}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="status">Estado</Label>
             {isEditing ? (
               <Select
                 value={localData.status || 'active'}
                 onValueChange={(value) => handleLocalChange('status', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Seleccionar estado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -273,7 +284,7 @@ export function ProfessionalInfoSection({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="isAcceptingNewPatients">¿Acepta nuevos pacientes?</Label>
             {isEditing ? (
               <div className="flex items-center space-x-2">
@@ -295,7 +306,7 @@ export function ProfessionalInfoSection({
         </div>
 
         {/* Bio Section */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <Label htmlFor="bio">Biografía</Label>
           {isEditing ? (
             <Textarea
@@ -304,6 +315,7 @@ export function ProfessionalInfoSection({
               onChange={(e) => handleLocalChange('bio', e.target.value)}
               placeholder="Descripción profesional, experiencia, especialidades..."
               rows={4}
+              className="text-sm"
             />
           ) : (
             <p className="text-sm py-2 whitespace-pre-wrap">
@@ -316,7 +328,7 @@ export function ProfessionalInfoSection({
         <div className="space-y-2">
           <Label>Especialidades</Label>
           {isEditing ? (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               <div className="flex gap-2">
                 <Select
                   value=""
@@ -329,7 +341,7 @@ export function ProfessionalInfoSection({
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Seleccionar especialidad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -354,6 +366,7 @@ export function ProfessionalInfoSection({
                       handleAddSpecialty();
                     }
                   }}
+                  className="h-8 text-sm"
                 />
                 <Button
                   type="button"
@@ -361,14 +374,16 @@ export function ProfessionalInfoSection({
                   size="sm"
                   onClick={handleAddSpecialty}
                   disabled={!newSpecialty}
+                  className="h-8 px-3 text-sm"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3 w-3 mr-1" />
+                  Agregar
                 </Button>
               </div>
               
               <div className="flex flex-wrap gap-2">
                 {(localData.specialties || []).map((specialty: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2.5 py-1 text-sm">
                     {specialty}
                     <button
                       type="button"
@@ -384,7 +399,7 @@ export function ProfessionalInfoSection({
           ) : (
             <div className="flex flex-wrap gap-2">
               {(professional?.specialties || []).map((specialty: string, index: number) => (
-                <Badge key={index} variant="secondary">
+                <Badge key={index} variant="secondary" className="px-2.5 py-1 text-sm">
                   {specialty}
                 </Badge>
               ))}
@@ -400,7 +415,7 @@ export function ProfessionalInfoSection({
           <Label>Idiomas</Label>
           <div className="flex flex-wrap gap-2">
             {(professional?.languages || []).map((language: string, index: number) => (
-              <Badge key={index} variant="outline">
+              <Badge key={index} variant="outline" className="px-2.5 py-1 text-sm">
                 {language === 'es' ? 'Español' : language === 'en' ? 'Inglés' : language}
               </Badge>
             ))}
@@ -410,6 +425,5 @@ export function ProfessionalInfoSection({
           </div>
         </div>
       </div>
-    </div>
   );
 }

@@ -49,50 +49,50 @@ export function StatsSection({ professional }: StatsSectionProps) {
   const patientRetentionRate = getPatientRetentionRate();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b border-border/30">
-        <BarChart3 className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">Estadísticas</h3>
+      <div className="flex items-center gap-2 pb-1.5 border-b border-border/30">
+        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-base font-semibold text-foreground">Estadísticas</h3>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 border border-border/50 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="p-3 border border-border/50 rounded-md">
           <div className="flex items-center space-x-2">
-            <Users className="h-5 w-5 text-blue-500" />
+            <Users className="h-4 w-4 text-blue-500" />
             <div>
-              <p className="text-2xl font-bold">{stats.totalPatients}</p>
+              <p className="text-xl font-bold">{stats.totalPatients}</p>
               <p className="text-sm text-muted-foreground">Pacientes Totales</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border border-border/50 rounded-lg">
+        <div className="p-3 border border-border/50 rounded-md">
           <div className="flex items-center space-x-2">
-            <TrendingUp className="h-5 w-5 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-green-500" />
             <div>
-              <p className="text-2xl font-bold">{stats.activePatients}</p>
+              <p className="text-xl font-bold">{stats.activePatients}</p>
               <p className="text-sm text-muted-foreground">Pacientes Activos</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border border-border/50 rounded-lg">
+        <div className="p-3 border border-border/50 rounded-md">
           <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-purple-500" />
+            <Calendar className="h-4 w-4 text-purple-500" />
             <div>
-              <p className="text-2xl font-bold">{stats.totalAppointments}</p>
+              <p className="text-xl font-bold">{stats.totalAppointments}</p>
               <p className="text-sm text-muted-foreground">Citas Totales</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border border-border/50 rounded-lg">
+        <div className="p-3 border border-border/50 rounded-md">
           <div className="flex items-center space-x-2">
-            <Star className="h-5 w-5 text-yellow-500" />
+            <Star className="h-4 w-4 text-yellow-500" />
             <div>
-              <p className="text-2xl font-bold">
+              <p className="text-xl font-bold">
                 {stats.averageRating ? stats.averageRating.toFixed(1) : 'N/A'}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -104,15 +104,15 @@ export function StatsSection({ professional }: StatsSectionProps) {
       </div>
 
       {/* Detailed Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Appointment Statistics */}
-        <div className="p-4 border border-border/50 rounded-lg">
-          <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/30">
-            <Calendar className="h-5 w-5" />
+        <div className="p-3 border border-border/50 rounded-md">
+          <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+            <Calendar className="h-4 w-4" />
             <h4 className="text-sm font-semibold">Estadísticas de Citas</h4>
           </div>
-          <div className="space-y-4">
-            <div className="space-y-3">
+          <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
@@ -120,13 +120,13 @@ export function StatsSection({ professional }: StatsSectionProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{stats.completedAppointments}</span>
-                  <Badge variant="outline">{formatPercentage(completionRate)}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0">{formatPercentage(completionRate)}</Badge>
                 </div>
               </div>
               <Progress value={completionRate} className="h-2" />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 text-red-500" />
@@ -134,13 +134,13 @@ export function StatsSection({ professional }: StatsSectionProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{stats.cancelledAppointments}</span>
-                  <Badge variant="outline">{formatPercentage(cancellationRate)}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0">{formatPercentage(cancellationRate)}</Badge>
                 </div>
               </div>
               <Progress value={cancellationRate} className="h-2" />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-orange-500" />
@@ -148,7 +148,7 @@ export function StatsSection({ professional }: StatsSectionProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{stats.noShowAppointments}</span>
-                  <Badge variant="outline">{formatPercentage(noShowRate)}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0">{formatPercentage(noShowRate)}</Badge>
                 </div>
               </div>
               <Progress value={noShowRate} className="h-2" />
@@ -157,16 +157,16 @@ export function StatsSection({ professional }: StatsSectionProps) {
         </div>
 
         {/* Patient Statistics */}
-        <div className="p-4 border border-border/50 rounded-lg">
-          <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/30">
-            <Users className="h-5 w-5" />
+        <div className="p-3 border border-border/50 rounded-md">
+          <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+            <Users className="h-4 w-4" />
             <h4 className="text-sm font-semibold">Estadísticas de Pacientes</h4>
           </div>
-          <div className="space-y-4">
-            <div className="space-y-3">
+          <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Tasa de Retención</span>
-                <Badge variant="outline">{formatPercentage(patientRetentionRate)}</Badge>
+                <Badge variant="outline" className="text-xs px-1.5 py-0">{formatPercentage(patientRetentionRate)}</Badge>
               </div>
               <Progress value={patientRetentionRate} className="h-2" />
               <p className="text-xs text-muted-foreground">
@@ -174,13 +174,13 @@ export function StatsSection({ professional }: StatsSectionProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="grid grid-cols-2 gap-3 pt-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.activePatients}</p>
+                <p className="text-xl font-bold text-green-600">{stats.activePatients}</p>
                 <p className="text-sm text-muted-foreground">Activos</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-muted-foreground">
+                <p className="text-xl font-bold text-muted-foreground">
                   {stats.totalPatients - stats.activePatients}
                 </p>
                 <p className="text-sm text-muted-foreground">Inactivos</p>
@@ -190,12 +190,12 @@ export function StatsSection({ professional }: StatsSectionProps) {
         </div>
 
         {/* Performance Metrics */}
-        <div className="p-4 border border-border/50 rounded-lg">
-          <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/30">
-            <TrendingUp className="h-5 w-5" />
+        <div className="p-3 border border-border/50 rounded-md">
+          <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+            <TrendingUp className="h-4 w-4" />
             <h4 className="text-sm font-semibold">Métricas de Rendimiento</h4>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {stats.averageRating && (
               <div className="flex items-center justify-between">
                 <span className="text-sm">Valoración Promedio</span>
@@ -213,6 +213,7 @@ export function StatsSection({ professional }: StatsSectionProps) {
               <span className="text-sm">Tasa de Finalización</span>
               <Badge 
                 variant={completionRate >= 80 ? 'default' : completionRate >= 60 ? 'secondary' : 'destructive'}
+                className="text-xs px-1.5 py-0"
               >
                 {formatPercentage(completionRate)}
               </Badge>
@@ -232,20 +233,20 @@ export function StatsSection({ professional }: StatsSectionProps) {
 
         {/* Revenue Statistics */}
         {stats.totalRevenue !== undefined && (
-          <div className="p-4 border border-border/50 rounded-lg">
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/30">
-              <DollarSign className="h-5 w-5" />
+          <div className="p-3 border border-border/50 rounded-md">
+            <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+              <DollarSign className="h-4 w-4" />
               <h4 className="text-sm font-semibold">Estadísticas Financieras</h4>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="text-center">
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(stats.totalRevenue)}
                 </p>
                 <p className="text-sm text-muted-foreground">Ingresos Totales</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4">
+              <div className="grid grid-cols-2 gap-3 pt-3">
                 <div className="text-center">
                   <p className="text-lg font-semibold">
                     {stats.completedAppointments > 0 
@@ -271,16 +272,16 @@ export function StatsSection({ professional }: StatsSectionProps) {
       </div>
 
       {/* Summary Insights */}
-      <div className="p-4 border border-border/50 rounded-lg">
-        <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border/30">
-          <BarChart3 className="h-5 w-5" />
+      <div className="p-3 border border-border/50 rounded-md">
+        <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+          <BarChart3 className="h-4 w-4" />
           <h4 className="text-sm font-semibold">Resumen de Rendimiento</h4>
         </div>
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <TrendingUp className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <p className="font-semibold text-green-800">Fortalezas</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="text-center p-3 bg-green-50 rounded-md">
+              <TrendingUp className="h-6 w-6 text-green-600 mx-auto mb-1.5" />
+              <p className="font-semibold text-green-800 text-sm">Fortalezas</p>
               <div className="text-sm text-green-700 mt-2 space-y-1">
                 {completionRate >= 80 && <p>• Alta tasa de finalización</p>}
                 {patientRetentionRate >= 70 && <p>• Buena retención de pacientes</p>}
@@ -289,9 +290,9 @@ export function StatsSection({ professional }: StatsSectionProps) {
               </div>
             </div>
 
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-              <p className="font-semibold text-yellow-800">Áreas de Mejora</p>
+            <div className="text-center p-3 bg-yellow-50 rounded-md">
+              <AlertCircle className="h-6 w-6 text-yellow-600 mx-auto mb-1.5" />
+              <p className="font-semibold text-yellow-800 text-sm">Áreas de Mejora</p>
               <div className="text-sm text-yellow-700 mt-2 space-y-1">
                 {completionRate < 60 && <p>• Mejorar tasa de finalización</p>}
                 {noShowRate > 15 && <p>• Reducir ausencias</p>}
@@ -300,9 +301,9 @@ export function StatsSection({ professional }: StatsSectionProps) {
               </div>
             </div>
 
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <Clock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <p className="font-semibold text-blue-800">Actividad</p>
+            <div className="text-center p-3 bg-blue-50 rounded-md">
+              <Clock className="h-6 w-6 text-blue-600 mx-auto mb-1.5" />
+              <p className="font-semibold text-blue-800 text-sm">Actividad</p>
               <div className="text-sm text-blue-700 mt-2 space-y-1">
                 <p>• {stats.totalAppointments} citas realizadas</p>
                 <p>• {stats.activePatients} pacientes activos</p>

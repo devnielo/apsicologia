@@ -19,11 +19,11 @@ import { StatsSection } from './components/StatsSection';
 // Import unified form components that support both create and edit modes
 import { ProfessionalInfoSection } from './components/ProfessionalInfoSection';
 import { AvailabilitySection } from './components/AvailabilitySection';
-import { ServicesSection } from '../form/components/ServicesSection';
-import { BillingSection } from '../form/components/BillingSection';
+import { BillingSection } from './components/BillingSection';
 import { RoomsSection } from './components/RoomsSection';
-import { ProfilePictureSection } from '../form/components/ProfilePictureSection';
-import { ScheduleSection } from '../form/components/ScheduleSection';
+import { ProfilePictureSection } from './components/ProfilePictureSection';
+import { ScheduleSection } from './components/ScheduleSection';
+import { ServicesSection } from './components/ServicesSection';
 
 type ValidationErrors = Record<string, string[]>;
 
@@ -385,7 +385,7 @@ export default function ProfessionalDetailsPage() {
         {/* Tabs Content - Scrollable */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="">
               <div className="border-b border-border/30 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
                 <div className="flex space-x-6 px-1 overflow-x-auto">
                   <button
@@ -484,7 +484,6 @@ export default function ProfessionalDetailsPage() {
                   onSave={(data) => handleSave(SECTION_NAMES.SERVICES, { assignedServices: data })}
                   validationErrors={validationErrors}
                   showValidation={showValidation}
-                  isCreateMode={false}
                 />
               </TabsContent>
 

@@ -229,7 +229,7 @@ export function AvailabilitySection({
     onSave({ weeklyAvailability: localData, vacations: localVacations });
   }, [localData, localVacations, onSave]);
 
-  // Vacation handlers
+  // Vacation handlers with auto-save
   const addVacation = () => {
     if (newVacation.startDate && newVacation.endDate) {
       const vacation: Vacation = {
@@ -241,7 +241,10 @@ export function AvailabilitySection({
       };
       
       const updatedVacations = [...localVacations, vacation];
-      handleVacationsChange(updatedVacations);
+      setLocalVacations(updatedVacations);
+      
+      // Auto-save immediately
+      onSave({ weeklyAvailability: localData, vacations: updatedVacations });
       
       // Reset form
       setNewVacation({
@@ -256,7 +259,10 @@ export function AvailabilitySection({
 
   const removeVacation = (index: number) => {
     const updatedVacations = localVacations.filter((_, i) => i !== index);
-    handleVacationsChange(updatedVacations);
+    setLocalVacations(updatedVacations);
+    
+    // Auto-save immediately
+    onSave({ weeklyAvailability: localData, vacations: updatedVacations });
   };
 
   const formatDateRange = (startDate: Date, endDate: Date) => {
@@ -282,11 +288,11 @@ export function AvailabilitySection({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Disponibilidad Semanal */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="py-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-1.5">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             Disponibilidad Semanal
           </h3>
@@ -301,7 +307,8 @@ export function AvailabilitySection({
               }}
               className="text-muted-foreground hover:text-foreground"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -311,7 +318,8 @@ export function AvailabilitySection({
                 onClick={handleSave}
                 className="text-green-600 hover:text-green-700"
               >
-                <Save className="h-4 w-4" />
+                <Save className="h-4 w-4 mr-1" />
+                Guardar
               </Button>
               <Button
                 variant="ghost"
@@ -331,28 +339,29 @@ export function AvailabilitySection({
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-1" />
+                Cancelar
               </Button>
             </div>
           )}
         </div>
         {localData.length === 0 ? (
-          <div className="text-center py-8">
-            <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">No hay horarios configurados</p>
+          <div className="text-center py-4">
+            <Clock className="h-6 w-6 mx-auto text-muted-foreground mb-1.5" />
+            <p className="text-sm text-muted-foreground mb-1">No hay horarios configurados</p>
             {isEditing && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Usa el formulario de abajo para agregar días de trabajo
               </p>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {localData.map((dayAvailability, dayIndex) => (
-              <div key={`${dayAvailability.dayOfWeek}-${dayIndex}`} className="border border-border/50 rounded-lg p-4 bg-background/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div key={`${dayAvailability.dayOfWeek}-${dayIndex}`} className="border border-border/50 rounded-sm p-2 bg-background/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
                     <h4 className="font-semibold text-sm">{getDayLabel(dayAvailability.dayOfWeek)}</h4>
                   </div>
                   {isEditing && (
@@ -367,12 +376,12 @@ export function AvailabilitySection({
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {(dayAvailability.timeSlots || []).map((slot: any, slotIndex: number) => (
                     <div key={slotIndex} className="bg-muted/30 rounded-md p-2">
                       {isEditing ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
                             <Select
                               value={slot.startTime}
                               onValueChange={(value) => handleTimeSlotChange(
@@ -382,12 +391,12 @@ export function AvailabilitySection({
                                 value
                               )}
                             >
-                              <SelectTrigger className="w-20 h-8 text-xs">
+                              <SelectTrigger className="w-20 h-7 text-xs flex-shrink-0">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-48">
                                 {TIME_OPTIONS.map((time) => (
-                                  <SelectItem key={time} value={time}>
+                                  <SelectItem key={time} value={time} className="text-xs">
                                     {time}
                                   </SelectItem>
                                 ))}
@@ -405,12 +414,12 @@ export function AvailabilitySection({
                                 value
                               )}
                             >
-                              <SelectTrigger className="w-20 h-8 text-xs">
+                              <SelectTrigger className="w-20 h-7 text-xs flex-shrink-0">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-48">
                                 {TIME_OPTIONS.map((time) => (
-                                  <SelectItem key={time} value={time}>
+                                  <SelectItem key={time} value={time} className="text-xs">
                                     {time}
                                   </SelectItem>
                                 ))}
@@ -421,7 +430,7 @@ export function AvailabilitySection({
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveTimeSlot(dayAvailability.dayOfWeek, slotIndex)}
-                              className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                              className="text-red-500 hover:text-red-700 h-5 w-5 p-0 flex-shrink-0"
                               disabled={dayAvailability.timeSlots.length === 1}
                             >
                               <X className="h-3 w-3" />
@@ -436,13 +445,13 @@ export function AvailabilitySection({
                         </div>
                       ) : (
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <Clock className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs font-medium">
                               {formatTimeRange(slot.startTime, slot.endTime)}
                             </span>
                           </div>
-                          <Badge variant="secondary" className="text-xs px-2 py-0">
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0">
                             {(() => {
                               const start = new Date(`2000-01-01T${slot.startTime}:00`);
                               const end = new Date(`2000-01-01T${slot.endTime}:00`);
@@ -460,7 +469,7 @@ export function AvailabilitySection({
                       variant="outline"
                       size="sm"
                       onClick={() => handleAddTimeSlot(dayAvailability.dayOfWeek)}
-                      className="w-full mt-2 h-8 text-xs"
+                      className="w-full mt-1 h-7 text-xs"
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Agregar Horario
@@ -473,17 +482,18 @@ export function AvailabilitySection({
         )}
 
         {isEditing && getAvailableDays().length > 0 && (
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium">Agregar Día</h4>
-            <div className="flex flex-wrap gap-2">
+          <div className="border-t pt-2 space-y-1.5">
+            <h4 className="text-sm font-medium">Agregar Día</h4>
+            <div className="flex flex-wrap gap-1">
               {getAvailableDays().map((day) => (
                 <Button
                   key={day.value}
                   variant="outline"
                   size="sm"
                   onClick={() => handleAddDay(day.value)}
+                  className="h-7 text-xs"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-3 w-3 mr-1" />
                   {day.label}
                 </Button>
               ))}
@@ -502,34 +512,34 @@ export function AvailabilitySection({
       </div>
 
       {/* Vacaciones y Ausencias */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="py-4 border-b border-border/30">
+        <div className="flex items-center justify-between mb-1.5">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-primary" />
             Vacaciones y Ausencias
           </h3>
         </div>
 
-        {/* Add New Vacation Form */}
+        {/* Add New Vacation Form - More Compact */}
         {isEditing && (
-          <div className="p-4 border border-dashed border-border rounded-lg space-y-4 mb-4">
+          <div className="p-2 border border-dashed border-border rounded-md space-y-2.5 mb-2.5">
             <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
               <Plus className="h-4 w-4 text-primary" />
-              Agregar Período de Vacaciones
+              Agregar Período
             </h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {/* Start Date */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Fecha de Inicio</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-start text-left font-normal h-8 text-sm"
                     >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {newVacation.startDate ? format(newVacation.startDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar fecha'}
+                      <CalendarDays className="mr-2 h-3 w-3" />
+                      {newVacation.startDate ? format(newVacation.startDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -544,16 +554,16 @@ export function AvailabilitySection({
               </div>
 
               {/* End Date */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-sm font-medium">Fecha de Fin</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-start text-left font-normal h-8 text-sm"
                     >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {newVacation.endDate ? format(newVacation.endDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar fecha'}
+                      <CalendarDays className="mr-2 h-3 w-3" />
+                      {newVacation.endDate ? format(newVacation.endDate, 'dd MMM yyyy', { locale: es }) : 'Seleccionar'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -568,24 +578,23 @@ export function AvailabilitySection({
               </div>
             </div>
 
-            {/* Reason */}
-            <div className="space-y-2">
+            {/* Reason - More Compact */}
+            <div className="space-y-1">
               <Label className="text-sm font-medium">Motivo (Opcional)</Label>
-              <Textarea
-                placeholder="Vacaciones anuales, formación, etc."
+              <Input
+                placeholder="Vacaciones, formación, etc."
                 value={newVacation.reason || ''}
                 onChange={(e) => setNewVacation(prev => ({ ...prev, reason: e.target.value }))}
-                className="resize-none"
-                rows={2}
+                className="h-8 text-sm"
               />
             </div>
 
-            {/* Recurring */}
+            {/* Recurring - More Compact */}
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-sm font-medium">¿Es recurrente?</Label>
+                <Label className="text-sm font-medium">¿Recurrente?</Label>
                 <p className="text-xs text-muted-foreground">
-                  Se repetirá automáticamente cada año
+                  Se repetirá cada año
                 </p>
               </div>
               <Switch
@@ -597,48 +606,48 @@ export function AvailabilitySection({
             <Button
               onClick={addVacation}
               disabled={!newVacation.startDate || !newVacation.endDate}
-              className="w-full"
+              className="w-full h-8 text-sm"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Vacaciones
+              <Plus className="h-3 w-3 mr-2" />
+              Agregar y Guardar
             </Button>
           </div>
         )}
 
-        {/* Vacations List */}
-        <div className="space-y-3">
+        {/* Vacations List - More Compact */}
+        <div className="space-y-1.5">
           <h4 className="text-sm font-medium text-foreground">
             Períodos Programados ({localVacations.length})
           </h4>
           
           {localVacations.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-border rounded-lg">
-              <CalendarDays className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
+            <div className="p-4 text-center border border-dashed border-border rounded-md">
+              <CalendarDays className="h-5 w-5 text-muted-foreground mx-auto mb-1.5" />
+              <p className="text-xs text-muted-foreground">
                 No hay vacaciones programadas
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               {localVacations.map((vacation, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg bg-background"
+                  className="flex items-center justify-between p-2.5 border border-border rounded-md bg-background"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CalendarDays className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <CalendarDays className="h-3 w-3 text-primary" />
+                      <span className="font-medium text-xs">
                         {formatDateRange(vacation.startDate, vacation.endDate)}
                       </span>
                       {vacation.isRecurring && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                           Recurrente
                         </span>
                       )}
                     </div>
                     {vacation.reason && (
-                      <p className="text-sm text-muted-foreground ml-6">
+                      <p className="text-xs text-muted-foreground ml-4">
                         {vacation.reason}
                       </p>
                     )}
@@ -649,9 +658,9 @@ export function AvailabilitySection({
                       variant="ghost"
                       size="sm"
                       onClick={() => removeVacation(index)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </div>

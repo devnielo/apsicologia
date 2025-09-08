@@ -371,7 +371,7 @@ export default function ProfessionalsPage() {
   }, [handleExportCSV]);
 
   const handleCreateNew = useCallback(() => {
-    router.push('/admin/professionals/form');
+    router.push('/admin/professionals/create');
   }, [router]);
 
   if (error) {

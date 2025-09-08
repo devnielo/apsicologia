@@ -244,11 +244,11 @@ export function ServicesSection({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Servicios Asignados */}
-      <div className="pb-4 border-b border-border/30">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="pb-2 border-b border-border/30">
+        <div className="flex items-center justify-between mb-1.5 py-4">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-primary" />
             Servicios Asignados
           </h3>
@@ -292,9 +292,10 @@ export function ServicesSection({
                 setLocalData(initialData);
                 onEdit(initialData);
               }}
-              className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+              className="text-muted-foreground hover:text-foreground"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
             </Button>
           ) : (
             <div className="flex gap-1">
@@ -302,9 +303,10 @@ export function ServicesSection({
                 variant="ghost"
                 size="sm"
                 onClick={handleSave}
-                className="text-green-600 hover:text-green-700 h-6 w-6 p-0"
+                className="text-green-600 hover:text-green-700"
               >
-                <Save className="h-4 w-4" />
+                <Save className="h-4 w-4 mr-1" />
+                Guardar
               </Button>
               <Button
                 variant="ghost"
@@ -332,173 +334,132 @@ export function ServicesSection({
                   setLocalData(originalData);
                   onEdit(null);
                 }}
-                className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
+                className="text-muted-foreground hover:text-foreground"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-1" />
+                Cancelar
               </Button>
             </div>
           )}
         </div>
 
-        {localData.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            No hay servicios asignados
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {localData.map((professionalService) => {
-              const service = getServiceById(professionalService.serviceId);
-              if (!service) return null;
-              
-              return (
-                <div key={`${service.id}-${professionalService.isActive}`} className="border rounded-lg p-4 bg-background">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        {service.imageUrl ? (
-                          <img 
-                            src={service.imageUrl} 
-                            alt={service.name}
-                            className="w-12 h-12 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div 
-                            className="w-12 h-12 rounded-lg flex items-center justify-center" 
-                            style={{ backgroundColor: service.color || '#6B7280' }}
-                          >
-                            <span className="text-white text-xs font-medium">
-                              {service.name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <h4 className="font-medium text-gray-900">{service.name}</h4>
-                          <p className="text-sm text-gray-500">{service.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveService(professionalService.serviceId)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        {professionalService.isActive ? (
-                          <Badge variant="default" className="text-xs px-2 py-0.5">
-                            Activo
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                            Inactivo
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span>Duración: {formatDuration(service.durationMinutes)}</span>
-                        <span>•</span>
-                        <span>Precio base: {formatPrice(service.price || 0)}</span>
-                        {professionalService.customPrice && (
-                          <>
-                            <span>•</span>
-                            <span className="font-medium text-foreground">
-                              Precio personalizado: {formatPrice(professionalService.customPrice)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      
-                      {isEditing && (
-                        <div className="mt-3 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={professionalService.isActive}
-                              onCheckedChange={(checked) => handleToggleActive(professionalService.serviceId)}
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              {professionalService.isActive ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={`price-${professionalService.serviceId}`} className="text-sm">
-                              Precio personalizado:
-                            </Label>
-                            <Input
-                              id={`price-${professionalService.serviceId}`}
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder={service.price?.toString() || '0'}
-                              value={professionalService.customPrice || ''}
-                              onChange={(e) => handleCustomPriceChange(professionalService.serviceId, e.target.value)}
-                              className="h-8 text-sm w-24"
-                            />
-                            <span className="text-sm text-muted-foreground">€</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveService(professionalService.serviceId)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {/* Aquí irían campos individuales si fuera necesario */}
+        </div>
 
-        {isEditing && getAvailableServicesToAdd().length > 0 && (
-          <div className="mt-4 p-3 border rounded-lg bg-muted/30">
-            <h4 className="text-xs font-medium mb-2">Agregar Servicio</h4>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedServiceId}
-                onValueChange={setSelectedServiceId}
-              >
-                <SelectTrigger className="flex-1 h-8 text-xs">
-                  <SelectValue placeholder="Seleccionar servicio..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAvailableServicesToAdd().map((service: any) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs">{service.name}</span>
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {service.category}
-                        </Badge>
+        {/* Services Section */}
+        <div className="space-y-2">
+          <Label>Servicios Asignados</Label>
+          {isEditing ? (
+            <div className="space-y-2.5">
+              <div className="flex gap-2">
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (value && !localData.some(ps => ps.serviceId === value)) {
+                      const newService: ProfessionalService = {
+                        serviceId: value,
+                        isActive: true,
+                      };
+                      const updatedData = [...localData, newService];
+                      setLocalData(updatedData);
+                      onEdit(updatedData);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Seleccionar servicio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableServicesToAdd().map((service: any) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {localData.map((professionalService) => {
+                  const service = getServiceById(professionalService.serviceId);
+                  if (!service) return null;
+
+                  return (
+                    <Badge key={professionalService.serviceId} variant="secondary" className="flex items-center gap-1 px-2.5 py-1 text-sm">
+                      {service.name}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveService(professionalService.serviceId)}
+                        className="ml-1 hover:text-red-500"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {localData.map((professionalService) => {
+                const service = getServiceById(professionalService.serviceId);
+                if (!service) return null;
+
+                return (
+                  <Badge key={professionalService.serviceId} variant="secondary" className="px-2.5 py-1 text-sm">
+                    {service.name}
+                  </Badge>
+                );
+              })}
+              {localData.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay servicios asignados</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Service Details Section - Only show when editing */}
+        {isEditing && localData.length > 0 && (
+          <div className="space-y-2">
+            <Label>Configuración de Servicios</Label>
+            <div className="space-y-2">
+              {localData.map((professionalService) => {
+                const service = getServiceById(professionalService.serviceId);
+                if (!service) return null;
+
+                return (
+                  <div key={professionalService.serviceId} className="p-3 border border-border rounded-md bg-muted/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-sm">{service.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={professionalService.isActive}
+                          onCheckedChange={(checked) => handleToggleActive(professionalService.serviceId)}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {professionalService.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleAddService}
-                disabled={!selectedServiceId}
-                size="sm"
-                className="h-8 px-3 text-xs"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Agregar
-              </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`price-${professionalService.serviceId}`} className="text-sm">
+                        Precio personalizado:
+                      </Label>
+                      <Input
+                        id={`price-${professionalService.serviceId}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder={service.price?.toString() || '0'}
+                        value={professionalService.customPrice || ''}
+                        onChange={(e) => handleCustomPriceChange(professionalService.serviceId, e.target.value)}
+                        className="h-8 text-sm w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">€</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
