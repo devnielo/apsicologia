@@ -139,7 +139,7 @@ export function ServiceSettingsSection({
     mutationFn: async (data: Partial<ServiceFormData>) => {
       if (!service?.id) throw new Error('Service ID is required');
       
-      const response = await api.put(`/services/${service.id}`, data);
+      const response = await api.services.update(service.id, data);
       return response.data;
     },
     onSuccess: (updatedService) => {

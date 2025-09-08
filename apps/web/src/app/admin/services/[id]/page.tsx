@@ -1,8 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { notFound } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import { Service, ServiceFormData } from '../types';
 import { ServiceSidebar } from '../components/ServiceSidebar';
@@ -36,7 +39,17 @@ const tabs: TabItem[] = [
   }
 ];
 
-export default function ServicePage({ params }: ServicePageProps) {
+export default function ServiceDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Role-based access control - only admin and reception can access service details
+  if (!user || !['admin', 'reception'].includes(user.role)) {
+    router.push('/admin/dashboard');
+    return null;
+  }
+
   const [activeTab, setActiveTab] = useState<TabKey>('info');
   const [editingSection, setEditingSection] = useState<TabKey | null>(null);
   const [editData, setEditData] = useState<Partial<ServiceFormData>>({});
@@ -50,8 +63,8 @@ export default function ServicePage({ params }: ServicePageProps) {
   } = useQuery({
     queryKey: ['service', params.id],
     queryFn: async () => {
-      const response = await api.get(`/services/${params.id}`);
-      return response.data;
+      const response = await api.services.get(params.id);
+      return response.data.data;
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 404
@@ -73,10 +86,17 @@ export default function ServicePage({ params }: ServicePageProps) {
     setActiveTab(section);
   }, []);
 
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: Partial<ServiceFormData>) => {
+      await api.services.update(params.id, data);
+    },
+  });
+
   const handleSave = useCallback((section: TabKey, data: Partial<ServiceFormData>) => {
-    setEditData(prev => ({ ...prev, ...data }));
+    updateMutation.mutate(data);
     setEditingSection(null);
-  }, []);
+  }, [updateMutation]);
 
   const handleCancel = useCallback(() => {
     setEditingSection(null);

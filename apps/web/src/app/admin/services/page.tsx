@@ -25,26 +25,39 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useAuth } from '@/lib/auth-context';
 
-// Types
-interface ServicePaginationState {
-  page: number;
-  limit: number;
-  total: number;
-}
-
-interface ServiceSortState {
+// Local types for table state
+type TableSortState = {
   field: string;
   order: 'asc' | 'desc';
 }
 
-interface ServiceTableFilters {
+type TableFilters = {
   [key: string]: any;
+  search?: string;
+  category?: string;
+  isActive?: boolean;
+  isOnlineAvailable?: boolean;
+  requiresApproval?: boolean;
+  isPubliclyBookable?: boolean;
+  currency?: string;
+  priceMin?: string;
+  priceMax?: string;
+  durationMin?: string;
+  durationMax?: string;
 }
 
 export default function ServicesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Role-based access control - only admin and reception can access services
+  if (!user || !['admin', 'reception'].includes(user.role)) {
+    router.push('/admin/dashboard');
+    return null;
+  }
 
   // State
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -58,16 +71,16 @@ export default function ServicesPage() {
     sortOrder: 'desc',
   });
   
-  const [tableFilters, setTableFilters] = useState<ServiceTableFilters>({});
+  const [tableFilters, setTableFilters] = useState<TableFilters>({});
   const [globalFilter, setGlobalFilter] = useState<string>('');
-  const [sorting, setSorting] = useState<ServiceSortState[]>([]);
+  const [sorting, setSorting] = useState<TableSortState[]>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
   
   // Debounce filters to avoid excessive API calls
   const debouncedFilters = useDebounce({ 
     ...tableFilters, 
     search: globalFilter 
-  }, 500);
+  } as TableFilters, 500);
 
   // Convert table filters to API format
   const apiFilters = useMemo(() => {
@@ -87,41 +100,44 @@ export default function ServicesPage() {
 
     // Handle column filters
     Object.keys(debouncedFilters).forEach(key => {
-      if (key !== 'search' && debouncedFilters[key] !== undefined && debouncedFilters[key] !== '') {
+      const filterKey = key as keyof TableFilters;
+      const filterValue = debouncedFilters[filterKey];
+      
+      if (key !== 'search' && filterValue !== undefined && filterValue !== '') {
         switch (key) {
           case 'category':
-            result.category = debouncedFilters[key];
+            result.category = filterValue as string;
             break;
           case 'isActive':
-            result.isActive = debouncedFilters[key];
+            result.isActive = filterValue as boolean;
             break;
           case 'isOnlineAvailable':
-            result.isOnlineAvailable = debouncedFilters[key];
+            result.isOnlineAvailable = filterValue as boolean;
             break;
           case 'requiresApproval':
-            result.requiresApproval = debouncedFilters[key];
+            result.requiresApproval = filterValue as boolean;
             break;
           case 'isPubliclyBookable':
-            result.isPubliclyBookable = debouncedFilters[key];
+            result.isPubliclyBookable = filterValue as boolean;
             break;
           case 'currency':
-            result.currency = debouncedFilters[key];
+            result.currency = filterValue as string;
             break;
           case 'priceMin':
-            result.priceMin = parseFloat(debouncedFilters[key]);
+            result.priceMin = parseFloat(filterValue as string);
             break;
           case 'priceMax':
-            result.priceMax = parseFloat(debouncedFilters[key]);
+            result.priceMax = parseFloat(filterValue as string);
             break;
           case 'durationMin':
-            result.durationMin = parseInt(debouncedFilters[key]);
+            result.durationMin = parseInt(filterValue as string);
             break;
           case 'durationMax':
-            result.durationMax = parseInt(debouncedFilters[key]);
+            result.durationMax = parseInt(filterValue as string);
             break;
           default:
             // Handle other filters generically
-            (result as any)[key] = debouncedFilters[key];
+            (result as any)[key] = filterValue;
         }
       }
     });
@@ -140,17 +156,15 @@ export default function ServicesPage() {
     queryKey: ['services', apiFilters],
     queryFn: async () => {
       console.log('🔄 Fetching services with filters:', apiFilters);
-      const response = await api.get('/services', { 
-        params: apiFilters 
-      });
+      const response = await api.services.list(apiFilters);
       console.log('📊 Services response:', response.data);
       return response.data;
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
-  const services = servicesData?.services || [];
-  const totalServices = servicesData?.total || 0;
+  const services = (servicesData as any)?.services || (servicesData as any)?.data || [];
+  const totalServices = (servicesData as any)?.total || (servicesData as any)?.pagination?.total || 0;
   const totalPages = Math.ceil(totalServices / pagination.pageSize);
 
   // Update pagination when data changes
@@ -166,7 +180,7 @@ export default function ServicesPage() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/services/${id}`);
+      await api.services.delete(id);
     },
     onSuccess: () => {
       toast.success('Servicio eliminado correctamente');
@@ -222,7 +236,13 @@ export default function ServicesPage() {
         'Fecha Creación': format(new Date(service.createdAt), 'dd/MM/yyyy HH:mm', { locale: es })
       }));
       
-      exportToCSV(exportData, `servicios_${format(new Date(), 'yyyy-MM-dd')}`);
+      const csvBlob = new Blob([exportData.map((row: any) => Object.values(row).join(',')).join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(csvBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `servicios_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
       toast.success('Servicios exportados a CSV');
     } else {
       toast.error('No hay servicios para exportar');
@@ -231,7 +251,13 @@ export default function ServicesPage() {
 
   const handleExportJSON = useCallback(() => {
     if (services.length > 0) {
-      exportToJSON(services, `servicios_${format(new Date(), 'yyyy-MM-dd')}`);
+      const jsonBlob = new Blob([JSON.stringify(services, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(jsonBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `servicios_${format(new Date(), 'yyyy-MM-dd')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
       toast.success('Servicios exportados a JSON');
     } else {
       toast.error('No hay servicios para exportar');
@@ -305,51 +331,34 @@ export default function ServicesPage() {
               data={services}
               columns={columns}
               // Server-side pagination
-              pagination={{
-                pageIndex: pagination.pageIndex,
-                pageSize: pagination.pageSize,
-              }}
-              onPaginationChange={setPagination}
+              manualPagination={true}
               pageCount={totalPages}
+              onPaginationChange={setPagination}
               // Server-side sorting
-              sorting={sorting}
+              manualSorting={true}
               onSortingChange={setSorting}
-              // Filtering
-              globalFilter={globalFilter}
+              // Server-side filtering
+              manualFiltering={true}
               onGlobalFilterChange={setGlobalFilter}
-              columnFilters={tableFilters}
               onColumnFiltersChange={setTableFilters}
+              // State
+              state={{
+                pagination: {
+                  pageIndex: pagination.pageIndex,
+                  pageSize: pagination.pageSize
+                },
+                sorting: sorting.map(s => ({ id: s.field, desc: s.order === 'desc' })),
+                globalFilter: globalFilter,
+                columnFilters: Object.entries(tableFilters).map(([id, value]) => ({ id, value }))
+              }}
               // Loading state
-              loading={isLoading}
-              // Error state
-              error={isError ? (error as any)?.message : null}
+              isLoading={isLoading}
               // Config
-              enableExport={true}
               enableColumnVisibility={true}
-              enableDensity={true}
               // Search config
               searchPlaceholder="Buscar servicios por nombre, categoría..."
-              // Filter presets for common queries
-              filterPresets={[
-                {
-                  label: 'Servicios Activos',
-                  filters: { isActive: true }
-                },
-                {
-                  label: 'Servicios Online',
-                  filters: { isOnlineAvailable: true }
-                },
-                {
-                  label: 'Servicios Públicos',
-                  filters: { isPubliclyBookable: true }
-                },
-                {
-                  label: 'Requiere Aprobación',
-                  filters: { requiresApproval: true }
-                }
-              ]}
               // Custom row actions
-              onRowClick={(service) => handleView(service)}
+              onRowClick={(row) => handleView(row.original)}
             />
           </div>
         </div>

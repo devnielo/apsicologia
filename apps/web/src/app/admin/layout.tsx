@@ -85,7 +85,7 @@ const getAllSidebarItems = (userRole: string) => {
       icon: Briefcase,
       description: 'Gestión de servicios',
       badge: null,
-      roles: ['admin']
+      roles: ['admin', 'reception']
     },
     {
       title: 'Salas',

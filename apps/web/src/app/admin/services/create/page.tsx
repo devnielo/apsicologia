@@ -9,6 +9,7 @@ import { ServiceFormData } from '../types';
 import { ServiceSidebar } from '../components/ServiceSidebar';
 import { ServiceInfoSection } from '../[id]/components/ServiceInfoSection';
 import { ServiceSettingsSection } from '../[id]/components/ServiceSettingsSection';
+import { useAuth } from '@/lib/auth-context';
 
 type TabKey = 'info' | 'settings';
 
@@ -33,6 +34,15 @@ const tabs: TabItem[] = [
 
 export default function CreateServicePage() {
   const router = useRouter();
+  const { user } = useAuth();
+  // Always in editing mode for creation
+
+  // Role-based access control - only admin and reception can create services
+  if (!user || !['admin', 'reception'].includes(user.role)) {
+    router.push('/admin/dashboard');
+    return null;
+  }
+
   const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState<TabKey>('info');
@@ -101,13 +111,13 @@ export default function CreateServicePage() {
         }
       };
       
-      const response = await api.post('/services', payload);
-      return response.data;
+      const response = await api.services.create(payload);
+      return response.data.data;
     },
     onSuccess: (newService) => {
       toast.success('Servicio creado exitosamente');
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      router.push(`/admin/services/${newService.id}`);
+      router.push(`/admin/services/${newService.data?.id || newService.id}`);
     },
     onError: (error: any) => {
       console.error('Error creating service:', error);
