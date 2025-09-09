@@ -10,6 +10,7 @@ export interface IService extends ITimestamps, ISoftDelete {
   
   // Visual and categorization
   color?: string;
+  imageUrl?: string;
   category?: string;
   tags: string[];
   
@@ -76,6 +77,7 @@ export interface IServiceCreateInput {
   price: number;
   currency?: string;
   color?: string;
+  imageUrl?: string;
   category?: string;
   tags?: string[];
   isOnlineAvailable?: boolean;
@@ -111,6 +113,7 @@ export interface IServiceUpdateInput {
   price?: number;
   currency?: string;
   color?: string;
+  imageUrl?: string;
   category?: string;
   tags?: string[];
   isActive?: boolean;

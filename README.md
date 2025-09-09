@@ -44,7 +44,7 @@ apsicologia es una plataforma autoalojada para la gestión integral de consultor
 - **React Hook Form** + **Zod** (formularios)
 
 ### Servicios Externos
-- **MinIO** (almacenamiento de archivos S3-compatible)
+- **Cloudflare R2** (almacenamiento de archivos S3-compatible)
 - **Jitsi Meet** (videoconsultas)
 - **SMTP** (envío de emails)
 
@@ -292,7 +292,7 @@ El sistema incluye datos semilla realistas:
 - [ ] Panel de estadísticas visual
 
 ### Servicios Externos
-- [ ] Integración completa con MinIO
+- [x] Integración completa con Cloudflare R2
 - [ ] Configuración de email SMTP
 - [ ] Sistema de videollamadas Jitsi
 

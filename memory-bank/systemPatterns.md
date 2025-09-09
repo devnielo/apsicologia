@@ -125,7 +125,7 @@ interface AuditLog {
 
 ## Patrones de Integración
 
-### MinIO (File Storage)
+### Cloudflare R2 (File Storage)
 - **Presigned URLs:** Para uploads directos desde frontend
 - **Bucket organization:** `/patients/{id}/`, `/appointments/{id}/`
 - **Metadata:** Content-type, upload timestamp, owner

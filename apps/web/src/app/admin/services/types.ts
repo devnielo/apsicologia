@@ -54,6 +54,7 @@ export interface Service {
   color?: string;
   category?: string;
   tags: string[];
+  imageUrl?: string;
   
   // Availability settings
   isActive: boolean;
@@ -98,6 +99,7 @@ export interface ServiceFormData {
   color?: string;
   category?: string;
   tags: string[];
+  imageUrl?: string;
   
   // Availability settings
   isActive: boolean;

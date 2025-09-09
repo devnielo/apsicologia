@@ -41,13 +41,6 @@ interface Config {
   SMTP_USER?: string;
   SMTP_PASS?: string;
   
-  // MinIO (File Storage)
-  MINIO_ENDPOINT?: string;
-  MINIO_PORT?: number;
-  MINIO_USE_SSL?: boolean;
-  MINIO_ACCESS_KEY?: string;
-  MINIO_SECRET_KEY?: string;
-  MINIO_BUCKET_NAME: string;
   
   // Jitsi Meet
   JITSI_DOMAIN?: string;
@@ -120,13 +113,6 @@ const config: Config = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   
-  // MinIO
-  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
-  MINIO_PORT: process.env.MINIO_PORT ? parseInt(process.env.MINIO_PORT, 10) : undefined,
-  MINIO_USE_SSL: process.env.MINIO_USE_SSL === 'true',
-  MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
-  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
-  MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || 'apsicologia-files',
   
   // Jitsi Meet
   JITSI_DOMAIN: process.env.JITSI_DOMAIN || 'meet.jit.si',

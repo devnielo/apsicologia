@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import { Service, ServiceFormData } from '../types';
 import { ServiceSidebar } from '../components/ServiceSidebar';
-import { ServiceInfoSection } from './components/ServiceInfoSection';
+import ServiceInfoSection from './components/ServiceInfoSection';
 import { ServiceSettingsSection } from './components/ServiceSettingsSection';
 
 interface ServicePageProps {
@@ -64,7 +64,10 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
     queryKey: ['service', params.id],
     queryFn: async () => {
       const response = await api.services.get(params.id);
-      return response.data.data;
+      console.log('Service API Response:', response.data);
+      // Handle nested response structure: response.data.data.service
+      const responseData = response.data as any;
+      return responseData.data?.service || responseData.service || responseData.data;
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 404
@@ -91,11 +94,22 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
     mutationFn: async (data: Partial<ServiceFormData>) => {
       await api.services.update(params.id, data);
     },
+    onSuccess: () => {
+      toast.success('Servicio actualizado correctamente');
+      // Invalidate both specific service and services list
+      queryClient.invalidateQueries({ queryKey: ['service', params.id] });
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      setEditingSection(null);
+      setEditData({});
+    },
+    onError: (error: any) => {
+      console.error('Error updating service:', error);
+      toast.error(error?.response?.data?.message || 'Error al actualizar el servicio');
+    },
   });
 
   const handleSave = useCallback((section: TabKey, data: Partial<ServiceFormData>) => {
     updateMutation.mutate(data);
-    setEditingSection(null);
   }, [updateMutation]);
 
   const handleCancel = useCallback(() => {
@@ -106,120 +120,108 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
   const isEditing = (section: TabKey) => editingSection === section;
 
   return (
-    <div className="h-full flex">
+    <div className="h-full bg-background flex overflow-hidden">
       {/* Sidebar */}
-      <ServiceSidebar 
-        service={service}
-        isLoading={isLoading}
-      />
+      <div className="bg-card border-r border-border h-full overflow-hidden flex-shrink-0 flex flex-col">
+        <ServiceSidebar 
+          service={service}
+          isLoading={isLoading}
+        />
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 bg-background flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex-shrink-0 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  {isLoading ? (
-                    <div className="h-6 bg-muted animate-pulse rounded w-48" />
-                  ) : (
-                    service?.name || 'Servicio'
-                  )}
-                </h1>
-                {!isLoading && service?.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {service.description}
-                  </p>
+        <div className="bg-card border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold text-foreground">
+                {isLoading ? (
+                  <div className="h-6 bg-muted animate-pulse rounded w-48" />
+                ) : (
+                  'Detalles del Servicio'
                 )}
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex space-x-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  disabled={isLoading}
-                  className={`
-                    relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
-                    ${activeTab === tab.key
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    }
-                    ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
-                >
-                  <div className="flex flex-col items-start">
-                    <span>{tab.label}</span>
-                    <span className="text-xs opacity-75">
-                      {tab.description}
-                    </span>
-                  </div>
-                  
-                  {/* Active indicator */}
-                  {activeTab === tab.key && (
-                    <div className="absolute inset-x-0 bottom-0 h-0.5 bg-primary-foreground rounded-full" />
-                  )}
-                  
-                  {/* Editing indicator */}
-                  {isEditing(tab.key) && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  )}
-                </button>
-              ))}
+              </h1>
             </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto">
+        {/* Tabs Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
           <div className="p-6">
-            {isLoading ? (
-              <div className="space-y-6">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="h-4 bg-muted animate-pulse rounded w-32" />
-                        <div className="h-3 bg-muted animate-pulse rounded w-48" />
-                      </div>
-                      <div className="h-8 bg-muted animate-pulse rounded w-20" />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="h-3 bg-muted animate-pulse rounded" />
-                      <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
-                      <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
-                    </div>
-                  </div>
+            <div className="">
+
+            {/* Tabs */}
+            <div className="border-b border-border/30 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+              <div className="flex space-x-6 px-1 overflow-x-auto">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    disabled={isLoading}
+                    className={`py-3 px-1 text-sm font-medium border-b-2 transition-colors duration-200 whitespace-nowrap ${
+                      activeTab === tab.key
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {tab.label}
+                    {/* Editing indicator */}
+                    {isEditing(tab.key) && (
+                      <div className="ml-2 inline-block w-2 h-2 bg-primary rounded-full animate-pulse" />
+                    )}
+                  </button>
                 ))}
               </div>
-            ) : (
-              <div className="max-w-4xl">
-                {activeTab === 'info' && (
-                  <ServiceInfoSection
-                    service={service}
-                    isEditing={isEditing('info')}
-                    editData={editData}
-                    onEdit={() => handleEdit('info')}
-                    onSave={(data) => handleSave('info', data)}
-                    onCancel={handleCancel}
-                  />
-                )}
-                
-                {activeTab === 'settings' && (
-                  <ServiceSettingsSection
-                    service={service}
-                    isEditing={isEditing('settings')}
-                    editData={editData}
-                    onEdit={() => handleEdit('settings')}
-                    onSave={(data) => handleSave('settings', data)}
-                    onCancel={handleCancel}
-                  />
-                )}
-              </div>
-            )}
+            </div>
+
+              {isLoading ? (
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-muted animate-pulse rounded w-32" />
+                          <div className="h-3 bg-muted animate-pulse rounded w-48" />
+                        </div>
+                        <div className="h-8 bg-muted animate-pulse rounded w-20" />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="h-3 bg-muted animate-pulse rounded" />
+                        <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
+                        <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="max-w-4xl">
+                  {activeTab === 'info' && (
+                    <ServiceInfoSection
+                      service={service}
+                      serviceId={params.id}
+                      isEditing={isEditing('info')}
+                      editData={editData}
+                      onEdit={() => handleEdit('info')}
+                      onSave={(data: Partial<ServiceFormData>) => handleSave('info', data)}
+                      onCancel={handleCancel}
+                    />
+                  )}
+                  
+                  {activeTab === 'settings' && (
+                    <ServiceSettingsSection
+                      service={service}
+                      serviceId={params.id}
+                      isEditing={isEditing('settings')}
+                      editData={editData}
+                      onEdit={() => handleEdit('settings')}
+                      onSave={(data) => handleSave('settings', data)}
+                      onCancel={handleCancel}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

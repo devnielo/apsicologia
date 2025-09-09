@@ -950,8 +950,9 @@ const FormResponseSchema = new Schema<IFormResponseDocument>(
       index: true,
     },
   },
-  {
+  { 
     timestamps: true,
+    collection: 'form_responses',
     suppressReservedKeysWarning: true,
     toJSON: {
       transform: (doc: any, ret: any) => {

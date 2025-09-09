@@ -77,7 +77,7 @@ router.get('/info', (req, res) => {
       'Rate Limiting',
       'Input Validation',
       'Security Headers',
-      'File Management with MinIO',
+      'File Management with Cloud Storage',
       'Dynamic Forms System',
       'Clinical Notes Management',
       'Appointment Scheduling',

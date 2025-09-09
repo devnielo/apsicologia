@@ -20,9 +20,11 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Service, ServiceFormData } from '../../types';
 import { cn } from '@/lib/utils';
+import { ImageUpload } from '@/components/ImageUpload';
 
 interface ServiceInfoSectionProps {
   service?: Service;
+  serviceId: string;
   isEditing?: boolean;
   editData?: Partial<ServiceFormData>;
   onEdit?: () => void;
@@ -32,6 +34,12 @@ interface ServiceInfoSectionProps {
 }
 
 const colorOptions = [
+  { value: 'hsl(var(--primary))', label: 'Principal', class: 'bg-primary' },
+  { value: 'hsl(var(--secondary))', label: 'Secundario', class: 'bg-secondary' },
+  { value: 'hsl(var(--accent))', label: 'Acento', class: 'bg-accent' },
+  { value: 'hsl(var(--success))', label: 'Éxito', class: 'bg-success' },
+  { value: 'hsl(var(--warning))', label: 'Advertencia', class: 'bg-warning' },
+  { value: 'hsl(var(--destructive))', label: 'Peligro', class: 'bg-destructive' },
   { value: '#3B82F6', label: 'Azul', class: 'bg-blue-500' },
   { value: '#EF4444', label: 'Rojo', class: 'bg-red-500' },
   { value: '#10B981', label: 'Verde', class: 'bg-green-500' },
@@ -59,14 +67,15 @@ const currencyOptions = [
   { value: 'GBP', label: 'Libra (£)' }
 ];
 
-export function ServiceInfoSection({ 
-  service, 
-  isEditing, 
-  editData, 
-  onEdit, 
-  onSave, 
+export default function ServiceInfoSection({
+  service,
+  serviceId,
+  isEditing = false,
+  editData = {},
+  onEdit,
+  onSave,
   onCancel,
-  className 
+  className
 }: ServiceInfoSectionProps) {
   const queryClient = useQueryClient();
   const [localData, setLocalData] = useState<Partial<ServiceFormData>>({});
@@ -145,9 +154,9 @@ export function ServiceInfoSection({
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<ServiceFormData>) => {
-      if (!service?.id) throw new Error('Service ID is required');
+      if (!serviceId) throw new Error('Service ID is required');
       
-      const response = await api.services.update(service.id, data);
+      const response = await api.services.update(serviceId, data);
       return response.data;
     },
     onSuccess: (updatedService) => {
@@ -225,7 +234,7 @@ export function ServiceInfoSection({
               setLocalData(initialData);
               onEdit?.();
             }}
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            className="text-primary hover:text-primary/80 hover:bg-primary/5"
           >
             <Edit className="h-4 w-4 mr-2" />
             Editar
@@ -246,7 +255,7 @@ export function ServiceInfoSection({
               size="sm"
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <Save className="h-4 w-4 mr-2" />
               {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
@@ -274,10 +283,10 @@ export function ServiceInfoSection({
                   value={localData.name || ''}
                   onChange={(e) => handleChange('name', e.target.value)}
                   placeholder="Ej: Terapia Individual"
-                  className={cn(getFieldError('nombre') && "border-red-500")}
+                  className={cn(getFieldError('nombre') && "border-destructive")}
                 />
                 {getFieldError('nombre') && (
-                  <p className="text-xs text-red-600">{getFieldError('nombre')}</p>
+                  <p className="text-xs text-destructive">{getFieldError('nombre')}</p>
                 )}
               </>
             )}
@@ -289,11 +298,11 @@ export function ServiceInfoSection({
               Categoría
             </Label>
             {!isEditing ? (
-              <p className="text-sm text-foreground py-2">
+              <div className="text-sm text-foreground py-2">
                 {service?.category ? (
                   <Badge variant="secondary">{service.category}</Badge>
                 ) : 'No especificada'}
-              </p>
+              </div>
             ) : (
               <Select 
                 value={localData.category || ''} 
@@ -303,7 +312,7 @@ export function ServiceInfoSection({
                   <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin categoría</SelectItem>
+                  <SelectItem value="none">Sin categoría</SelectItem>
                   {categoryOptions.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -340,10 +349,10 @@ export function ServiceInfoSection({
                   value={localData.durationMinutes || ''}
                   onChange={(e) => handleChange('durationMinutes', parseInt(e.target.value) || 0)}
                   placeholder="60"
-                  className={cn(getFieldError('duración') && "border-red-500")}
+                  className={cn(getFieldError('duración') && "border-destructive")}
                 />
                 {getFieldError('duración') && (
-                  <p className="text-xs text-red-600">{getFieldError('duración')}</p>
+                  <p className="text-xs text-destructive">{getFieldError('duración')}</p>
                 )}
               </>
             )}
@@ -369,7 +378,7 @@ export function ServiceInfoSection({
                   value={localData.price || ''}
                   onChange={(e) => handleChange('price', parseFloat(e.target.value) || 0)}
                   placeholder="70.00"
-                  className={cn("flex-1", getFieldError('precio') && "border-red-500")}
+                  className={cn("flex-1", getFieldError('precio') && "border-destructive")}
                 />
                 <Select 
                   value={localData.currency || 'EUR'} 
@@ -389,8 +398,24 @@ export function ServiceInfoSection({
               </div>
             )}
             {getFieldError('precio') && (
-              <p className="text-xs text-red-600">{getFieldError('precio')}</p>
+              <p className="text-xs text-destructive">{getFieldError('precio')}</p>
             )}
+          </div>
+
+          {/* Imagen del servicio */}
+          <div className="space-y-2 col-span-2">
+            <ImageUpload
+              serviceId={serviceId}
+              currentImageUrl={service?.imageUrl}
+              isEditing={isEditing}
+              onImageUpdate={(imageUrl) => {
+                // Update the service data optimistically
+                if (service && imageUrl !== undefined) {
+                  const updatedService = { ...service, imageUrl: imageUrl || undefined };
+                  queryClient.setQueryData(['service', service.id], updatedService);
+                }
+              }}
+            />
           </div>
 
           {/* Color */}

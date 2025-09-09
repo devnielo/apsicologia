@@ -11,6 +11,7 @@ export interface IServiceDocument extends Document {
   
   // Visual and categorization
   color?: string;
+  imageUrl?: string;
   category?: string;
   tags: string[];
   
@@ -137,8 +138,27 @@ const ServiceSchema = new Schema<IServiceDocument>(
     color: {
       type: String,
       validate: {
-        validator: (v: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v),
+        validator: function(v: string) {
+          if (!v) return true; // Allow empty/null values
+          return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v);
+        },
         message: 'Color must be a valid hex color code',
+      },
+    },
+    imageUrl: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v: string) {
+          if (!v) return true; // Allow null/empty
+          
+          // Only allow Cloudflare R2 URLs
+          const cloudflareR2Pattern = /^https:\/\/[a-zA-Z0-9-]+\.r2\.cloudflarestorage\.com\/.*\.(jpg|jpeg|png|gif|webp)$/i;
+          const cloudflarePublicPattern = /^https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev\/.*\.(jpg|jpeg|png|gif|webp)$/i;
+          
+          return cloudflareR2Pattern.test(v) || cloudflarePublicPattern.test(v);
+        },
+        message: 'Image URL must be a valid image URL (jpg, jpeg, png, gif, webp)',
       },
     },
     category: {
@@ -247,6 +267,14 @@ const ServiceSchema = new Schema<IServiceDocument>(
       intakeFormId: {
         type: Schema.Types.ObjectId,
         ref: 'FormSchema',
+        default: null,
+        validate: {
+          validator: function(v: any) {
+            // Allow null, undefined, or valid ObjectIds, but not empty strings
+            return v === null || v === undefined || mongoose.Types.ObjectId.isValid(v);
+          },
+          message: 'Invalid intake form ID',
+        },
       },
     },
     

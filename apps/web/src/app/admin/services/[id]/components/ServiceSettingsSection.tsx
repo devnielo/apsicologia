@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 interface ServiceSettingsSectionProps {
   service?: Service;
+  serviceId: string;
   isEditing?: boolean;
   editData?: Partial<ServiceFormData>;
   onEdit?: () => void;
@@ -25,11 +26,12 @@ interface ServiceSettingsSectionProps {
 
 export function ServiceSettingsSection({ 
   service, 
+  serviceId,
   isEditing, 
   editData, 
   onEdit, 
   onSave, 
-  onCancel,
+  onCancel, 
   className 
 }: ServiceSettingsSectionProps) {
   const queryClient = useQueryClient();
@@ -137,14 +139,20 @@ export function ServiceSettingsSection({
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<ServiceFormData>) => {
-      if (!service?.id) throw new Error('Service ID is required');
+      if (!serviceId) throw new Error('Service ID is required');
       
-      const response = await api.services.update(service.id, data);
+      // Sanitize data - convert empty strings to null for ObjectId fields
+      const sanitizedData = { ...data };
+      if (sanitizedData.settings?.intakeFormId === '') {
+        sanitizedData.settings.intakeFormId = undefined;
+      }
+      
+      const response = await api.services.update(serviceId, sanitizedData);
       return response.data;
     },
     onSuccess: (updatedService) => {
       toast.success('Configuración del servicio actualizada');
-      queryClient.setQueryData(['service', service?.id], updatedService);
+      queryClient.setQueryData(['service', serviceId], updatedService);
       queryClient.invalidateQueries({ queryKey: ['services'] });
       onSave?.(localData);
       setShowValidation(false);
@@ -200,7 +208,7 @@ export function ServiceSettingsSection({
             variant="ghost"
             size="sm"
             onClick={onEdit}
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            className="text-primary hover:text-primary/80 hover:bg-primary/5"
           >
             <Edit className="h-4 w-4 mr-2" />
             Editar
@@ -221,7 +229,7 @@ export function ServiceSettingsSection({
               size="sm"
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <Save className="h-4 w-4 mr-2" />
               {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
@@ -258,10 +266,10 @@ export function ServiceSettingsSection({
                     max="365"
                     value={localData.settings?.maxAdvanceBookingDays || ''}
                     onChange={(e) => handleChange('settings.maxAdvanceBookingDays', parseInt(e.target.value) || 0)}
-                    className={cn(getFieldError('días de reserva') && "border-red-500")}
+                    className={cn(getFieldError('días de reserva') && "border-destructive")}
                   />
                   {getFieldError('días de reserva') && (
-                    <p className="text-xs text-red-600">{getFieldError('días de reserva')}</p>
+                    <p className="text-xs text-destructive">{getFieldError('días de reserva')}</p>
                   )}
                 </>
               )}
@@ -285,10 +293,10 @@ export function ServiceSettingsSection({
                     max="168"
                     value={localData.settings?.minAdvanceBookingHours || ''}
                     onChange={(e) => handleChange('settings.minAdvanceBookingHours', parseInt(e.target.value) || 0)}
-                    className={cn(getFieldError('horas mínimas') && "border-red-500")}
+                    className={cn(getFieldError('horas mínimas') && "border-destructive")}
                   />
                   {getFieldError('horas mínimas') && (
-                    <p className="text-xs text-red-600">{getFieldError('horas mínimas')}</p>
+                    <p className="text-xs text-destructive">{getFieldError('horas mínimas')}</p>
                   )}
                 </>
               )}

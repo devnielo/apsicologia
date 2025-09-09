@@ -18,7 +18,7 @@ La plataforma apsicologia aborda las necesidades de gestión integral de centros
 ### Gestión Administrativa
 - **Profesionales:** Perfiles, especialidades, disponibilidades, vacaciones
 - **Salas:** Gestión de espacios físicos y virtuales
-- **Archivos:** Sistema de carpetas por paciente/cita con MinIO
+- **Archivos:** Sistema de carpetas por paciente/cita con Cloudflare R2
 - **Estadísticas:** KPIs y métricas de rendimiento del centro
 
 ## Experiencia del Usuario

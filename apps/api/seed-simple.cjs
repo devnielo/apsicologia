@@ -379,18 +379,17 @@ async function seedData() {
       console.log('ℹ️ Patient user already exists: Miguel Fernández López');
     }
 
-    // Create services - Only 2 types: Online and In-Person
+    // Create services - Complete structure matching Service.ts model
     const services = [
       {
         name: 'Terapia Online',
-        description: 'Sesión de terapia psicológica mediante videollamada',
+        description: 'Sesión de terapia psicológica mediante videollamada. Realizamos sesiones virtuales con la misma calidad y profesionalismo que las presenciales.',
         durationMinutes: 55,
         price: 70,
         currency: 'EUR',
         color: '#3B82F6',
-        category: 'Terapia',
-        tags: ['online', 'videollamada', 'virtual'],
-        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop&crop=center',
+        category: 'Terapia Individual',
+        tags: ['online', 'videollamada', 'virtual', 'terapia-individual'],
         isActive: true,
         isOnlineAvailable: true,
         requiresApproval: false,
@@ -398,54 +397,222 @@ async function seedData() {
         isPubliclyBookable: true,
         priceDetails: {
           basePrice: 70,
-          discounts: []
+          discountedPrice: 65, // 5€ discount for online sessions
+          discounts: [
+            {
+              name: 'Primera sesión',
+              percentage: 20,
+              validFrom: new Date('2024-01-01'),
+              validUntil: new Date('2024-12-31')
+            },
+            {
+              name: 'Estudiantes',
+              percentage: 15,
+              validFrom: new Date('2024-01-01'),
+              validUntil: new Date('2024-12-31')
+            }
+          ]
         },
         settings: {
+          maxAdvanceBookingDays: 90,
+          minAdvanceBookingHours: 2,
+          allowSameDayBooking: true,
           bufferBefore: 5,
           bufferAfter: 5,
-          allowCancellation: true,
-          cancellationDeadlineHours: 24,
-          allowRescheduling: true,
-          rescheduleDeadlineHours: 12,
-          maxAdvanceBookingDays: 90,
-          requiresConfirmation: false,
-          autoConfirm: true,
-          sendReminders: true,
-          reminderTimes: [24, 2] // hours before appointment
-        }
+          maxConcurrentBookings: 1,
+          requiresIntake: false,
+          intakeFormId: null
+        },
+        preparation: {
+          instructions: 'Asegúrese de tener una conexión estable a internet, un espacio privado y tranquilo, y la aplicación de videollamada instalada.',
+          requiredDocuments: [],
+          recommendedDuration: 15 // 15 minutes before appointment
+        },
+        followUp: {
+          instructions: 'Se enviará un resumen de la sesión y ejercicios recomendados por email en las próximas 24 horas.',
+          scheduledTasks: ['Enviar resumen de sesión', 'Programar ejercicios de seguimiento'],
+          recommendedGap: 7 // 1 week until next appointment
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          averageRating: null,
+          totalRevenue: 0
+        },
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       },
       {
         name: 'Terapia Presencial - Alicante',
-        description: 'Sesión de terapia psicológica en consulta física en Alicante',
+        description: 'Sesión de terapia psicológica en consulta física en Alicante. Atención personalizada en un entorno profesional y confidencial.',
         durationMinutes: 55,
         price: 80,
         currency: 'EUR',
         color: '#10B981',
-        category: 'Terapia',
-        tags: ['presencial', 'consulta', 'alicante', 'fisica'],
-        imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=300&fit=crop&crop=center',
+        category: 'Terapia Individual',
+        tags: ['presencial', 'consulta', 'alicante', 'fisica', 'terapia-individual'],
         isActive: true,
         isOnlineAvailable: false,
-        requiresApproval: true, // Requires approval as it's exceptional
+        requiresApproval: true,
         availableTo: [],
-        isPubliclyBookable: false, // Not publicly bookable, needs professional approval
+        isPubliclyBookable: false,
         priceDetails: {
           basePrice: 80,
+          discountedPrice: null,
+          discounts: [
+            {
+              name: 'Paquete 4 sesiones',
+              percentage: 10,
+              validFrom: new Date('2024-01-01'),
+              validUntil: new Date('2024-12-31')
+            },
+            {
+              name: 'Paquete 8 sesiones',
+              percentage: 15,
+              validFrom: new Date('2024-01-01'),
+              validUntil: new Date('2024-12-31')
+            }
+          ]
+        },
+        settings: {
+          maxAdvanceBookingDays: 60,
+          minAdvanceBookingHours: 24,
+          allowSameDayBooking: false,
+          bufferBefore: 10,
+          bufferAfter: 10,
+          maxConcurrentBookings: 1,
+          requiresIntake: true,
+          intakeFormId: null // Will be set when intake forms are created
+        },
+        preparation: {
+          instructions: 'Llegue 10 minutos antes de su cita. Traiga su documento de identidad y cualquier informe médico relevante si es su primera visita.',
+          requiredDocuments: ['DNI/NIE', 'Tarjeta sanitaria'],
+          recommendedDuration: 30 // 30 minutes before appointment
+        },
+        followUp: {
+          instructions: 'Se programará la siguiente cita al finalizar la sesión. Recibirá recordatorios 48h y 24h antes de cada cita.',
+          scheduledTasks: ['Programar siguiente cita', 'Enviar recordatorios', 'Actualizar historial clínico'],
+          recommendedGap: 14 // 2 weeks until next appointment
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          averageRating: null,
+          totalRevenue: 0
+        },
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        name: 'Terapia de Pareja',
+        description: 'Sesión especializada en terapia de pareja para mejorar la comunicación y resolver conflictos relacionales.',
+        durationMinutes: 75,
+        price: 120,
+        currency: 'EUR',
+        color: '#F59E0B',
+        category: 'Terapia de Pareja',
+        tags: ['pareja', 'relaciones', 'comunicacion', 'conflictos'],
+        isActive: true,
+        isOnlineAvailable: true,
+        requiresApproval: true,
+        availableTo: [], // Available to all professionals
+        isPubliclyBookable: true,
+        priceDetails: {
+          basePrice: 120,
+          discountedPrice: null,
+          discounts: [
+            {
+              name: 'Paquete 6 sesiones',
+              percentage: 12,
+              validFrom: new Date('2024-01-01'),
+              validUntil: new Date('2024-12-31')
+            }
+          ]
+        },
+        settings: {
+          maxAdvanceBookingDays: 45,
+          minAdvanceBookingHours: 48,
+          allowSameDayBooking: false,
+          bufferBefore: 15,
+          bufferAfter: 15,
+          maxConcurrentBookings: 1,
+          requiresIntake: true,
+          intakeFormId: null
+        },
+        preparation: {
+          instructions: 'Ambos miembros de la pareja deben completar el cuestionario de evaluación inicial por separado antes de la primera sesión.',
+          requiredDocuments: ['Cuestionario de evaluación relacional'],
+          recommendedDuration: 45 // 45 minutes before appointment
+        },
+        followUp: {
+          instructions: 'Se asignarán ejercicios específicos para trabajar en casa entre sesiones. Seguimiento mediante comunicación escrita si es necesario.',
+          scheduledTasks: ['Asignar ejercicios para casa', 'Programar seguimiento', 'Evaluar progreso'],
+          recommendedGap: 10 // 10 days until next appointment
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          averageRating: null,
+          totalRevenue: 0
+        },
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        name: 'Evaluación Psicológica',
+        description: 'Evaluación psicológica completa con aplicación de tests y elaboración de informe detallado.',
+        durationMinutes: 90,
+        price: 150,
+        currency: 'EUR',
+        color: '#8B5CF6',
+        category: 'Evaluación',
+        tags: ['evaluacion', 'tests', 'informe', 'diagnostico'],
+        isActive: true,
+        isOnlineAvailable: false,
+        requiresApproval: true,
+        availableTo: [],
+        isPubliclyBookable: false,
+        priceDetails: {
+          basePrice: 150,
+          discountedPrice: null,
           discounts: []
         },
         settings: {
-          bufferBefore: 5,
-          bufferAfter: 5,
-          allowCancellation: true,
-          cancellationDeadlineHours: 48, // Longer cancellation deadline for in-person
-          allowRescheduling: true,
-          rescheduleDeadlineHours: 24,
-          maxAdvanceBookingDays: 60,
-          requiresConfirmation: true,
-          autoConfirm: false,
-          sendReminders: true,
-          reminderTimes: [48, 24, 2] // More reminders for in-person
-        }
+          maxAdvanceBookingDays: 30,
+          minAdvanceBookingHours: 72,
+          allowSameDayBooking: false,
+          bufferBefore: 20,
+          bufferAfter: 30,
+          maxConcurrentBookings: 1,
+          requiresIntake: true,
+          intakeFormId: null
+        },
+        preparation: {
+          instructions: 'Traiga toda la documentación médica y psicológica previa. Descanse bien la noche anterior y evite alcohol o sustancias que puedan afectar el rendimiento.',
+          requiredDocuments: ['Informes médicos previos', 'Informes psicológicos anteriores', 'Lista de medicamentos actuales'],
+          recommendedDuration: 60 // 1 hour before appointment
+        },
+        followUp: {
+          instructions: 'El informe estará disponible en 7-10 días laborables. Se programará una sesión de devolución para explicar los resultados.',
+          scheduledTasks: ['Elaborar informe', 'Programar sesión de devolución', 'Enviar informe'],
+          recommendedGap: 10 // 10 days for report delivery session
+        },
+        stats: {
+          totalBookings: 0,
+          completedBookings: 0,
+          cancelledBookings: 0,
+          averageRating: null,
+          totalRevenue: 0
+        },
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
 
@@ -454,7 +621,7 @@ async function seedData() {
       const service = new Service(serviceData);
       await service.save();
       createdServices.push(service);
-      console.log(`💼 Created service: ${service.name}`);
+      console.log(`💼 Created service: ${service.name} (${service.price}${service.currency}, ${service.durationMinutes}min)`);
     }
 
     // Create rooms

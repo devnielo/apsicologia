@@ -390,14 +390,29 @@ export class ServiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          created: {
-            name: service.name,
-            price: service.price,
-            duration: service.durationMinutes,
-            category: service.category,
+        changes: [
+          {
+            field: 'name',
+            newValue: service.name,
+            changeType: 'create',
           },
-        },
+          {
+            field: 'price',
+            newValue: service.price,
+            changeType: 'create',
+          },
+          {
+            field: 'durationMinutes',
+            newValue: service.durationMinutes,
+            changeType: 'create',
+          },
+          {
+            field: 'category',
+            newValue: service.category,
+            changeType: 'create',
+          },
+        ],
+        afterState: service.toObject(),
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -507,6 +522,15 @@ export class ServiceController {
 
       await service.save();
 
+      // Create changes array for audit log
+      const serviceObject = service.toObject();
+      const changes = Object.keys(updateData).map(field => ({
+        field,
+        oldValue: (originalData as any)[field],
+        newValue: (serviceObject as any)[field],
+        changeType: 'update' as const,
+      }));
+
       // Log service update
       await AuditLog.create({
         action: 'service_updated',
@@ -518,11 +542,9 @@ export class ServiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          before: originalData,
-          after: service.toObject(),
-          fieldsChanged: Object.keys(updateData),
-        },
+        changes,
+        beforeState: originalData,
+        afterState: service.toObject(),
         security: {
           riskLevel: 'low',
           authMethod: 'jwt',
@@ -811,11 +833,21 @@ export class ServiceController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
         status: 'success',
-        changes: {
-          deletedAt: new Date(),
-          serviceName: service.name,
-          activeAppointmentsChecked: true,
-        },
+        changes: [
+          {
+            field: 'deletedAt',
+            oldValue: null,
+            newValue: new Date(),
+            changeType: 'delete',
+          },
+          {
+            field: 'isActive',
+            oldValue: true,
+            newValue: false,
+            changeType: 'update',
+          },
+        ],
+        beforeState: service.toObject(),
         security: {
           riskLevel: 'medium',
           authMethod: 'jwt',

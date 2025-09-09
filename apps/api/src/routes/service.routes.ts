@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import ServiceController from '../controllers/service.controller.js';
 import { authenticate } from '../middleware/auth.js';
+import imageRoutes from './services/images.js';
 
 const router: Router = Router();
 
@@ -112,5 +113,8 @@ router.delete(
   authenticate,
   ServiceController.deleteService
 );
+
+// Image upload routes
+router.use('/', imageRoutes);
 
 export default router;

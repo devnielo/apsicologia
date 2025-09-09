@@ -8,21 +8,11 @@ import { AuditLog } from '../models/AuditLog.js';
 import logger from '../config/logger.js';
 import { AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
-import { Client as MinioClient } from 'minio';
-import config from '../config/env.js';
+import storageService from '../services/storageService.js';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import sharp from 'sharp';
-
-// MinIO client configuration
-const minioClient = new MinioClient({
-  endPoint: config.MINIO_ENDPOINT || 'localhost',
-  port: config.MINIO_PORT || 9000,
-  useSSL: config.MINIO_USE_SSL || false,
-  accessKey: config.MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: config.MINIO_SECRET_KEY || 'minioadmin',
-});
 
 interface UploadRequest {
   ownerType: 'patient' | 'appointment' | 'note' | 'professional' | 'system';
@@ -86,35 +76,14 @@ const upload = multer({
 
 export class FileController {
   /**
-   * Initialize MinIO bucket if not exists
+   * Initialize storage bucket if not exists
    */
   static async initializeBucket() {
     try {
-      const bucketName = config.MINIO_BUCKET_NAME || 'apsicologia-files';
-      const exists = await minioClient.bucketExists(bucketName);
-      
-      if (!exists) {
-        await minioClient.makeBucket(bucketName, 'us-east-1');
-        logger.info(`Created MinIO bucket: ${bucketName}`);
-        
-        // Set bucket policy for public access to public files
-        const policy = {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: '*',
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${bucketName}/public/*`],
-            },
-          ],
-        };
-        
-        await minioClient.setBucketPolicy(bucketName, JSON.stringify(policy));
-        logger.info(`Set bucket policy for: ${bucketName}`);
-      }
+      await storageService.initializeBucket();
+      logger.info('Storage bucket initialized successfully');
     } catch (error) {
-      logger.error('MinIO bucket initialization error:', error);
+      logger.error('Storage bucket initialization error:', error);
     }
   }
 
@@ -250,17 +219,18 @@ export class FileController {
       // Process images
       const processedFiles = await FileController.processImage(file.buffer, file.mimetype);
 
-      // Upload to MinIO
-      const bucketName = config.MINIO_BUCKET_NAME || 'apsicologia-files';
+      // Upload to storage
       const uploadPromises: Promise<any>[] = [];
 
       // Upload original file
       uploadPromises.push(
-        minioClient.putObject(bucketName, objectKey, processedFiles.original, file.size, {
-          'Content-Type': file.mimetype,
-          'X-Amz-Meta-Original-Name': file.originalname,
-          'X-Amz-Meta-Uploaded-By': authUser._id.toString(),
-          'X-Amz-Meta-Upload-Date': new Date().toISOString(),
+        storageService.uploadFile(objectKey, processedFiles.original, {
+          contentType: file.mimetype,
+          metadata: {
+            originalName: file.originalname,
+            uploadedBy: authUser._id.toString(),
+            uploadDate: new Date().toISOString(),
+          },
         })
       );
 
@@ -271,8 +241,8 @@ export class FileController {
       if (processedFiles.thumbnail) {
         thumbnailPath = objectKey.replace(fileExtension, '_thumb.jpg');
         uploadPromises.push(
-          minioClient.putObject(bucketName, thumbnailPath, processedFiles.thumbnail, processedFiles.thumbnail.length, {
-            'Content-Type': 'image/jpeg',
+          storageService.uploadFile(thumbnailPath, processedFiles.thumbnail, {
+            contentType: 'image/jpeg',
           })
         );
       }
@@ -280,8 +250,8 @@ export class FileController {
       if (processedFiles.optimized && processedFiles.optimized.length < file.size * 0.8) {
         optimizedPath = objectKey.replace(fileExtension, '_opt.jpg');
         uploadPromises.push(
-          minioClient.putObject(bucketName, optimizedPath, processedFiles.optimized, processedFiles.optimized.length, {
-            'Content-Type': 'image/jpeg',
+          storageService.uploadFile(optimizedPath, processedFiles.optimized, {
+            contentType: 'image/jpeg',
           })
         );
       }
@@ -296,9 +266,9 @@ export class FileController {
         mimeType: file.mimetype,
         fileExtension: fileExtension,
         fileSize: file.size,
-        storageProvider: 'minio',
+        storageProvider: storageService.getProvider(),
         storagePath: objectKey,
-        bucketName,
+        bucketName: storageService.getBucketName(),
         checksum,
         checksumAlgorithm: 'sha256',
         ownerId: uploadData.ownerId ? new Types.ObjectId(uploadData.ownerId) : new Types.ObjectId(),
@@ -711,10 +681,9 @@ export class FileController {
       }
 
       // Generate presigned URL (valid for 1 hour)
-      const presignedUrl = await minioClient.presignedGetObject(
-        file.bucketName || 'apsicologia-files',
+      const presignedUrl = await storageService.getPresignedUrl(
         objectPath,
-        60 * 60 // 1 hour expiry
+        3600 // 1 hour expiry
       );
 
       // Update download count
@@ -841,7 +810,7 @@ export class FileController {
   }
 
   /**
-   * Delete file (soft delete + MinIO cleanup)
+   * Delete file (soft delete + storage cleanup)
    */
   static async deleteFile(req: Request, res: Response, next: NextFunction) {
     try {
@@ -871,16 +840,16 @@ export class FileController {
       }
 
       if (permanent === 'true' && authUser.role === 'admin') {
-        // Permanent deletion - remove from MinIO and database
+        // Permanent deletion - remove from storage and database
         try {
-          await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.storagePath);
+          await storageService.deleteFile(file.storagePath);
           
           // Remove thumbnail and optimized versions
           if (file.mediaMetadata?.thumbnailPath) {
-            await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.mediaMetadata.thumbnailPath);
+            await storageService.deleteFile(file.mediaMetadata.thumbnailPath);
           }
-        } catch (minioError) {
-          logger.error('MinIO file removal error:', minioError);
+        } catch (storageError) {
+          logger.error('Storage file removal error:', storageError);
         }
 
         await File.findByIdAndDelete(fileId);
@@ -1097,10 +1066,10 @@ export class FileController {
         try {
           if (permanent) {
             // Permanent deletion
-            await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.storagePath);
+            await storageService.deleteFile(file.storagePath);
             
             if (file.mediaMetadata?.thumbnailPath) {
-              await minioClient.removeObject(file.bucketName || 'apsicologia-files', file.mediaMetadata.thumbnailPath);
+              await storageService.deleteFile(file.mediaMetadata.thumbnailPath);
             }
 
             await File.findByIdAndDelete(file._id);

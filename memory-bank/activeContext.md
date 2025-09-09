@@ -21,7 +21,7 @@
 - **Payment System**: Modelo Payment completo con múltiples métodos, reembolsos, fees
 - **Form System**: FormSchema y FormResponse para cuestionarios dinámicos
 - **Notes System**: Modelo Note con control de versiones y firmas
-- **File System**: Modelo File para gestión de archivos con MinIO
+- **File System**: Modelo File para gestión de archivos con Cloudflare R2
 - **Audit System**: AuditLog para tracking completo de acciones
 
 ### ✅ API Endpoints Implemented

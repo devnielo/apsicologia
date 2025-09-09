@@ -77,7 +77,6 @@ En lugar de scripts automáticos, usa la interfaz web para:
 - **API**: http://localhost:3001
 - **Panel de Administración**: http://localhost:3000/admin
 - **Gestión de Pacientes**: http://localhost:3000/admin/patients
-- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin123)
 
 ## 🧪 Casos de Prueba Recomendados
 

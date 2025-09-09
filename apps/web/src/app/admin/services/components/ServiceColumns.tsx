@@ -34,21 +34,26 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
           const service = row.original;
           return (
             <div className="flex items-center space-x-3">
-              {service.color && (
+              {service.imageUrl ? (
+                <div className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0">
+                  <img
+                    src={service.imageUrl}
+                    alt={service.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : service.color ? (
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: service.color }}
                 />
+              ) : (
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-300" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-foreground truncate">
                   {service.name}
                 </div>
-                {service.description && (
-                  <div className="text-sm text-muted-foreground truncate">
-                    {service.description}
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -92,8 +97,8 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
         header: 'Precio',
         cell: ({ row }) => {
           const service = row.original;
-          const finalPrice = service.priceDetails.discountedPrice || service.price;
-          const hasDiscount = service.priceDetails.discountedPrice && 
+          const finalPrice = service.priceDetails?.discountedPrice || service.price;
+          const hasDiscount = service.priceDetails?.discountedPrice && 
                              service.priceDetails.discountedPrice < service.price;
           
           return (
@@ -102,7 +107,7 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
               <div className="flex flex-col">
                 {hasDiscount ? (
                   <>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-success">
                       {finalPrice.toFixed(2)} {service.currency}
                     </span>
                     <span className="text-xs text-muted-foreground line-through">
@@ -141,16 +146,16 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
               </div>
               <div className="flex gap-1">
                 {service.isPubliclyBookable ? (
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+                  <Badge variant="outline" className="text-xs text-success border-success/20">
                     Público
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                  <Badge variant="outline" className="text-xs text-warning border-warning/20">
                     Restringido
                   </Badge>
                 )}
                 {service.requiresApproval && (
-                  <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">
+                  <Badge variant="outline" className="text-xs text-primary border-primary/20">
                     Aprobación
                   </Badge>
                 )}
@@ -191,7 +196,7 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
               </div>
               {stats.averageRating && (
                 <div className="flex items-center gap-1">
-                  <span className="text-yellow-500">★</span>
+                  <span className="text-warning">★</span>
                   <span>{stats.averageRating.toFixed(1)}</span>
                 </div>
               )}
@@ -212,8 +217,8 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
               className={cn(
                 "font-normal",
                 isActive 
-                  ? "bg-green-100 text-green-800 hover:bg-green-200" 
-                  : "bg-gray-100 text-gray-600"
+                  ? "bg-success/10 text-success hover:bg-success/20" 
+                  : "bg-muted text-muted-foreground"
               )}
             >
               {isActive ? 'Activo' : 'Inactivo'}
@@ -253,11 +258,35 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
         header: 'Fecha de creación',
         cell: ({ getValue }) => {
           const date = getValue() as Date;
-          return (
-            <div className="text-sm text-muted-foreground">
-              {format(new Date(date), "dd/MM/yyyy", { locale: es })}
-            </div>
-          );
+          if (!date) {
+            return (
+              <div className="text-sm text-muted-foreground">
+                -
+              </div>
+            );
+          }
+          
+          try {
+            const dateObj = new Date(date);
+            if (isNaN(dateObj.getTime())) {
+              return (
+                <div className="text-sm text-muted-foreground">
+                  Fecha inválida
+                </div>
+              );
+            }
+            return (
+              <div className="text-sm text-muted-foreground">
+                {format(dateObj, "dd/MM/yyyy", { locale: es })}
+              </div>
+            );
+          } catch (error) {
+            return (
+              <div className="text-sm text-muted-foreground">
+                Error de fecha
+              </div>
+            );
+          }
         },
       },
       {
@@ -288,7 +317,7 @@ export function useServiceColumns({ onEdit, onDelete, onView }: UseServiceColumn
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => onDelete(service)}
-                  className="text-red-600 focus:text-red-600"
+                  className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Eliminar

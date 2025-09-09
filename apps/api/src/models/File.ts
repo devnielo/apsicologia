@@ -12,10 +12,10 @@ export interface IFileDocument extends Document {
   fileSize: number;
   
   // Storage information
-  storageProvider: 'local' | 'minio' | 's3' | 'gcp' | 'azure';
+  storageProvider: 'cloudflare-r2';
   storagePath: string;
-  storageUrl?: string;
-  bucketName?: string;
+  storageUrl: string;
+  bucketName: string;
   
   // File hashing and integrity
   checksum: string;
@@ -371,9 +371,9 @@ const FileSchema = new Schema<IFileDocument>(
     // Storage information
     storageProvider: {
       type: String,
-      enum: ['local', 'minio', 's3', 'gcp', 'azure'],
+      enum: ['cloudflare-r2'],
       required: true,
-      default: 'minio',
+      default: 'cloudflare-r2',
     },
     storagePath: {
       type: String,
@@ -382,10 +382,12 @@ const FileSchema = new Schema<IFileDocument>(
     },
     storageUrl: {
       type: String,
+      required: [true, 'Storage URL is required'],
       trim: true,
     },
     bucketName: {
       type: String,
+      required: [true, 'Bucket name is required'],
       trim: true,
     },
     

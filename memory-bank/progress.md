@@ -1,6 +1,6 @@
 # Progress Log - apsicologia Platform
 
-**Última actualización:** 7 de septiembre, 2025 - 09:15 AM
+**Última actualización:** 9 de septiembre, 2025 - 08:45 AM
 
 ## 🎯 Estado Actual: SISTEMA COMPLETO FRONTEND + BACKEND OPERATIVO
 
@@ -9,7 +9,8 @@
 #### **1. Arquitectura Base (100% Completado)**
 - ✅ Configuración de monorepo con pnpm workspaces
 - ✅ Estructura de carpetas backend/frontend/shared
-- ✅ Docker Compose con todos los servicios
+- ✅ Cloudflare R2 storage con API S3 compatible
+- ✅ Sistema completo de upload/download de archivos
 - ✅ TypeScript configurado en todo el proyecto
 - ✅ ESLint + Prettier configurados
 
@@ -18,7 +19,7 @@
 **Base Infrastructure:**
 - ✅ Express.js con TypeScript
 - ✅ MongoDB conectado correctamente
-- ✅ Redis para cache y sessions
+- ✅ Cloudflare R2 para almacenamiento de archivos
 - ✅ Configuración de variables de entorno
 - ✅ Logging estructurado con pino
 - ✅ Middleware de error handling
@@ -431,7 +432,7 @@ interface Patient {
    - Generación automática de slots disponibles
 
 3. **Servicios Externos (Prioridad Media)**
-   - Configuración de MinIO para archivos
+   - Configuración de Cloudflare R2 para archivos
    - Integración de email SMTP para notificaciones
    - Configuración de Jitsi Meet para videollamadas
 
@@ -512,7 +513,7 @@ La plataforma ahora cuenta con:
 
 **Preparada para continuar con:**
 - Integrar calendario interactivo con FullCalendar
-- Agregar servicios externos (MinIO, SMTP, Jitsi)
+- Agregar servicios externos (SMTP, Jitsi)
 - Desarrollar features avanzadas específicas del dominio médico
 
 **¡El módulo de pacientes está perfeccionado y listo para producción! 🚀**
@@ -1040,3 +1041,165 @@ const handleCancel = () => {
 - ✅ **UX mejorada:** Cancelación intuitiva y visualización correcta de datos
 
 **🎯 Estado:** RoomsSection ahora funciona perfectamente con el patrón establecido del resto de la aplicación
+
+---
+
+## 🔧 SESIÓN 9 DE SEPTIEMBRE 2025: SERVICE VALIDATION & CACHE MANAGEMENT
+
+### **Problema Inicial:**
+- ❌ Error de validación en campo `color` del Service model
+- ❌ AuditLog creation fallos por formato incorrecto de changes
+- ❌ Frontend no actualizaba datos después de guardar servicios
+- ❌ Error "Service ID is required" en ServiceSettingsSection
+- ❌ Error de validación ObjectId para `intakeFormId` vacío
+
+### **🛠 CORRECCIONES IMPLEMENTADAS:**
+
+#### **1. Service Model - Validación de Color (Service.ts)**
+```typescript
+// ANTES: Rechazaba valores vacíos
+color: {
+  type: String,
+  validate: {
+    validator: function(v: string) {
+      return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v);
+    },
+    message: 'Color must be a valid hex color code',
+  },
+}
+
+// DESPUÉS: Permite valores vacíos/null
+color: {
+  type: String,
+  validate: {
+    validator: function(v: string) {
+      if (!v) return true; // Allow empty/null values
+      return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v);
+    },
+    message: 'Color must be a valid hex color code',
+  },
+}
+```
+
+#### **2. Service Model - Validación de IntakeFormId**
+```typescript
+intakeFormId: {
+  type: Schema.Types.ObjectId,
+  ref: 'FormSchema',
+  default: null,
+  validate: {
+    validator: function(v: any) {
+      // Allow null, undefined, or valid ObjectIds, but not empty strings
+      return v === null || v === undefined || mongoose.Types.ObjectId.isValid(v);
+    },
+    message: 'Invalid intake form ID',
+  },
+}
+```
+
+#### **3. Frontend - Cache Invalidation en Service Edit (page.tsx)**
+```typescript
+// ANTES: Sin invalidación de cache
+const updateMutation = useMutation({
+  mutationFn: async (data: Partial<ServiceFormData>) => {
+    await api.services.update(params.id, data);
+  },
+});
+
+// DESPUÉS: Con invalidación y feedback
+const updateMutation = useMutation({
+  mutationFn: async (data: Partial<ServiceFormData>) => {
+    await api.services.update(params.id, data);
+  },
+  onSuccess: () => {
+    toast.success('Servicio actualizado correctamente');
+    // Invalidate both specific service and services list
+    queryClient.invalidateQueries({ queryKey: ['service', params.id] });
+    queryClient.invalidateQueries({ queryKey: ['services'] });
+    setEditingSection(null);
+    setEditData({});
+  },
+  onError: (error: any) => {
+    console.error('Error updating service:', error);
+    toast.error(error?.response?.data?.message || 'Error al actualizar el servicio');
+  },
+});
+```
+
+#### **4. ServiceSettingsSection - Props y Data Sanitization**
+```typescript
+// AGREGADO: serviceId como prop requerido
+interface ServiceSettingsSectionProps {
+  service?: Service;
+  serviceId: string; // ← NUEVO
+  // ... otros props
+}
+
+// AGREGADO: Sanitización de datos ObjectId
+const saveMutation = useMutation({
+  mutationFn: async (data: Partial<ServiceFormData>) => {
+    if (!serviceId) throw new Error('Service ID is required');
+    
+    // Sanitize data - convert empty strings to undefined for ObjectId fields
+    const sanitizedData = { ...data };
+    if (sanitizedData.settings?.intakeFormId === '') {
+      sanitizedData.settings.intakeFormId = undefined;
+    }
+    
+    const response = await api.services.update(serviceId, sanitizedData);
+    return response.data;
+  },
+  // ... success/error handlers
+});
+```
+
+### **✅ RESULTADOS OBTENIDOS:**
+
+#### **Backend Fixes:**
+- ✅ **Color validation:** Ahora acepta valores vacíos/null sin errores
+- ✅ **ObjectId validation:** intakeFormId maneja correctamente strings vacíos
+- ✅ **Server restart:** Cambios aplicados correctamente
+
+#### **Frontend Improvements:**
+- ✅ **Cache invalidation:** Datos se actualizan automáticamente después de guardar
+- ✅ **Service ID props:** ServiceSettingsSection recibe serviceId correctamente
+- ✅ **Data sanitization:** Strings vacíos se convierten a undefined para ObjectIds
+- ✅ **Error handling:** Mensajes de toast informativos para usuario
+- ✅ **State management:** Limpieza automática de estado de edición
+
+#### **CRUD Operations:**
+- ✅ **Create service:** Invalidación correcta + redirección
+- ✅ **Update service:** Invalidación + feedback + reset de estado
+- ✅ **Delete service:** Ya funcionaba correctamente
+- ✅ **List services:** Se actualiza automáticamente tras operaciones
+
+### **🧪 TESTING COMPLETADO:**
+- ✅ **Validación color:** Acepta valores vacíos y hex válidos
+- ✅ **Tab configuración:** Guarda sin errores de Service ID
+- ✅ **IntakeFormId:** Manejo correcto de valores vacíos
+- ✅ **Cache refresh:** Datos se actualizan inmediatamente tras guardar
+- ✅ **Error feedback:** Mensajes claros al usuario
+
+### **📊 PATRÓN ESTABLECIDO:**
+
+**Buenas Prácticas Implementadas:**
+```typescript
+// 1. Invalidación de cache tras mutaciones
+queryClient.invalidateQueries({ queryKey: ['service', id] });
+queryClient.invalidateQueries({ queryKey: ['services'] });
+
+// 2. Sanitización de datos ObjectId
+if (data.field === '') data.field = undefined;
+
+// 3. Props consistency
+interface ComponentProps {
+  service?: Service;
+  serviceId: string; // ID siempre disponible
+}
+
+// 4. Error handling completo
+onSuccess: () => { toast.success + invalidate + cleanup }
+onError: (error) => { toast.error + log }
+```
+
+**🎯 Estado:** Service CRUD completamente funcional con actualizaciones automáticas y validaciones robustas

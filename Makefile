@@ -93,4 +93,3 @@ credentials: ## Mostrar credenciales de desarrollo
 	@echo "🌐 URLs:"
 	@echo "   Frontend: http://localhost:3000"
 	@echo "   API: http://localhost:3001"
-	@echo "   MinIO Console: http://localhost:9001 (minioadmin/minioadmin123)"

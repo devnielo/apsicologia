@@ -29,7 +29,7 @@ Plataforma integral autoalojada para la empresa privada "apsicologia" que replic
 - **Gráficas:** Recharts
 - **Editor:** Tiptap
 - **Formularios dinámicos:** react-jsonschema-form
-- **Archivos:** MinIO (S3 self-hosted)
+- **Archivos:** Cloudflare R2 (S3-compatible)
 - **Videollamadas:** Jitsi Meet (self-hosted)
 - **i18n:** next-intl (ES por defecto)
 - **Fechas:** date-fns + date-fns-tz
@@ -65,7 +65,7 @@ Plataforma integral autoalojada para la empresa privada "apsicologia" que replic
 - **Paciente:** Portal personal, reservas, pagos, formularios, descargas
 
 ## Infraestructura
-- **Contenedores:** Docker Compose (api, web, mongo, redis, minio, jitsi opcional, nginx)
+- **Contenedores:** Docker Compose (api, web, mongo, redis, jitsi opcional, nginx)
 - **Configuración:** dotenv para secretos
 - **Proxy:** Nginx reverse proxy con HTTPS
 - **Analítica:** Plausible (self-hosted)

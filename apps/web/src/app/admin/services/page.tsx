@@ -158,13 +158,14 @@ export default function ServicesPage() {
       console.log('🔄 Fetching services with filters:', apiFilters);
       const response = await api.services.list(apiFilters);
       console.log('📊 Services response:', response.data);
-      return response.data;
+      // Handle the nested response structure
+      return (response.data as any).json || response.data;
     },
     placeholderData: (previousData) => previousData,
   });
 
-  const services = (servicesData as any)?.services || (servicesData as any)?.data || [];
-  const totalServices = (servicesData as any)?.total || (servicesData as any)?.pagination?.total || 0;
+  const services = servicesData?.data?.services || servicesData?.services || [];
+  const totalServices = servicesData?.data?.pagination?.totalServices || servicesData?.pagination?.totalServices || 0;
   const totalPages = Math.ceil(totalServices / pagination.pageSize);
 
   // Update pagination when data changes
@@ -379,7 +380,7 @@ export default function ServicesPage() {
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>

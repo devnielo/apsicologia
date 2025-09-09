@@ -85,8 +85,8 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
     );
   }
 
-  const finalPrice = service.priceDetails.discountedPrice || service.price;
-  const hasDiscount = service.priceDetails.discountedPrice && 
+  const finalPrice = service.priceDetails?.discountedPrice || service.price;
+  const hasDiscount = service.priceDetails?.discountedPrice && 
                      service.priceDetails.discountedPrice < service.price;
 
   return (
@@ -106,12 +106,22 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
 
           {/* Service Header */}
           <div className="flex items-start gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
-              style={{ backgroundColor: service.color || '#6B7280' }}
-            >
-              <Settings className="h-5 w-5 text-white" />
-            </div>
+            {service.imageUrl ? (
+              <div className="w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden">
+                <img
+                  src={service.imageUrl}
+                  alt={service.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div 
+                className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
+                style={{ backgroundColor: service.color || '#6B7280' }}
+              >
+                <Settings className="h-5 w-5 text-white" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-foreground text-sm truncate">
                 {service.name}
@@ -154,14 +164,14 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
                     "font-medium text-sm",
                     hasDiscount ? "line-through text-muted-foreground" : "text-foreground"
                   )}>
-                    €{service.price.toFixed(2)}
+                    €{(service.price || 0).toFixed(2)}
                   </span>
                 </div>
                 {hasDiscount && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Precio con descuento</span>
-                    <span className="font-medium text-sm text-green-600">
-                      €{finalPrice.toFixed(2)}
+                    <span className="font-medium text-sm text-success">
+                      €{(finalPrice || 0).toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -192,11 +202,11 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Buffer antes</span>
-                  <span className="text-sm text-foreground">{service.settings.bufferBefore}min</span>
+                  <span className="text-sm text-foreground">{service.settings?.bufferBefore || 0}min</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Buffer después</span>
-                  <span className="text-sm text-foreground">{service.settings.bufferAfter}min</span>
+                  <span className="text-sm text-foreground">{service.settings?.bufferAfter || 0}min</span>
                 </div>
               </div>
             </div>
@@ -242,9 +252,9 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Asignados</span>
                 <span className="text-sm text-foreground">
-                  {service.availableTo.length === 0 
+                  {(service.availableTo || []).length === 0 
                     ? 'Todos los profesionales' 
-                    : `${service.availableTo.length} profesional${service.availableTo.length !== 1 ? 'es' : ''}`
+                    : `${(service.availableTo || []).length} profesional${(service.availableTo || []).length !== 1 ? 'es' : ''}`
                   }
                 </span>
               </div>
@@ -261,21 +271,21 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Total reservas</span>
-                  <span className="text-sm text-foreground">{service.stats.totalBookings}</span>
+                  <span className="text-sm text-foreground">{service.stats?.totalBookings || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Completadas</span>
-                  <span className="text-sm text-foreground">{service.stats.completedBookings}</span>
+                  <span className="text-sm text-foreground">{service.stats?.completedBookings || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Canceladas</span>
-                  <span className="text-sm text-foreground">{service.stats.cancelledBookings}</span>
+                  <span className="text-sm text-foreground">{service.stats?.cancelledBookings || 0}</span>
                 </div>
-                {service.stats.averageRating && (
+                {service.stats?.averageRating && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Calificación</span>
                     <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <Star className="h-3 w-3 text-warning fill-current" />
                       <span className="text-sm text-foreground">
                         {service.stats.averageRating.toFixed(1)}
                       </span>
@@ -284,7 +294,7 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Ingresos totales</span>
-                  <span className="text-sm text-foreground">€{service.stats.totalRevenue.toFixed(2)}</span>
+                  <span className="text-sm text-foreground">€{(service.stats?.totalRevenue || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -321,13 +331,31 @@ export function ServiceSidebar({ service, isLoading, className }: ServiceSidebar
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Creado</span>
                   <span className="text-sm text-foreground">
-                    {format(new Date(service.createdAt), "dd/MM/yyyy", { locale: es })}
+                    {service.createdAt ? (
+                      (() => {
+                        try {
+                          const date = new Date(service.createdAt);
+                          return isNaN(date.getTime()) ? 'Fecha inválida' : format(date, "dd/MM/yyyy", { locale: es });
+                        } catch {
+                          return 'Fecha inválida';
+                        }
+                      })()
+                    ) : '-'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Actualizado</span>
                   <span className="text-sm text-foreground">
-                    {format(new Date(service.updatedAt), "dd/MM/yyyy", { locale: es })}
+                    {service.updatedAt ? (
+                      (() => {
+                        try {
+                          const date = new Date(service.updatedAt);
+                          return isNaN(date.getTime()) ? 'Fecha inválida' : format(date, "dd/MM/yyyy", { locale: es });
+                        } catch {
+                          return 'Fecha inválida';
+                        }
+                      })()
+                    ) : '-'}
                   </span>
                 </div>
               </div>

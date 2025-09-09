@@ -91,6 +91,8 @@ app.use(express.urlencoded({
 
 app.use(cookieParser());
 
+// Static file serving removed - using Cloudflare R2 for all file storage
+
 // Health check endpoint with service status
 app.get('/health', (req: Request, res: Response) => {
   const healthData = {

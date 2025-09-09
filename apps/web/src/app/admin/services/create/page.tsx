@@ -59,6 +59,7 @@ export default function CreateServicePage() {
     color: '#3B82F6',
     category: '',
     tags: [],
+    imageUrl: '',
     
     // Availability settings
     isActive: true,
@@ -260,7 +261,7 @@ export default function CreateServicePage() {
                   
                   {/* Editing indicator */}
                   {isEditing(tab.key) && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
                   )}
                 </button>
               ))}
